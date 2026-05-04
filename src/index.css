@@ -1,0 +1,104 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    body {
+        @apply bg-background text-text-primary antialiased selection:bg-brand/30;
+    }
+
+    /* High-density scrollbar */
+    ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        @apply bg-surface-secondary rounded-full;
+    }
+}
+
+/* @tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+@layer base {
+    * {
+        @apply border-gray-200;
+    }
+
+    body {
+        @apply bg-gray-50 text-gray-900 antialiased;
+        font-feature-settings: "ss02", "cv02", "cv03";
+    }
+
+   
+    html {
+        scroll-behavior: smooth;
+    }
+
+   
+    :focus-visible {
+        @apply outline-none ring-2 ring-blue-500 ring-offset-2 ring-offset-white;
+    }
+
+
+    ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+        @apply bg-gray-100 rounded-full;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        @apply bg-gray-300 rounded-full hover:bg-gray-400 transition-colors;
+    }
+}
+
+
+@layer utilities {
+    .scrollbar-hide {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+
+    .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+    }
+} */
+
+
+
+/* Mobile responsiveness for collapsible sidebar */
+@media (max-width: 768px) {
+  aside {
+    position: fixed !important;
+    z-index: 40 !important;
+    transform: translateX(0);
+    transition: transform 0.3s ease-in-out !important;
+  }
+  
+  aside.collapsed-mobile {
+    transform: translateX(-100%);
+  }
+  
+  main {
+    margin-left: 0 !important;
+  }
+  
+  /* Overlay when sidebar is open on mobile */
+  .sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 35;
+    display: none;
+  }
+  
+  .sidebar-overlay.active {
+    display: block;
+  }
+}
