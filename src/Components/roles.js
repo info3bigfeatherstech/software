@@ -1,10 +1,10 @@
 // src/Components/roles.js
 
 export const ROLES = {
-    OWNER: "owner",
+    SUPER_ADMIN: "Super Admin",
     ACCOUNTANT: "accountant",
-    SALES_MANAGER: "sales_manager",
-    INVENTORY_MANAGER: "inventory_manager",
+    BILLING_STAFF: "Billing Staff",
+    STOCK_LISTER: "Stock Lister",
     CASHIER: "cashier",
     WH_MANAGER: "wh_manager",
     SHOP_OWNER: "shop_owner",
@@ -15,25 +15,25 @@ export const ROLES = {
 // ─────────────────────────────────────────────────────────────────────────────
 export const CURRENT_USER = {
     role: ROLES.WH_MANAGER,   // OWNER | WH_MANAGER | SHOP_OWNER | CASHIER | etc.
-    locationId: 'WH-002',     // WH_MANAGER → 'WH-001'/'WH-002'  |  Shop roles → 'SHP-001' etc.
+    locationId: 'WH-001',     // WH_MANAGER → 'WH-001'/'WH-002'  |  Shop roles → 'SHP-001' etc.
 };
 
 // Role permissions for tabs (controls which tabs appear in sidebar)
 export const ROLE_PERMISSIONS = {
-    [ROLES.OWNER]: ["dashboard", "sales", "purchase", "inventory", "transfers", "warehouses", "parties", "reports", "settings"],
+    [ROLES.SUPER_ADMIN]: ["dashboard", "sales", "purchase", "inventory", "transfers", "warehouses", "parties", "reports", "settings"],
     [ROLES.ACCOUNTANT]: ["dashboard", "sales", "purchase", "parties", "reports"],
-    [ROLES.SALES_MANAGER]: ["dashboard", "sales", "parties", "transfers"],
-    [ROLES.INVENTORY_MANAGER]: ["dashboard", "inventory", "transfers"],
+    [ROLES.BILLING_STAFF]: ["dashboard", "sales", "parties", "transfers"],
+    [ROLES.STOCK_LISTER]: ["dashboard", "inventory", "transfers"],
     [ROLES.CASHIER]: ["dashboard", "sales"],
-    [ROLES.WH_MANAGER]: ["dashboard", "warehouses", "transfers", "inventory", "purchase", "parties", "settings"],
+    [ROLES.WH_MANAGER]: ["dashboard", "warehouses", "transfers", "inventory", "purchase", "parties", "settings","vendors","reports","sales"],
     [ROLES.SHOP_OWNER]: ["dashboard", "sales", "purchase", "inventory", "transfers", "parties", "reports"],
 };
 
 export const ROLE_LABELS = {
-    [ROLES.OWNER]: "Super Admin / Owner",
+    [ROLES.SUPER_ADMIN]: "Super Admin",
     [ROLES.ACCOUNTANT]: "Accountant",
-    [ROLES.SALES_MANAGER]: "Sales Manager",
-    [ROLES.INVENTORY_MANAGER]: "Inventory Manager",
+    [ROLES.BILLING_STAFF]: "Billing Staff",
+    [ROLES.STOCK_LISTER]: "Stock Lister",
     [ROLES.CASHIER]: "Cashier / Billing Staff",
     [ROLES.WH_MANAGER]: "Warehouse Manager",
     [ROLES.SHOP_OWNER]: "Shop Owner",
