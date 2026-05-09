@@ -1,228 +1,97 @@
 // TABS/SETTINGS/VendorsTab.jsx
-import React, { useState, useEffect } from "react";
-import { Plus } from "lucide-react";
+import React, { useEffect } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { Plus, Filter, X } from "lucide-react";
+import { useGetVendorsQuery } from "../../../REDUX_FEATURES/REDUX_SLICES/Vendor_api/vendorApi";
+import {
+  openAddForm,
+  closeAddForm,
+  openEditForm,
+  closeEditForm,
+  openDetailsModal,
+  closeDetailsModal,
+  updateFormData,
+  setFormErrors,
+  clearFormErrors,
+  setSearch,
+  setBusinessTypeFilter,
+  setCityFilter,
+  setActiveFilter,
+  setCurrentPage,
+  setPageSize,
+  resetFilters,
+} from "../../../REDUX_FEATURES/REDUX_SLICES/Vendor_api/vendorSlice";
 import VendorTable from "./VendorTable";
 import VendorAddForm from "./VendorAddForm";
 import VendorEditForm from "./VendorEditForm";
 import VendorDetailsModal from "./VendorDetailsModal";
-
-const STORAGE_KEY = "vyapar_vendors";
-
-const INITIAL_VENDORS = [
-  {
-    vendor_id: "VEN-001",
-    company_name: "ABC Traders",
-    contact_person: "Rajesh Kumar",
-    phone: "9876543210",
-    whatsapp: "9876543210",
-    email: "rajesh@abctraders.com",
-    gst_number: "27AAAAA1234A1Z",
-    vendor_type: "Raw Material",
-    supply_city: "Mumbai",
-    business_type: "WHOLESALER",
-    city: "Mumbai",
-    address: "123, Market Street",
-    is_active: true,
-    remarks: "Regular supplier",
-    outstanding: 25000,
-    total_purchased: 500000,
-    created_at: "2024-01-15",
-    updated_at: "2024-01-15"
-  },
-  {
-    vendor_id: "VEN-002",
-    company_name: "XYZ Enterprises",
-    contact_person: "Priya Sharma",
-    phone: "9988776655",
-    whatsapp: "9988776655",
-    email: "priya@xyz.com",
-    gst_number: "27BBBBB5678B2Y",
-    vendor_type: "Packaging",
-    supply_city: "Delhi",
-    business_type: "DISTRIBUTOR",
-    city: "Delhi",
-    address: "456, Industrial Area",
-    is_active: true,
-    remarks: "",
-    outstanding: 0,
-    total_purchased: 350000,
-    created_at: "2024-02-20",
-    updated_at: "2024-02-20"
-  },
-  {
-    vendor_id: "VEN-003",
-    company_name: "PQR Suppliers",
-    contact_person: "Amit Verma",
-    phone: "8899776655",
-    whatsapp: "",
-    email: "amit@pqr.com",
-    gst_number: "27CCCCC9012C3X",
-    vendor_type: "Electronics",
-    supply_city: "Bangalore",
-    business_type: "RETAILER",
-    city: "Bangalore",
-    address: "789, Tech Park",
-    is_active: false,
-    remarks: "Inactive due to quality issues",
-    outstanding: 5000,
-    total_purchased: 120000,
-    created_at: "2024-03-10",
-    updated_at: "2024-03-10"
-  }
-];
-
-const loadVendors = () => {
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored) return JSON.parse(stored);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_VENDORS));
-  return INITIAL_VENDORS;
-};
-
-const saveVendors = (data) => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-};
-
-const BLANK_VENDOR = {
-  company_name: "",
-  contact_person: "",
-  phone: "",
-  whatsapp: "",
-  email: "",
-  gst_number: "",
-  vendor_type: "",
-  supply_city: "",
-  business_type: "",
-  city: "",
-  address: "",
-  is_active: true,
-  remarks: ""
-};
+import { BUSINESS_TYPES, PAGE_SIZE_OPTIONS } from "../../../REDUX_FEATURES/REDUX_SLICES/Vendor_api/vendorConstants";
 
 export default function VendorsTab() {
-  const [vendors, setVendors] = useState([]);
-  const [search, setSearch] = useState("");
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [showEditForm, setShowEditForm] = useState(false);
-  const [showDetailsModal, setShowDetailsModal] = useState(false);
-  const [selectedVendor, setSelectedVendor] = useState(null);
-  const [formData, setFormData] = useState(BLANK_VENDOR);
+  const dispatch = useDispatch();
+  
+  // Redux State
+  const {
+    showAddForm,
+    showEditForm,
+    showDetailsModal,
+    selectedVendor,
+    formData,
+    formErrors,
+    search,
+    businessTypeFilter,
+    cityFilter,
+    activeFilter,
+    currentPage,
+    pageSize,
+  } = useSelector((state) => state.vendor);
 
-  useEffect(() => {
-    setVendors(loadVendors());
-  }, []);
-
-  const filteredVendors = vendors.filter(vendor => {
-    if (!search) return true;
-    const searchLower = search.toLowerCase();
-    return (
-      vendor.company_name?.toLowerCase().includes(searchLower) ||
-      vendor.phone?.includes(search) ||
-      vendor.city?.toLowerCase().includes(searchLower) ||
-      vendor.vendor_id?.toLowerCase().includes(searchLower)
-    );
+  // Fetch vendors with filters
+  const {
+    data: vendorsData,
+    isLoading,
+    isFetching,
+    error,
+    refetch,
+  } = useGetVendorsQuery({
+    page: currentPage,
+    limit: pageSize,
+    search: search,
+    business_type: businessTypeFilter,
+    city: cityFilter,
+    is_active: activeFilter,
   });
 
+  const vendors = vendorsData?.vendors || [];
+  const meta = vendorsData?.meta;
+  const totalPages = meta?.totalPages || 1;
+  const totalItems = meta?.total || 0;
+
+  // Stats calculations
   const stats = {
-    total: vendors.length,
+    total: totalItems,
     active: vendors.filter(v => v.is_active === true).length,
-    outstanding: vendors.reduce((sum, v) => sum + (v.outstanding || 0), 0),
-    totalBusiness: vendors.reduce((sum, v) => sum + (v.total_purchased || 0), 0)
+    outstanding: 0, // Will come from backend if available
+    totalBusiness: 0, // Will come from backend if available
   };
 
-  const handleAddVendor = () => {
-    if (!formData.company_name || !formData.phone) {
-      alert("Company Name and Phone are required!");
-      return;
-    }
-
-    const allVendors = loadVendors();
-    const phoneExists = allVendors.some(v => v.phone === formData.phone);
-    if (phoneExists) {
-      alert("Phone number already exists!");
-      return;
-    }
-
-    const newVendor = {
-      ...formData,
-      vendor_id: `VEN-${Date.now().toString().slice(-6)}`,
-      outstanding: 0,
-      total_purchased: 0,
-      created_at: new Date().toISOString().split("T")[0],
-      updated_at: new Date().toISOString().split("T")[0]
-    };
-
-    const updated = [...allVendors, newVendor];
-    saveVendors(updated);
-    setVendors(updated);
-    setShowAddForm(false);
-    setFormData(BLANK_VENDOR);
-    alert("✅ Vendor added successfully!");
+  const handleAddSuccess = () => {
+    dispatch(closeAddForm());
+    dispatch(clearFormErrors());
+    refetch();
   };
 
-  const handleEditVendor = () => {
-    if (!formData.company_name || !formData.phone) {
-      alert("Company Name and Phone are required!");
-      return;
-    }
-
-    const allVendors = loadVendors();
-    const phoneExists = allVendors.some(v => v.phone === formData.phone && v.vendor_id !== selectedVendor?.vendor_id);
-    
-    if (phoneExists) {
-      alert("Phone number already exists for another vendor!");
-      return;
-    }
-
-    const updated = allVendors.map(v => 
-      v.vendor_id === selectedVendor.vendor_id 
-        ? { ...formData, vendor_id: v.vendor_id, created_at: v.created_at, updated_at: new Date().toISOString().split("T")[0], outstanding: v.outstanding, total_purchased: v.total_purchased }
-        : v
-    );
-
-    saveVendors(updated);
-    setVendors(updated);
-    setShowEditForm(false);
-    setSelectedVendor(null);
-    setFormData(BLANK_VENDOR);
-    alert("✅ Vendor updated successfully!");
+  const handleEditSuccess = () => {
+    dispatch(closeEditForm());
+    dispatch(clearFormErrors());
+    refetch();
   };
 
-  const handleToggleActive = (vendor) => {
-    const allVendors = loadVendors();
-    const updated = allVendors.map(v =>
-      v.vendor_id === vendor.vendor_id
-        ? { ...v, is_active: !v.is_active, updated_at: new Date().toISOString().split("T")[0] }
-        : v
-    );
-    saveVendors(updated);
-    setVendors(updated);
-    alert(vendor.is_active ? "Vendor deactivated" : "Vendor activated");
+  const handleToggleActive = () => {
+    refetch(); // Refresh the list after toggle
   };
 
-  const openEditForm = (vendor) => {
-    setSelectedVendor(vendor);
-    setFormData({
-      company_name: vendor.company_name,
-      contact_person: vendor.contact_person || "",
-      phone: vendor.phone,
-      whatsapp: vendor.whatsapp || "",
-      email: vendor.email || "",
-      gst_number: vendor.gst_number || "",
-      vendor_type: vendor.vendor_type || "",
-      supply_city: vendor.supply_city || "",
-      business_type: vendor.business_type || "",
-      city: vendor.city || "",
-      address: vendor.address || "",
-      is_active: vendor.is_active,
-      remarks: vendor.remarks || ""
-    });
-    setShowEditForm(true);
-  };
-
-  const openDetailsModal = (vendor) => {
-    setSelectedVendor(vendor);
-    setShowDetailsModal(true);
-  };
+  const uniqueCities = [...new Set(vendors.map(v => v.city).filter(Boolean))];
 
   return (
     <div className="space-y-5">
@@ -233,7 +102,7 @@ export default function VendorsTab() {
           <p className="text-xs text-gray-400 mt-0.5">Manage all vendor/supplier records, GSTIN, and outstanding balances</p>
         </div>
         <button
-          onClick={() => { setShowAddForm(true); setFormData(BLANK_VENDOR); }}
+          onClick={() => dispatch(openAddForm())}
           className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 cursor-pointer flex items-center gap-2"
         >
           <Plus size={16} /> Add Vendor
@@ -252,37 +121,135 @@ export default function VendorsTab() {
         </div>
         <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
           <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Total Outstanding</p>
-          <p className="text-2xl font-bold text-red-600">₹{(stats.outstanding / 1000).toFixed(0)}K</p>
+          <p className="text-2xl font-bold text-red-600">₹0</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
           <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Total Business</p>
-          <p className="text-2xl font-bold text-blue-600">₹{(stats.totalBusiness / 100000).toFixed(1)}L</p>
+          <p className="text-2xl font-bold text-blue-600">₹0</p>
         </div>
       </div>
 
-      {/* Search */}
-      <input
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search vendors by name, vendor ID, city, or phone..."
-        className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm"
-      />
+      {/* Search and Filters Bar */}
+      <div className="bg-white text-gray-700 rounded-xl border border-gray-200 p-4 space-y-3">
+        <div className="flex gap-3">
+          <div className="flex-1">
+            <input
+              value={search}
+              onChange={(e) => dispatch(setSearch(e.target.value))}
+              placeholder="Search by name, vendor ID, city, or phone..."
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm"
+            />
+          </div>
+          <button
+            onClick={() => dispatch(resetFilters())}
+            className="px-4 py-2 border border-gray-300 cursor-pointer rounded-lg text-sm hover:bg-gray-50 flex items-center gap-2"
+          >
+            <X size={14} /> Clear Filters
+          </button>
+        </div>
+
+        <div className="flex gap-3 flex-wrap text-gray-700">
+          {/* Business Type Filter */}
+          <select
+            value={businessTypeFilter}
+            onChange={(e) => dispatch(setBusinessTypeFilter(e.target.value))}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm cursor-pointer"
+          >
+            <option value="" >All Business Types</option>
+            {BUSINESS_TYPES.map(type => (
+              <option  key={type.value} value={type.value}>{type.label}</option>
+            ))}
+          </select>
+
+          {/* City Filter */}
+          <select
+            value={cityFilter}
+            onChange={(e) => dispatch(setCityFilter(e.target.value))}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+          >
+            <option value="">All Cities</option>
+            {uniqueCities.map(city => (
+              <option key={city} value={city}>{city}</option>
+            ))}
+          </select>
+
+          {/* Status Filter */}
+          <select
+            value={activeFilter}
+            onChange={(e) => dispatch(setActiveFilter(e.target.value))}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm cursor-pointer"
+          >
+            <option value="">All Status</option>
+            <option value="true">Active</option>
+            <option value="false">Inactive</option>
+          </select>
+
+          {/* Page Size Selector */}
+          <select
+            value={pageSize}
+            onChange={(e) => dispatch(setPageSize(Number(e.target.value)))}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm ml-auto"
+          >
+            {PAGE_SIZE_OPTIONS.map(size => (
+              <option key={size} value={size}>{size} per page</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Error Display */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-600 text-sm">Error loading vendors: {error.data?.message || "Please try again"}</p>
+        </div>
+      )}
 
       {/* Table */}
       <VendorTable
-        vendors={filteredVendors}
-        onEdit={openEditForm}
-        onView={openDetailsModal}
+        vendors={vendors}
+        onEdit={(vendor) => dispatch(openEditForm(vendor))}
+        onView={(vendor) => dispatch(openDetailsModal(vendor))}
         onToggleActive={handleToggleActive}
+        isLoading={isLoading || isFetching}
       />
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex justify-between items-center bg-white rounded-xl border border-gray-200 px-4 py-3">
+          <div className="text-sm text-gray-600">
+            Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalItems)} of {totalItems} vendors
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => dispatch(setCurrentPage(currentPage - 1))}
+              disabled={currentPage === 1}
+              className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+            >
+              Previous
+            </button>
+            <span className="px-3 py-1 text-sm">
+              Page {currentPage} of {totalPages}
+            </span>
+            <button
+              onClick={() => dispatch(setCurrentPage(currentPage + 1))}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Add Form Modal */}
       {showAddForm && (
         <VendorAddForm
           formData={formData}
-          setFormData={setFormData}
-          onSave={handleAddVendor}
-          onCancel={() => { setShowAddForm(false); setFormData(BLANK_VENDOR); }}
+          setFormData={(data) => dispatch(updateFormData(data))}
+          onSave={handleAddSuccess}
+          onCancel={() => dispatch(closeAddForm())}
+          formErrors={formErrors}
+          setFormErrors={(errors) => dispatch(setFormErrors(errors))}
         />
       )}
 
@@ -290,9 +257,12 @@ export default function VendorsTab() {
       {showEditForm && (
         <VendorEditForm
           formData={formData}
-          setFormData={setFormData}
-          onSave={handleEditVendor}
-          onCancel={() => { setShowEditForm(false); setSelectedVendor(null); setFormData(BLANK_VENDOR); }}
+          setFormData={(data) => dispatch(updateFormData(data))}
+          onSave={handleEditSuccess}
+          onCancel={() => dispatch(closeEditForm())}
+          selectedVendor={selectedVendor}
+          formErrors={formErrors}
+          setFormErrors={(errors) => dispatch(setFormErrors(errors))}
         />
       )}
 
@@ -300,12 +270,322 @@ export default function VendorsTab() {
       {showDetailsModal && (
         <VendorDetailsModal
           vendor={selectedVendor}
-          onClose={() => { setShowDetailsModal(false); setSelectedVendor(null); }}
+          onClose={() => dispatch(closeDetailsModal())}
         />
       )}
     </div>
   );
 }
+// upper code have api intgration  
+
+// // TABS/SETTINGS/VendorsTab.jsx
+// import React, { useState, useEffect } from "react";
+// import { Plus } from "lucide-react";
+// import VendorTable from "./VendorTable";
+// import VendorAddForm from "./VendorAddForm";
+// import VendorEditForm from "./VendorEditForm";
+// import VendorDetailsModal from "./VendorDetailsModal";
+
+// const STORAGE_KEY = "vyapar_vendors";
+
+// const INITIAL_VENDORS = [
+//   {
+//     vendor_id: "VEN-001",
+//     company_name: "ABC Traders",
+//     contact_person: "Rajesh Kumar",
+//     phone: "9876543210",
+//     whatsapp: "9876543210",
+//     email: "rajesh@abctraders.com",
+//     gst_number: "27AAAAA1234A1Z",
+//     vendor_type: "Raw Material",
+//     supply_city: "Mumbai",
+//     business_type: "WHOLESALER",
+//     city: "Mumbai",
+//     address: "123, Market Street",
+//     is_active: true,
+//     remarks: "Regular supplier",
+//     outstanding: 25000,
+//     total_purchased: 500000,
+//     created_at: "2024-01-15",
+//     updated_at: "2024-01-15"
+//   },
+//   {
+//     vendor_id: "VEN-002",
+//     company_name: "XYZ Enterprises",
+//     contact_person: "Priya Sharma",
+//     phone: "9988776655",
+//     whatsapp: "9988776655",
+//     email: "priya@xyz.com",
+//     gst_number: "27BBBBB5678B2Y",
+//     vendor_type: "Packaging",
+//     supply_city: "Delhi",
+//     business_type: "DISTRIBUTOR",
+//     city: "Delhi",
+//     address: "456, Industrial Area",
+//     is_active: true,
+//     remarks: "",
+//     outstanding: 0,
+//     total_purchased: 350000,
+//     created_at: "2024-02-20",
+//     updated_at: "2024-02-20"
+//   },
+//   {
+//     vendor_id: "VEN-003",
+//     company_name: "PQR Suppliers",
+//     contact_person: "Amit Verma",
+//     phone: "8899776655",
+//     whatsapp: "",
+//     email: "amit@pqr.com",
+//     gst_number: "27CCCCC9012C3X",
+//     vendor_type: "Electronics",
+//     supply_city: "Bangalore",
+//     business_type: "RETAILER",
+//     city: "Bangalore",
+//     address: "789, Tech Park",
+//     is_active: false,
+//     remarks: "Inactive due to quality issues",
+//     outstanding: 5000,
+//     total_purchased: 120000,
+//     created_at: "2024-03-10",
+//     updated_at: "2024-03-10"
+//   }
+// ];
+
+// const loadVendors = () => {
+//   const stored = localStorage.getItem(STORAGE_KEY);
+//   if (stored) return JSON.parse(stored);
+//   localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_VENDORS));
+//   return INITIAL_VENDORS;
+// };
+
+// const saveVendors = (data) => {
+//   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+// };
+
+// const BLANK_VENDOR = {
+//   company_name: "",
+//   contact_person: "",
+//   phone: "",
+//   whatsapp: "",
+//   email: "",
+//   gst_number: "",
+//   vendor_type: "",
+//   supply_city: "",
+//   business_type: "",
+//   city: "",
+//   address: "",
+//   is_active: true,
+//   remarks: ""
+// };
+
+// export default function VendorsTab() {
+//   const [vendors, setVendors] = useState([]);
+//   const [search, setSearch] = useState("");
+//   const [showAddForm, setShowAddForm] = useState(false);
+//   const [showEditForm, setShowEditForm] = useState(false);
+//   const [showDetailsModal, setShowDetailsModal] = useState(false);
+//   const [selectedVendor, setSelectedVendor] = useState(null);
+//   const [formData, setFormData] = useState(BLANK_VENDOR);
+
+//   useEffect(() => {
+//     setVendors(loadVendors());
+//   }, []);
+
+//   const filteredVendors = vendors.filter(vendor => {
+//     if (!search) return true;
+//     const searchLower = search.toLowerCase();
+//     return (
+//       vendor.company_name?.toLowerCase().includes(searchLower) ||
+//       vendor.phone?.includes(search) ||
+//       vendor.city?.toLowerCase().includes(searchLower) ||
+//       vendor.vendor_id?.toLowerCase().includes(searchLower)
+//     );
+//   });
+
+//   const stats = {
+//     total: vendors.length,
+//     active: vendors.filter(v => v.is_active === true).length,
+//     outstanding: vendors.reduce((sum, v) => sum + (v.outstanding || 0), 0),
+//     totalBusiness: vendors.reduce((sum, v) => sum + (v.total_purchased || 0), 0)
+//   };
+
+//   const handleAddVendor = () => {
+//     if (!formData.company_name || !formData.phone) {
+//       alert("Company Name and Phone are required!");
+//       return;
+//     }
+
+//     const allVendors = loadVendors();
+//     const phoneExists = allVendors.some(v => v.phone === formData.phone);
+//     if (phoneExists) {
+//       alert("Phone number already exists!");
+//       return;
+//     }
+
+//     const newVendor = {
+//       ...formData,
+//       vendor_id: `VEN-${Date.now().toString().slice(-6)}`,
+//       outstanding: 0,
+//       total_purchased: 0,
+//       created_at: new Date().toISOString().split("T")[0],
+//       updated_at: new Date().toISOString().split("T")[0]
+//     };
+
+//     const updated = [...allVendors, newVendor];
+//     saveVendors(updated);
+//     setVendors(updated);
+//     setShowAddForm(false);
+//     setFormData(BLANK_VENDOR);
+//     alert("✅ Vendor added successfully!");
+//   };
+
+//   const handleEditVendor = () => {
+//     if (!formData.company_name || !formData.phone) {
+//       alert("Company Name and Phone are required!");
+//       return;
+//     }
+
+//     const allVendors = loadVendors();
+//     const phoneExists = allVendors.some(v => v.phone === formData.phone && v.vendor_id !== selectedVendor?.vendor_id);
+    
+//     if (phoneExists) {
+//       alert("Phone number already exists for another vendor!");
+//       return;
+//     }
+
+//     const updated = allVendors.map(v => 
+//       v.vendor_id === selectedVendor.vendor_id 
+//         ? { ...formData, vendor_id: v.vendor_id, created_at: v.created_at, updated_at: new Date().toISOString().split("T")[0], outstanding: v.outstanding, total_purchased: v.total_purchased }
+//         : v
+//     );
+
+//     saveVendors(updated);
+//     setVendors(updated);
+//     setShowEditForm(false);
+//     setSelectedVendor(null);
+//     setFormData(BLANK_VENDOR);
+//     alert("✅ Vendor updated successfully!");
+//   };
+
+//   const handleToggleActive = (vendor) => {
+//     const allVendors = loadVendors();
+//     const updated = allVendors.map(v =>
+//       v.vendor_id === vendor.vendor_id
+//         ? { ...v, is_active: !v.is_active, updated_at: new Date().toISOString().split("T")[0] }
+//         : v
+//     );
+//     saveVendors(updated);
+//     setVendors(updated);
+//     alert(vendor.is_active ? "Vendor deactivated" : "Vendor activated");
+//   };
+
+//   const openEditForm = (vendor) => {
+//     setSelectedVendor(vendor);
+//     setFormData({
+//       company_name: vendor.company_name,
+//       contact_person: vendor.contact_person || "",
+//       phone: vendor.phone,
+//       whatsapp: vendor.whatsapp || "",
+//       email: vendor.email || "",
+//       gst_number: vendor.gst_number || "",
+//       vendor_type: vendor.vendor_type || "",
+//       supply_city: vendor.supply_city || "",
+//       business_type: vendor.business_type || "",
+//       city: vendor.city || "",
+//       address: vendor.address || "",
+//       is_active: vendor.is_active,
+//       remarks: vendor.remarks || ""
+//     });
+//     setShowEditForm(true);
+//   };
+
+//   const openDetailsModal = (vendor) => {
+//     setSelectedVendor(vendor);
+//     setShowDetailsModal(true);
+//   };
+
+//   return (
+//     <div className="space-y-5">
+//       {/* Header */}
+//       <div className="flex items-center justify-between">
+//         <div>
+//           <h2 className="text-base font-semibold text-gray-800">Vendor Master</h2>
+//           <p className="text-xs text-gray-400 mt-0.5">Manage all vendor/supplier records, GSTIN, and outstanding balances</p>
+//         </div>
+//         <button
+//           onClick={() => { setShowAddForm(true); setFormData(BLANK_VENDOR); }}
+//           className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 cursor-pointer flex items-center gap-2"
+//         >
+//           <Plus size={16} /> Add Vendor
+//         </button>
+//       </div>
+
+//       {/* Stats Cards */}
+//       <div className="grid grid-cols-4 gap-4">
+//         <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+//           <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Total Vendors</p>
+//           <p className="text-2xl font-bold text-gray-800">{stats.total}</p>
+//         </div>
+//         <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+//           <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Active</p>
+//           <p className="text-2xl font-bold text-green-600">{stats.active}</p>
+//         </div>
+//         <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+//           <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Total Outstanding</p>
+//           <p className="text-2xl font-bold text-red-600">₹{(stats.outstanding / 1000).toFixed(0)}K</p>
+//         </div>
+//         <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+//           <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Total Business</p>
+//           <p className="text-2xl font-bold text-blue-600">₹{(stats.totalBusiness / 100000).toFixed(1)}L</p>
+//         </div>
+//       </div>
+
+//       {/* Search */}
+//       <input
+//         value={search}
+//         onChange={(e) => setSearch(e.target.value)}
+//         placeholder="Search vendors by name, vendor ID, city, or phone..."
+//         className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm"
+//       />
+
+//       {/* Table */}
+//       <VendorTable
+//         vendors={filteredVendors}
+//         onEdit={openEditForm}
+//         onView={openDetailsModal}
+//         onToggleActive={handleToggleActive}
+//       />
+
+//       {/* Add Form Modal */}
+//       {showAddForm && (
+//         <VendorAddForm
+//           formData={formData}
+//           setFormData={setFormData}
+//           onSave={handleAddVendor}
+//           onCancel={() => { setShowAddForm(false); setFormData(BLANK_VENDOR); }}
+//         />
+//       )}
+
+//       {/* Edit Form Modal */}
+//       {showEditForm && (
+//         <VendorEditForm
+//           formData={formData}
+//           setFormData={setFormData}
+//           onSave={handleEditVendor}
+//           onCancel={() => { setShowEditForm(false); setSelectedVendor(null); setFormData(BLANK_VENDOR); }}
+//         />
+//       )}
+
+//       {/* Details Modal */}
+//       {showDetailsModal && (
+//         <VendorDetailsModal
+//           vendor={selectedVendor}
+//           onClose={() => { setShowDetailsModal(false); setSelectedVendor(null); }}
+//         />
+//       )}
+//     </div>
+//   );
+// }
 // we need to match with backend schmema plus we start making components independent  
 // // TABS/SETTINGS/VendorsTab.jsx
 // // Full vendor master CRUD with outstanding balances and purchase history

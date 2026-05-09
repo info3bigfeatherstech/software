@@ -1,13 +1,14 @@
 // src/Components/SideBarDashboard/SideBarDashboard.jsx
 import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
 import { TAB_REGISTRY } from "../TabRegistry";
-import { ROLE_PERMISSIONS, ROLE_LABELS, ROLES, CURRENT_USER, } from "../roles";
-
-// ── HARDCODED ROLE (change this to test different permissions) ───────────────
-// const HARDCODED_ROLE = ROLES.WH_MANAGER;
-const HARDCODED_ROLE = CURRENT_USER.role;
-const LOCATION_ID = CURRENT_USER.locationId;
+import { ROLE_PERMISSIONS, ROLE_LABELS, ROLES } from "../roles";
+import { useLogoutMutation } from "../../REDUX_FEATURES/REDUX_SLICES/Login_Api/authApi";
+import {
+    clearCredentials,
+    setAuthChecked,
+} from "../../REDUX_FEATURES/REDUX_SLICES/Login_Api/authSlice";
 
 const LOGO = "https://www.thebigfeathers.com/static/media/logo.de8b004c787675511bd3.png"
 // ─────────────────────────────────────────────────────────────────────────────
@@ -16,9 +17,13 @@ const SideBarDashboard = () => {
     const [searchParams, setSearchParams] = useSearchParams();
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const dispatch = useDispatch();
+    const user = useSelector((state) => state.auth.user);
+    const [logout, { isLoading: isLogoutLoading }] = useLogoutMutation();
 
     // ── Role & permissions ────────────────────────────────────────────────────
-    const activeRole = HARDCODED_ROLE;
+    const activeRole = user?.role || ROLES.SUPER_ADMIN;
+    const locationId = user?.warehouse_id || user?.shop_id || "";
     const allowedTabIds = ROLE_PERMISSIONS[activeRole] || [];
     const allowedTabs = TAB_REGISTRY.filter((tab) => allowedTabIds.includes(tab.id));
     const defaultTab = allowedTabs[0]?.id || "dashboard";
@@ -58,10 +63,10 @@ const SideBarDashboard = () => {
         if (urlIsWrong) {
             setSearchParams({ tab: defaultTab }, { replace: true });
         }
-    }, [activeRole, LOCATION_ID, searchParams, setSearchParams, defaultTab, allowedTabIds]);
+    }, [activeRole, locationId, searchParams, setSearchParams, defaultTab, allowedTabIds]);
 
 
-    console.log("LOCATION_ID", LOCATION_ID, activeRole);
+    console.log("LOCATION_ID", locationId, activeRole);
     // ── Parent tab click ──────────────────────────────────────────────────────
     const handleTabClick = (tab) => {
         if (!allowedTabIds.includes(tab.id)) return;
@@ -123,6 +128,18 @@ const SideBarDashboard = () => {
         setIsMobileMenuOpen(!isMobileMenuOpen);
     };
 
+    const handleLogout = async () => {
+        try {
+            await logout().unwrap();
+        } catch (_error) {
+            // Clear local session even if backend logout fails.
+        } finally {
+            dispatch(clearCredentials());
+            dispatch(setAuthChecked(true));
+            setSearchParams({}, { replace: true });
+        }
+    };
+
     const activeTabConfig = allowedTabs.find((t) => t.id === activeTab);
     const TabComponent = activeTabConfig?.component ?? null;
 
@@ -159,14 +176,14 @@ const SideBarDashboard = () => {
                     {!isSidebarCollapsed && (
                         <div className="text-center transition-all duration-300">
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100 tracking-widest uppercase">
-                                {ROLE_LABELS[activeRole] || activeRole + "-" + LOCATION_ID}
+                                {ROLE_LABELS[activeRole] || `${activeRole}-${locationId}`}
                             </span>
                         </div>
                     )}
                     {isSidebarCollapsed && (
                         <div className="text-center transition-all duration-300">
                             <span className="inline-flex items-center justify-center w-8 h-8 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100">
-                                {ROLE_LABELS[activeRole]?.charAt(0) || activeRole?.charAt(0) + "-" + LOCATION_ID}
+                                {ROLE_LABELS[activeRole]?.charAt(0) || `${activeRole?.charAt(0)}-${locationId}`}
                             </span>
                         </div>
                     )}
@@ -260,6 +277,13 @@ const SideBarDashboard = () => {
                 </nav>
 
                 <div className={`p-4 border-t border-gray-100 ${isSidebarCollapsed ? 'text-center' : ''}`}>
+                    <button
+                        onClick={handleLogout}
+                        disabled={isLogoutLoading}
+                        className={`w-full mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-100 transition ${isLogoutLoading ? "cursor-not-allowed opacity-70" : ""}`}
+                    >
+                        {isLogoutLoading ? "Logging out..." : "Logout"}
+                    </button>
                     <p className={`text-[10px] text-gray-400 uppercase tracking-widest font-bold ${isSidebarCollapsed ? 'text-center' : 'mb-2'}`}>
                         {isSidebarCollapsed ? 'v1.0' : 'Vyapar v1.0.0'}
                     </p>

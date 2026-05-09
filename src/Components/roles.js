@@ -1,26 +1,42 @@
 // src/Components/roles.js
 
 export const ROLES = {
-    SUPER_ADMIN: "Super Admin",
-    ACCOUNTANT: "accountant",
-    BILLING_STAFF: "Billing Staff",
-    STOCK_LISTER: "Stock Lister",
-    CASHIER: "cashier",
-    WH_MANAGER: "wh_manager",
-    SHOP_OWNER: "shop_owner",
+    SUPER_ADMIN: "SUPER_ADMIN",
+    ACCOUNTANT: "ACCOUNTANT",
+    BILLING_STAFF: "BILLING_STAFF",
+    STOCK_LISTER: "STOCK_LISTER",
+    CASHIER: "CASHIER",
+    WH_MANAGER: "WH_MANAGER",
+    SHOP_OWNER: "SHOP_OWNER",
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 👇 JUST CHANGE THIS FOR TESTING DIFFERENT ROLES
 // ─────────────────────────────────────────────────────────────────────────────
+// HARDCODED USER IS DISABLED.
+// This object is now hydrated from login API response.
 export const CURRENT_USER = {
-    role: ROLES.WH_MANAGER,   // OWNER | WH_MANAGER | SHOP_OWNER | CASHIER | etc.
-    locationId: 'WH-001',     // WH_MANAGER → 'WH-001'/'WH-002'  |  Shop roles → 'SHP-001' etc.
+    role: null,
+    locationId: null,
+    name: null,
+};
+
+export const syncCurrentUserFromAuth = (user) => {
+    if (!user) {
+        CURRENT_USER.role = null;
+        CURRENT_USER.locationId = null;
+        CURRENT_USER.name = null;
+        return;
+    }
+
+    CURRENT_USER.role = user.role || null;
+    CURRENT_USER.locationId = user.warehouse_id || user.shop_id || null;
+    CURRENT_USER.name = user.name || null;
 };
 
 // Role permissions for tabs (controls which tabs appear in sidebar)
 export const ROLE_PERMISSIONS = {
-    [ROLES.SUPER_ADMIN]: ["dashboard", "sales", "purchase", "inventory", "transfers", "warehouses", "parties", "reports", "settings"],
+    [ROLES.SUPER_ADMIN]: ["dashboard", "sales", "purchase", "inventory", "transfers", "warehouses", "parties", "reports", "settings","vendors"],
     [ROLES.ACCOUNTANT]: ["dashboard", "sales", "purchase", "parties", "reports"],
     [ROLES.BILLING_STAFF]: ["dashboard", "sales", "parties", "transfers"],
     [ROLES.STOCK_LISTER]: ["dashboard", "inventory", "transfers"],
@@ -56,7 +72,7 @@ export const ROLE_LABELS = {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** True if the logged-in user is super admin (sees ALL data, no scoping) */
-export const isAdmin = () => CURRENT_USER.role === ROLES.OWNER;
+export const isAdmin = () => CURRENT_USER.role === ROLES.SUPER_ADMIN;
 
 /** True if the logged-in user is on the warehouse side */
 export const isWarehouseRole = () => CURRENT_USER.role === ROLES.WH_MANAGER;
@@ -134,7 +150,7 @@ export const filterByLocation = (data, fieldOverride = null) => {
 
 // Legacy/Compatibility helpers
 export const filterLocationList = (list) => getControlledLocations(list);
-export const needsLocationFilter = (role) => role !== ROLES.OWNER;
+export const needsLocationFilter = (role) => role !== ROLES.SUPER_ADMIN;
 export const getLocationFilterField = (role) => (role === ROLES.WH_MANAGER ? 'locationId' : 'shopId');
 
 // bottom code is working but we try to show now particular shop or warehouse detail which is their id 
