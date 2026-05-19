@@ -7,7 +7,8 @@ import EditProductModal from './EditProductModal';
 import InventoryTable from './InventoryTable';
 import StatsCards from '../../shared/StatsCards';
 import BulkUploadModal from './BulkUploadModal';
-
+import CategoriesTab from "../../shared/CategoriesTab/CategoriesTab";
+import { useGetCategoriesQuery } from "../../../REDUX_FEATURES/REDUX_SLICES/Category_api/categoryApi";
 const STORAGE_KEYS = {
     PRODUCTS: 'vyapar_products',
     SHOPS: 'vyapar_shops'
@@ -33,17 +34,27 @@ const InventoryTab = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [editingProduct, setEditingProduct] = useState(null);
     const [selectedCategory, setSelectedCategory] = useState('all');
+    const [showCategoryModal, setShowCategoryModal] = useState(false);
 
-    const categories = ['all', 'FMCG', 'Grocery', 'Electronics', 'Dairy', 'Beverages', 'Snacks', 'Personal Care'];
+    const { data: categoriesData } = useGetCategoriesQuery({
+        is_active: true,
+        limit: 100
+    });
+
+    // Transform categories for the dropdown
+    const categoryOptions = [
+        { category_id: 'all', name: 'All Categories' },
+        ...(categoriesData?.categories || [])
+    ];
 
     useEffect(() => {
         const allProducts = getData(STORAGE_KEYS.PRODUCTS, INITIAL_PRODUCTS);
         const allShops = getData(STORAGE_KEYS.SHOPS, INITIAL_SHOPS);
-        
+
         const scopedProducts = isAdmin()
             ? allProducts.filter(p => (p.shopId === selectedShop) || (p.locationId === selectedShop))
             : filterByLocation(allProducts);
-        
+
         setProducts(scopedProducts);
         setShops(filterLocationList(allShops));
     }, [selectedShop]);
@@ -58,7 +69,7 @@ const InventoryTab = () => {
     const handleAddProduct = (newProduct) => {
         const allProducts = getData(STORAGE_KEYS.PRODUCTS, INITIAL_PRODUCTS);
         saveData(STORAGE_KEYS.PRODUCTS, [...allProducts, newProduct]);
-        
+
         // Refresh view
         const updatedProducts = getData(STORAGE_KEYS.PRODUCTS, INITIAL_PRODUCTS);
         setProducts(isAdmin()
@@ -73,7 +84,7 @@ const InventoryTab = () => {
             p.id === updatedProduct.id ? updatedProduct : p
         );
         saveData(STORAGE_KEYS.PRODUCTS, updated);
-        
+
         // Refresh view
         setProducts(isAdmin()
             ? updated.filter(p => p.shopId === selectedShop || p.locationId === selectedShop)
@@ -111,7 +122,7 @@ const InventoryTab = () => {
     const handleBulkUpload = (newProducts) => {
         const allProducts = getData(STORAGE_KEYS.PRODUCTS, INITIAL_PRODUCTS);
         saveData(STORAGE_KEYS.PRODUCTS, [...allProducts, ...newProducts]);
-        
+
         // Refresh view
         const updatedProducts = getData(STORAGE_KEYS.PRODUCTS, INITIAL_PRODUCTS);
         setProducts(isAdmin()
@@ -161,7 +172,7 @@ const InventoryTab = () => {
 
     return (
         <div className="space-y-6">
-            <StatsCards 
+            <StatsCards
                 products={filteredProducts}
                 selectedShopName={shops.find(s => s.id === selectedShop)?.name || selectedShop}
             />
@@ -199,6 +210,13 @@ const InventoryTab = () => {
                     >
                         + Add Product
                     </button>
+
+                    <button
+                        onClick={() => setShowCategoryModal(true)}
+                        className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition flex items-center gap-2"
+                    >
+                        📁 Add Category
+                    </button>
                 </div>
             </div>
 
@@ -221,8 +239,10 @@ const InventoryTab = () => {
                     onChange={(e) => setSelectedCategory(e.target.value)}
                     className="px-4 py-2 border border-gray-300 rounded-lg text-sm bg-white text-gray-700"
                 >
-                    {categories.map(cat => (
-                        <option key={cat} value={cat}>{cat === 'all' ? 'All Categories' : cat}</option>
+                    {categoryOptions.map(cat => (
+                        <option key={cat.category_id} value={cat.category_id === 'all' ? 'all' : cat.category_id}>
+                            {cat.name}
+                        </option>
                     ))}
                 </select>
             </div>
@@ -244,7 +264,7 @@ const InventoryTab = () => {
                 onClose={() => setShowAddModal(false)}
                 onSave={handleAddProduct}
                 selectedShop={selectedShop}
-                categories={categories}
+            // categories={categories}
             />
 
             <EditProductModal
@@ -252,7 +272,7 @@ const InventoryTab = () => {
                 onClose={() => setEditingProduct(null)}
                 onSave={handleEditProduct}
                 product={editingProduct}
-                categories={categories}
+            // categories={categories}
             />
 
             <BulkUploadModal
@@ -262,13 +282,17 @@ const InventoryTab = () => {
                 selectedShop={selectedShop}
                 generateBarcode={generateBarcode}
             />
+
+            {showCategoryModal && (
+                <CategoriesTab onClose={() => setShowCategoryModal(false)} />
+            )}
         </div>
     );
 };
 
 export default InventoryTab;
 
-// down code is good but we move to make seprate component based struture 
+// down code is good but we move to make seprate component based struture
 // // src/Components/TABS/INVENTORY/InventoryTab.jsx
 // import React, { useState, useEffect } from 'react';
 // import { INITIAL_PRODUCTS, INITIAL_SHOPS } from '../../demoData';

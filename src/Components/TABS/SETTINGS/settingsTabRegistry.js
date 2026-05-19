@@ -1,9 +1,9 @@
 // TABS/SETTINGS/settingsTabRegistry.js
 import { lazy } from "react";
 
-const UsersTab          = lazy(() => import("./UsersTab"));
-const ShopsSettingsTab  = lazy(() => import("./ShopsSettingsTab"));
-const VendorsTab        = lazy(() => import("./VendorsTab"));
+const UsersTab = lazy(() => import("./UserTab/UsersTab"));
+const ShopsSettingsTab = lazy(() => import("./ShopsSettingsTab"));
+const VendorsTab = lazy(() => import("./VendorsTab"));
 
 export const SETTINGS_TAB_REGISTRY = [
     {
