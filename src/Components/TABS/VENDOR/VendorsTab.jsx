@@ -26,7 +26,7 @@ import VendorAddForm from "./VendorAddForm";
 import VendorEditForm from "./VendorEditForm";
 import VendorDetailsModal from "./VendorDetailsModal";
 import { BUSINESS_TYPES, PAGE_SIZE_OPTIONS } from "../../../REDUX_FEATURES/REDUX_SLICES/Vendor_api/vendorConstants";
-
+import { can } from "../../../Components/roles";
 export default function VendorsTab() {
   const dispatch = useDispatch();
   
@@ -101,12 +101,14 @@ export default function VendorsTab() {
           <h2 className="text-base font-semibold text-gray-800">Vendor Master</h2>
           <p className="text-xs text-gray-400 mt-0.5">Manage all vendor/supplier records, GSTIN, and outstanding balances</p>
         </div>
-        <button
-          onClick={() => dispatch(openAddForm())}
-          className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 cursor-pointer flex items-center gap-2"
-        >
-          <Plus size={16} /> Add Vendor
-        </button>
+       {can("vendor.create") && (
+  <button
+    onClick={() => dispatch(openAddForm())}
+    className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 cursor-pointer flex items-center gap-2"
+  >
+    <Plus size={16} /> Add Vendor
+  </button>
+)}
       </div>
 
       {/* Stats Cards */}

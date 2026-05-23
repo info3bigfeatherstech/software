@@ -11,12 +11,32 @@ import {
   setCredentials,
 } from "./REDUX_FEATURES/REDUX_SLICES/Login_Api/authSlice";
 import { syncCurrentUserFromAuth } from "./Components/roles";
+import { useGetWarehouseByIdQuery } from "./REDUX_FEATURES/REDUX_SLICES/Warehouse_api/warehouseApi";
+import { useGetShopByIdQuery } from "./REDUX_FEATURES/REDUX_SLICES/Shop_api/shopApi";
 import "./index.css";
+import ToastConfig from "./Components/shared/ToastConfig";
 
 function App() {
   const dispatch = useDispatch();
   const [refreshToken] = useRefreshTokenMutation();
   const { isAuthenticated, user, authChecked } = useSelector((state) => state.auth);
+
+
+  useEffect(() => {
+    const handleTokenRefreshed = (e) => {
+      const { accessToken } = e.detail;
+      dispatch(setCredentials({ user, accessToken }));
+    };
+    const handleLogout = () => {
+      dispatch(clearCredentials());
+    };
+    window.addEventListener("auth:tokenRefreshed", handleTokenRefreshed);
+    window.addEventListener("auth:logout", handleLogout);
+    return () => {
+      window.removeEventListener("auth:tokenRefreshed", handleTokenRefreshed);
+      window.removeEventListener("auth:logout", handleLogout);
+    };
+  }, [dispatch, user]);
 
   useEffect(() => {
     const bootstrapAuth = async () => {
@@ -34,8 +54,18 @@ function App() {
   }, [dispatch, refreshToken]);
 
   useEffect(() => {
-    syncCurrentUserFromAuth(user);
+    if (!user) { syncCurrentUserFromAuth(null); return; }
+    const enrichedUser = {
+      ...user,
+      locationName: user?.warehouse?.warehouse_name
+        || user?.shop?.shop_name
+        || user?.warehouse_id
+        || user?.shop_id
+        || null,
+    };
+    syncCurrentUserFromAuth(enrichedUser);
   }, [user]);
+
 
   if (!authChecked) {
     return (
@@ -47,6 +77,7 @@ function App() {
 
   return (
     <BrowserRouter>
+      <ToastConfig />
       <Routes>
         <Route
           path="/"

@@ -152,6 +152,20 @@ export const inwardApi = createApi({
             transformResponse: (response) => response.data,
         }),
 
+        // ── POST /inwards/:inwardId/items/bulk ───────────────────────────────────────
+        addInwardItemsBulk: builder.mutation({
+            query: ({ inwardId, items }) => ({
+                url: `/inwards/${inwardId}/items/bulk`,
+                method: "POST",
+                data: { items },
+            }),
+            invalidatesTags: (result, error, { inwardId }) => [
+                { type: "InwardItem", id: inwardId },
+                { type: "Inward", id: inwardId },
+            ],
+            transformResponse: (response) => response.data,
+        }),
+
     }),
 });
 
@@ -164,6 +178,7 @@ export const {
     useAddInwardItemMutation,
     useUpdateInwardItemMutation,
     useDeleteInwardItemMutation,
+    useAddInwardItemsBulkMutation
 } = inwardApi;
 
 // // REDUX_SLICES/Inward_api/inwardApi.js

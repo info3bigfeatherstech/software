@@ -5,6 +5,7 @@
 // Nothing else needs to change.
 
 import { lazy } from "react";
+import ArchiveTab from "./TABS/INVENTORY/ArchiveTab/ArchiveTab";
 
 const ContentDashboardTab = lazy(() => import("./ContentDashboard/ContentDashboardTab"));
 const SalesDashboard = lazy(() => import("./TABS/SALES/SalesDashboard"));
@@ -49,6 +50,12 @@ export const TAB_REGISTRY = [
         label: "Inventory",
         icon: "M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10",
         component: InventoryTab,
+    },
+    {
+        id: "archive",
+        label: "Archive",
+        icon: "M21 8v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8M23 3H1v5h22zM10 12h4",
+        component: ArchiveTab,
     },
     {
         id: "transfers",

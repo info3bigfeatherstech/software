@@ -1,197 +1,336 @@
 // TABS/TRANSFERS/WHToWHTab.jsx
-// BizPro rule: WH→WH transfers require approval before stock changes hands.
-import React, { useState, useEffect } from "react";
-import { INITIAL_WAREHOUSES, INITIAL_PRODUCTS, INITIAL_TRANSFERS } from "../../demoData";
-import { CURRENT_USER, filterByLocation, getControlledLocations, getVisibleLocations, isAdmin, isWarehouseRole } from "../../roles";
+//
+// Warehouse to Warehouse Transfer using real API
+// POST /stock-transfer/transfer/wh-to-wh
 
-const SK = { T: "vyapar_transfers", P: "vyapar_products", W: "vyapar_warehouses" };
-const load = (k, d) => { const s = localStorage.getItem(k); if (s) return JSON.parse(s); localStorage.setItem(k, JSON.stringify(d)); return d; };
-const save = (k, d) => localStorage.setItem(k, JSON.stringify(d));
-const STATUS_CLS = { pending_approval: "bg-yellow-100 text-yellow-700", approved: "bg-blue-100 text-blue-700", completed: "bg-green-100 text-green-700", rejected: "bg-red-100 text-red-600" };
+import React, { useState, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { Search, Plus, RefreshCw } from "lucide-react";
+import { toast } from "react-toastify";
+import { useGetWarehousesQuery } from "../../../REDUX_FEATURES/REDUX_SLICES/Warehouse_api/warehouseApi";
+import { useGetProductStocksQuery } from "../../../REDUX_FEATURES/REDUX_SLICES/Stock_api/stockApi";
+import { useGetStockLedgerQuery } from "../../../REDUX_FEATURES/REDUX_SLICES/Transfer_api/transferApi";
+import { useWhToWhTransferMutation } from "../../../REDUX_FEATURES/REDUX_SLICES/Transfer_api/transferApi";
+import {
+    addToCart,
+    removeFromCart,
+    updateCartQuantity,
+    clearCart,
+    setFromLocation,
+    setToLocation,
+    setReason,
+    setRemarks,
+    setShowForm,
+    setIsSubmitting,
+    setIdempotencyKey,
+    resetForm,
+    setFormErrors,
+    clearFormErrors,
+} from "../../../REDUX_FEATURES/REDUX_SLICES/Transfer_api/transferSlice";
+import { CURRENT_USER, isAdmin, isWarehouseRole } from "../../roles";
+import TransferCartTable from "./TransferShared/TransferCartTable";
+import TransferFormHeader from "./TransferShared/TransferFormHeader";
+import TransferStatusBadge from "./TransferShared/TransferStatusBadge";
+import { generateIdempotencyKey } from "../../../REDUX_FEATURES/REDUX_SLICES/Transfer_api/transferApi";
 
 export default function WHToWHTab() {
-    const [warehouses, setWarehouses] = useState([]);
-    const [products, setProducts] = useState([]);
-    const [transfers, setTransfers] = useState([]);
-    const [showForm, setShowForm] = useState(false);
-    const [fromWH, setFromWH] = useState("");
-    const [toWH, setToWH] = useState("");
-    const [cart, setCart] = useState([]);
-    const [reason, setReason] = useState("");
+    const dispatch = useDispatch();
+    const { user } = useSelector((state) => state.auth);
+    const { cart, fromLocation, toLocation, reason, remarks, showForm, isSubmitting, formErrors } = useSelector((state) => state.transfer);
+    
+    const [searchTerm, setSearchTerm] = useState("");
+   // Use transferHistory from the query instead of transfers state
+   const [transfers, setTransfers] = useState([]);
+const {  refetch: refetchHistory } = useGetStockLedgerQuery({
+    movement_type: "WH_TO_WH",
+    from_date: "",
+    to_date: "",
+    page: 1,
+    limit: 50,
+});
 
+// Then in table, use: transferHistory?.ledger || []
+    
+    const { data: warehousesData, refetch: refetchWarehouses } = useGetWarehousesQuery({ page: 1, limit: 100, is_active: "true" });
+    const { data: stocksData, refetch: refetchStocks } = useGetProductStocksQuery({ page: 1, limit: 50 });
+    
+    const [whToWhTransfer] = useWhToWhTransferMutation();
+    
+    const warehouses = warehousesData?.warehouses || [];
+    const stocks = stocksData?.stocks || [];
+    
+    const fromWarehouseOptions = isAdmin() ? warehouses : warehouses.filter(w => w.warehouse_id === user?.warehouse_id);
+    const toWarehouseOptions = warehouses.filter(w => w.warehouse_id !== fromLocation);
+    
+    const availableProducts = fromLocation
+        ? stocks.filter(s => s.warehouse_id === fromLocation && s.quantity > 0)
+        : [];
+    
+    const filteredProducts = availableProducts.filter(p =>
+        p.variant?.product?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.variant?.sku?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    
     useEffect(() => {
-        const allWH = load(SK.W, INITIAL_WAREHOUSES);
-        setWarehouses(getControlledLocations(allWH));
-        setProducts(filterByLocation(load(SK.P, INITIAL_PRODUCTS)));
+        if (!isAdmin() && isWarehouseRole() && user?.warehouse_id) {
+            dispatch(setFromLocation(user.warehouse_id));
+        }
+    }, [user]);
+    
+      const { data: transferHistory } = useGetStockLedgerQuery({
+    movement_type: "WH_TO_WH",  // or "SHOP_TO_SHOP", "WH_TO_WH"
+    from_date: "",
+    to_date: "",
+    page: 1,
+    limit: 50,
+});
+    const validateForm = () => {
+        const errors = {};
+        if (!fromLocation) errors.from = "Source warehouse is required";
+        if (!toLocation) errors.to = "Destination warehouse is required";
+        if (fromLocation === toLocation) errors.to = "Source and destination cannot be the same";
+        if (!reason?.trim()) errors.reason = "Reason is required";
+        if (cart.length === 0) errors.cart = "At least one item is required";
+        return errors;
+    };
+    
+    const handleSubmitTransfer = async () => {
+        const errors = validateForm();
+        if (Object.keys(errors).length > 0) {
+            dispatch(setFormErrors(errors));
+            toast.error("Please fix the errors before submitting");
+            return;
+        }
         
-        const all = load(SK.T, INITIAL_TRANSFERS);
-        const scopedTransfers = isAdmin()
-            ? all
-            : all.filter(t => t.fromWarehouseId === CURRENT_USER.locationId || t.toWarehouseId === CURRENT_USER.locationId);
+        dispatch(setIsSubmitting(true));
+        dispatch(clearFormErrors());
+        
+        const idempotencyKey = generateIdempotencyKey();
+        dispatch(setIdempotencyKey(idempotencyKey));
+        
+        try {
+            for (const item of cart) {
+                await whToWhTransfer({
+                    idempotencyKey: `${idempotencyKey}_${item.variant_id}`,
+                    from_warehouse_id: fromLocation,
+                    to_warehouse_id: toLocation,
+                    variant_id: item.variant_id,
+                    quantity: item.quantity,
+                    batch_number: item.batch_number || "",
+                    room_zone: "",
+                    rack_shelf: "",
+                    position: "",
+                    remarks: remarks || reason,
+                }).unwrap();
+            }
             
-        setTransfers(scopedTransfers.filter(t => t.type === "WH_TO_WH"));
-
-        if (!isAdmin() && isWarehouseRole()) {
-            setFromWH(CURRENT_USER.locationId);
+            toast.success(`Transfer completed: ${cart.reduce((s, i) => s + i.quantity, 0)} units transferred`);
+            
+            const newTransfer = {
+                id: `TR-${Date.now()}`,
+                transferNumber: `WTW-${Date.now().toString().slice(-6)}`,
+                type: "WH_TO_WH",
+                fromWarehouseId: fromLocation,
+                fromWarehouseName: warehouses.find(w => w.warehouse_id === fromLocation)?.warehouse_name,
+                toWarehouseId: toLocation,
+                toWarehouseName: warehouses.find(w => w.warehouse_id === toLocation)?.warehouse_name,
+                items: cart,
+                status: "completed",
+                createdAt: new Date().toISOString().split("T")[0],
+                reason: reason,
+                remarks: remarks,
+            };
+            
+            // No localStorage — transfer already in backend, just refetch
+refetchStocks();
+            
+            dispatch(resetForm());
+            dispatch(setShowForm(false));
+            refetchStocks();
+            
+        } catch (err) {
+            toast.error(err?.data?.message || "Transfer failed. Please try again.");
+            if (err?.data?.errors?.length) {
+                const backendErrors = {};
+                err.data.errors.forEach(({ field, message }) => {
+                    backendErrors[field] = message;
+                });
+                dispatch(setFormErrors(backendErrors));
+            }
+        } finally {
+            dispatch(setIsSubmitting(false));
         }
-    }, []);
-
-    const addItem = (p) => setCart(prev => {
-        const ex = prev.find(c => c.productId === p.id);
-        if (ex) return prev.map(c => c.productId === p.id ? { ...c, qty: c.qty + 1 } : c);
-        return [...prev, { productId: p.id, name: p.name, qty: 1, unit: p.unit || "Pcs" }];
-    });
-
-    const saveTransfer = () => {
-        if (!fromWH || !toWH || fromWH === toWH || cart.length === 0) {
-            alert("Select two different warehouses and add items."); return;
-        }
-        const all = load(SK.T, INITIAL_TRANSFERS);
-        const rec = {
-            id: `TR-${Date.now()}`, transferNumber: `WTW-${Date.now().toString().slice(-6)}`,
-            type: "WH_TO_WH",
-            fromWarehouseId: fromWH, fromWarehouseName: warehouses.find(w => w.id === fromWH)?.name,
-            toWarehouseId: toWH, toWarehouseName: load(SK.W, INITIAL_WAREHOUSES).find(w => w.id === toWH)?.name,
-            items: cart, status: "pending_approval",
-            requestedBy: "Current User", approvedBy: null,
-            createdAt: new Date().toISOString().split("T")[0], reason,
-        };
-        save(SK.T, [...all, rec]);
-        setTransfers(prev => [rec, ...prev]);
-        setCart([]); setFromWH(isAdmin() ? "" : CURRENT_USER.locationId); setToWH(""); setReason(""); setShowForm(false);
-        alert("✅ Transfer submitted! Awaiting Super Admin approval.");
     };
-
-    const updateStatus = (id, status) => {
-        const all = load(SK.T, INITIAL_TRANSFERS);
-        const updated = all.map(t => t.id === id ? { ...t, status, approvedBy: status === "approved" ? "Super Admin" : "Super Admin", completedAt: status === "completed" ? new Date().toISOString().split("T")[0] : null } : t);
-        save(SK.T, updated);
-        setTransfers(prev => prev.map(t => t.id === id ? { ...t, status } : t));
+    
+    const handleAddToCart = (stock) => {
+        dispatch(addToCart({
+            variant_id: stock.variant_id,
+            product_name: stock.variant?.product?.name || "Unknown Product",
+            available_stock: stock.quantity,
+            batch_number: stock.batch_number,
+            unit: "Pcs",
+        }));
     };
-
+    
+    const handleCancelForm = () => {
+        dispatch(resetForm());
+        dispatch(setShowForm(false));
+        dispatch(clearFormErrors());
+    };
+    
+    const getWarehouseName = (id) => warehouses.find(w => w.warehouse_id === id)?.warehouse_name || id;
+    
     return (
         <div className="space-y-5">
+            
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-base font-semibold text-gray-800">WH → WH Transfer</h2>
-                    <p className="text-xs text-gray-400 mt-0.5">Requires Super Admin approval. Stock stays in-transit until confirmed.</p>
-                </div>
-                <button onClick={() => setShowForm(v => !v)} className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 cursor-pointer">+ New Transfer</button>
-            </div>
-
-            {/* Pending Approvals Banner */}
-            {transfers.filter(t => t.status === "pending_approval").length > 0 && (
-                <div className="bg-yellow-50 border border-yellow-200 rounded-xl px-5 py-3 flex items-center gap-3">
-                    <span className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />
-                    <p className="text-sm text-yellow-800 font-medium">
-                        {transfers.filter(t => t.status === "pending_approval").length} transfer(s) awaiting approval
+                    <p className="text-xs text-gray-400 mt-0.5">
+                        Transfer stock between warehouses. Stock is deducted immediately from source.
                     </p>
                 </div>
-            )}
-
+                <button
+                    onClick={() => {
+                        dispatch(resetForm());
+                        dispatch(setShowForm(!showForm));
+                        dispatch(clearFormErrors());
+                    }}
+                    className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 cursor-pointer flex items-center gap-2"
+                >
+                    <Plus size={16} /> New Transfer
+                </button>
+            </div>
+            
             {showForm && (
-                <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-4 shadow-sm text-gray-700">
+                <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-5 shadow-sm text-gray-700">
                     <p className="font-semibold text-gray-700 text-sm uppercase tracking-wide">Request WH → WH Transfer</p>
-                    <div className="grid grid-cols-2 gap-4">
+                    
+                    <TransferFormHeader
+                        fromLabel="From Warehouse"
+                        toLabel="To Warehouse"
+                        fromValue={fromLocation}
+                        toValue={toLocation}
+                        onFromChange={(val) => {
+                            dispatch(setFromLocation(val));
+                            dispatch(clearCart());
+                        }}
+                        onToChange={(val) => dispatch(setToLocation(val))}
+                        fromOptions={fromWarehouseOptions.map(w => ({ id: w.warehouse_id, name: w.warehouse_name, city: w.city }))}
+                        toOptions={toWarehouseOptions.map(w => ({ id: w.warehouse_id, name: w.warehouse_name, city: w.city }))}
+                        fromDisabled={!isAdmin() && isWarehouseRole()}
+                        toDisabled={false}
+                        fromPlaceholder="Select source warehouse"
+                        toPlaceholder="Select destination warehouse"
+                        showReason={true}
+                        reasonValue={reason}
+                        onReasonChange={(val) => dispatch(setReason(val))}
+                        showRemarks={true}
+                        remarksValue={remarks}
+                        onRemarksChange={(val) => dispatch(setRemarks(val))}
+                        remarksPlaceholder="Additional notes about this transfer"
+                        errors={formErrors}
+                    />
+                    
+                    {fromLocation && (
                         <div>
-                            <label className="block text-xs text-gray-500 mb-1">From Warehouse *</label>
-                            <select 
-                                value={fromWH} 
-                                onChange={e => { setFromWH(e.target.value); setCart([]); }} 
-                                disabled={!isAdmin() && isWarehouseRole()}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm disabled:bg-gray-50 disabled:text-gray-500"
-                            >
-                                <option value="">— Select —</option>
-                                {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
-                            </select>
+                            <label className="block text-xs font-medium text-gray-700 mb-2">Select Products</label>
+                            <div className="relative mb-3">
+                                <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                                <input
+                                    type="text"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    placeholder="Search by product name or SKU..."
+                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                            </div>
+                            <div className="grid grid-cols-3 md:grid-cols-4 gap-2 max-h-48 overflow-y-auto border border-gray-100 rounded-lg p-2 bg-gray-50">
+                                {filteredProducts.length === 0 ? (
+                                    <p className="col-span-4 text-center text-xs text-gray-400 py-4">No products available in this warehouse</p>
+                                ) : (
+                                    filteredProducts.map(p => (
+                                        <button
+                                            key={p.stock_id}
+                                            onClick={() => handleAddToCart(p)}
+                                            disabled={p.quantity === 0}
+                                            className={`text-left p-2 rounded-lg text-xs border transition-colors cursor-pointer ${
+                                                p.quantity === 0
+                                                    ? "opacity-40 bg-gray-100 cursor-not-allowed"
+                                                    : "bg-white hover:bg-blue-50 border-gray-200 hover:border-blue-300"
+                                            }`}
+                                        >
+                                            <p className="font-medium text-gray-800 truncate">{p.variant?.product?.name || "Unknown"}</p>
+                                            <p className="text-xs text-gray-400 font-mono truncate">{p.variant?.sku}</p>
+                                            <p className={`text-xs font-semibold mt-1 ${p.quantity <= 10 ? "text-red-500" : "text-green-600"}`}>
+                                                Stock: {p.quantity}
+                                            </p>
+                                        </button>
+                                    ))
+                                )}
+                            </div>
                         </div>
-                        <div>
-                            <label className="block text-xs text-gray-500 mb-1">To Warehouse *</label>
-                            <select 
-                                value={toWH} 
-                                onChange={e => setToWH(e.target.value)} 
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                            >
-                                <option value="">— Select —</option>
-                                {getVisibleLocations(load(SK.W, INITIAL_WAREHOUSES)).filter(w => w.id !== fromWH).map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
-                            </select>
-                        </div>
-                        <div className="col-span-2">
-                            <label className="block text-xs text-gray-500 mb-1">Reason for Transfer *</label>
-                            <input value={reason} onChange={e => setReason(e.target.value)} placeholder="e.g. Capacity rebalancing, seasonal demand" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-                        </div>
-                    </div>
-                    <div>
-                        <label className="block text-xs text-gray-500 mb-2">Add Products</label>
-                        <div className="grid grid-cols-4 gap-2 max-h-36 overflow-y-auto border border-gray-100 rounded-lg p-2">
-                            {products.map(p => (
-                                <button key={p.id} onClick={() => addItem(p)} className="text-left p-2 bg-gray-50 hover:bg-blue-50 border border-transparent hover:border-blue-200 rounded-lg text-xs cursor-pointer transition-colors">
-                                    <p className="font-medium text-gray-800 truncate">{p.name}</p>
-                                    <p className="text-gray-400">Stock: {p.stock}</p>
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                    {cart.length > 0 && (
-                        <table className="w-full text-sm border border-gray-100 rounded-lg overflow-hidden">
-                            <thead className="bg-gray-50"><tr>
-                                <th className="px-3 py-2 text-left text-xs text-gray-500">Product</th>
-                                <th className="px-3 py-2 text-center text-xs text-gray-500">Qty</th>
-                                <th className="px-3 py-2"></th>
-                            </tr></thead>
-                            <tbody className="divide-y divide-gray-50">
-                                {cart.map(c => (
-                                    <tr key={c.productId}>
-                                        <td className="px-3 py-2 font-medium text-gray-700">{c.name}</td>
-                                        <td className="px-3 py-2"><input type="number" min="1" value={c.qty} onChange={e => setCart(prev => prev.map(x => x.productId === c.productId ? { ...x, qty: +e.target.value || 1 } : x))} className="w-16 px-2 py-1 border rounded text-center text-sm" /></td>
-                                        <td className="px-3 py-2 text-center"><button onClick={() => setCart(prev => prev.filter(x => x.productId !== c.productId))} className="text-red-500 text-xs cursor-pointer">✕</button></td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
                     )}
+                    
+                    <TransferCartTable
+                        cart={cart}
+                        onUpdateQuantity={(id, qty) => dispatch(updateCartQuantity({ variant_id: id, quantity: qty }))}
+                        onRemoveItem={(id) => dispatch(removeFromCart(id))}
+                    />
+                    
+                    {formErrors.cart && <p className="text-xs text-red-500">{formErrors.cart}</p>}
+                    
                     <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
-                        <button onClick={() => { setShowForm(false); setCart([]); }} className="px-4 py-2 border rounded-lg text-sm cursor-pointer hover:bg-gray-50">Cancel</button>
-                        <button onClick={saveTransfer} className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 cursor-pointer">Submit for Approval</button>
+                        <button onClick={handleCancelForm} className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 cursor-pointer">
+                            Cancel
+                        </button>
+                        <button
+                            onClick={handleSubmitTransfer}
+                            disabled={isSubmitting || cart.length === 0}
+                            className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 cursor-pointer"
+                        >
+                            {isSubmitting ? "Processing..." : "Submit Transfer"}
+                        </button>
                     </div>
                 </div>
             )}
-
+            
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                <div className="px-5 py-4 border-b border-gray-100 bg-gray-50">
+                <div className="px-5 py-4 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
                     <h3 className="font-semibold text-gray-700 text-sm">WH → WH Transfer Log</h3>
+                    <button onClick={() => {
+                        const stored = localStorage.getItem("vyapar_wh_to_wh_transfers");
+                        setTransfers(stored ? JSON.parse(stored) : []);
+                    }} className="text-xs text-gray-500 hover:text-blue-600">
+                        <RefreshCw size={14} />
+                    </button>
                 </div>
                 <table className="w-full text-sm">
-                    <thead className="bg-gray-50"><tr>
-                        {["ID", "From WH", "To WH", "Items", "Date", "Reason", "Status", "Actions"].map(h => (
-                            <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
-                        ))}
-                    </tr></thead>
-                    <tbody className="divide-y divide-gray-50">
-                        {transfers.length === 0
-                            ? <tr><td colSpan={8} className="px-4 py-10 text-center text-gray-400 text-sm">No inter-warehouse transfers yet</td></tr>
-                            : transfers.map(t => (
+                    <thead className="bg-gray-50">
+                        <tr>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">Transfer #</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">From WH</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">To WH</th>
+                            <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500">Items</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">Date</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                        {transfers.length === 0 ? (
+                            <td colSpan={6} className="px-4 py-10 text-center text-gray-400 text-sm">No inter-warehouse transfers yet</td>
+                        ) : (
+                            transfers.map(t => (
                                 <tr key={t.id} className="hover:bg-gray-50">
-                                    <td className="px-4 py-3 font-mono text-xs text-gray-500">{t.transferNumber || t.id}</td>
-                                    <td className="px-4 py-3 font-medium text-gray-700">{t.fromWarehouseName || t.fromWarehouseId}</td>
-                                    <td className="px-4 py-3 text-gray-600">{t.toWarehouseName || t.toWarehouseId}</td>
-                                    <td className="px-4 py-3 text-gray-600">{t.items?.length || 0}</td>
+                                    <td className="px-4 py-3 font-mono text-xs text-gray-500">{t.transferNumber}</td>
+                                    <td className="px-4 py-3 font-medium text-gray-700">{t.fromWarehouseName || getWarehouseName(t.fromWarehouseId)}</td>
+                                    <td className="px-4 py-3 text-gray-600">{t.toWarehouseName || getWarehouseName(t.toWarehouseId)}</td>
+                                    <td className="px-4 py-3 text-center text-gray-500">{t.items?.length || 0}</td>
                                     <td className="px-4 py-3 text-xs text-gray-400">{t.createdAt}</td>
-                                    <td className="px-4 py-3 text-xs text-gray-500 max-w-32 truncate">{t.reason || "—"}</td>
-                                    <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_CLS[t.status] || "bg-gray-100 text-gray-600"}`}>{t.status?.replace(/_/g, " ")}</span></td>
-                                    <td className="px-4 py-3">
-                                        {t.status === "pending_approval" && (
-                                            <div className="flex gap-2">
-                                                <button onClick={() => updateStatus(t.id, "approved")} className="text-xs text-green-600 font-medium cursor-pointer hover:text-green-800">Approve</button>
-                                                <button onClick={() => updateStatus(t.id, "rejected")} className="text-xs text-red-500 font-medium cursor-pointer hover:text-red-700">Reject</button>
-                                            </div>
-                                        )}
-                                        {t.status === "approved" && (
-                                            <button onClick={() => updateStatus(t.id, "completed")} className="text-xs text-blue-600 font-medium cursor-pointer hover:text-blue-800">Mark Complete</button>
-                                        )}
-                                    </td>
+                                    <td className="px-4 py-3"><TransferStatusBadge status={t.status} /></td>
                                 </tr>
-                            ))}
+                            ))
+                        )}
                     </tbody>
                 </table>
             </div>

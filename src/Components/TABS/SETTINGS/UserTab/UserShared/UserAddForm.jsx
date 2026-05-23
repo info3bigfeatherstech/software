@@ -50,13 +50,13 @@ export default function UserAddForm({ formData, formErrors, onSave }) {
             errors.role = "Role is required";
         }
 
-        if (WH_ROLES.includes(role) && !formData.warehouse_id?.trim()) {
-            errors.warehouse_id = "Warehouse ID is required for this role";
-        }
+        // if (WH_ROLES.includes(role) && !formData.warehouse_id?.trim()) {
+        //     errors.warehouse_id = "Warehouse ID is required for this role";
+        // }
 
-        if (SHOP_ROLES.includes(role) && !formData.shop_id?.trim()) {
-            errors.shop_id = "Shop ID is required for this role";
-        }
+        // if (SHOP_ROLES.includes(role) && !formData.shop_id?.trim()) {
+        //     errors.shop_id = "Shop ID is required for this role";
+        // }
 
         return errors;
     };
@@ -73,6 +73,19 @@ export default function UserAddForm({ formData, formErrors, onSave }) {
         dispatch(setSubmitting(true));
         try {
             const role = formData.role;
+            // const payload = {
+            //     name: formData.name.trim(),
+            //     phone: formData.phone.trim(),
+            //     password: formData.password,
+            //     role,
+            //     remarks: formData.remarks?.trim() || undefined,
+            // };
+
+            // // Only attach the relevant ID — backend rejects invalid combos
+            // if (WH_ROLES.includes(role)) payload.warehouse_id = formData.warehouse_id.trim();
+            // if (SHOP_ROLES.includes(role)) payload.shop_id = formData.shop_id.trim();
+            // Instead of sending empty string, only include field if it has value
+
             const payload = {
                 name: formData.name.trim(),
                 phone: formData.phone.trim(),
@@ -81,10 +94,13 @@ export default function UserAddForm({ formData, formErrors, onSave }) {
                 remarks: formData.remarks?.trim() || undefined,
             };
 
-            // Only attach the relevant ID — backend rejects invalid combos
-            if (WH_ROLES.includes(role)) payload.warehouse_id = formData.warehouse_id.trim();
-            if (SHOP_ROLES.includes(role)) payload.shop_id = formData.shop_id.trim();
-
+            // Only attach if value exists (not empty string)
+            if (WH_ROLES.includes(role) && formData.warehouse_id?.trim()) {
+                payload.warehouse_id = formData.warehouse_id.trim();
+            }
+            if (SHOP_ROLES.includes(role) && formData.shop_id?.trim()) {
+                payload.shop_id = formData.shop_id.trim();
+            }
             await createUser(payload).unwrap();
             onSave();
         } catch (err) {

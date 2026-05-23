@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { Eye, Edit, Power, Trash2 } from "lucide-react";
 import { useDeleteVendorMutation } from "../../../REDUX_FEATURES/REDUX_SLICES/Vendor_api/vendorApi";
-
+import { can } from "../../../Components/roles";
 export default function VendorTable({ vendors, onEdit, onView, onToggleActive, isLoading }) {
   const [deleteVendor, { isLoading: isDeleting }] = useDeleteVendorMutation();
   const [deletingId, setDeletingId] = useState(null);
@@ -72,7 +72,7 @@ export default function VendorTable({ vendors, onEdit, onView, onToggleActive, i
                   <td className="px-4 py-3 text-gray-600">{vendor.city || "—"}</td>
                   <td className="px-4 py-3 font-mono text-xs text-gray-500">{vendor.gst_number || "—"}</td>
                   <td className="px-4 py-3">
-                    <span className="text-xs px-2 py-1 bg-gray-100 rounded-full">{vendor.business_type || "—"}</span>
+                    <span className="text-xs px-2 text-gray-700 py-1 bg-gray-100 rounded-full">{vendor.business_type || "—"}</span>
                   </td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${vendor.is_active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
@@ -81,28 +81,39 @@ export default function VendorTable({ vendors, onEdit, onView, onToggleActive, i
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex gap-2">
-                      <button
-                        onClick={() => onEdit(vendor)}
-                        className="p-1 text-blue-600 hover:text-blue-800 cursor-pointer"
-                        title="Edit"
-                      >
-                        <Edit size={16} />
-                      </button>
-                      <button
-                        onClick={() => onView(vendor)}
-                        className="p-1 text-gray-600 hover:text-gray-800 cursor-pointer"
-                        title="View Details"
-                      >
-                        <Eye size={16} />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(vendor)}
-                        disabled={isDeleting && deletingId === vendor.vendor_id}
-                        className={`p-1 cursor-pointer ${vendor.is_active ? "text-red-600 hover:text-red-800" : "text-green-600 hover:text-green-800"} disabled:opacity-50`}
-                        title={vendor.is_active ? "Deactivate" : "Activate"}
-                      >
-                        <Power size={16} />
-                      </button>
+                      {/* View — always show if can read */}
+                      {can("vendor.read") && (
+                        <button
+                          onClick={() => onView(vendor)}
+                          className="p-1 text-gray-600 hover:text-gray-800 cursor-pointer"
+                          title="View Details"
+                        >
+                          <Eye size={16} />
+                        </button>
+                      )}
+
+                      {/* Edit — only if can edit */}
+                      {can("vendor.edit") && (
+                        <button
+                          onClick={() => onEdit(vendor)}
+                          className="p-1 text-blue-600 hover:text-blue-800 cursor-pointer"
+                          title="Edit"
+                        >
+                          <Edit size={16} />
+                        </button>
+                      )}
+
+                      {/* Delete/Deactivate — only if can delete */}
+                      {can("vendor.delete") && (
+                        <button
+                          onClick={() => handleDelete(vendor)}
+                          disabled={isDeleting && deletingId === vendor.vendor_id}
+                          className={`p-1 cursor-pointer ${vendor.is_active ? "text-red-600 hover:text-red-800" : "text-green-600 hover:text-green-800"} disabled:opacity-50`}
+                          title={vendor.is_active ? "Deactivate" : "Activate"}
+                        >
+                          <Power size={16} />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -114,7 +125,7 @@ export default function VendorTable({ vendors, onEdit, onView, onToggleActive, i
     </div>
   );
 }
-// upper code have api integration 
+// upper code have api integration
 // // components/vendors/VendorTable.jsx
 // import React from "react";
 // import { Eye, Edit, Power } from "lucide-react";

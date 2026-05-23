@@ -11,6 +11,18 @@ import { inwardApi } from "../REDUX_SLICES/Inward_api/inwardApi";
 import inwardReducer from "../REDUX_SLICES/Inward_api/inwardSlice";
 import { categoryApi } from "../REDUX_SLICES/Category_api/categoryApi";
 import categoryReducer from "../REDUX_SLICES/Category_api/categorySlice";
+import productReducer from "../REDUX_SLICES/Product_api/productSlice";
+import { productApi } from "../REDUX_SLICES/Product_api/productApi";
+import { bulkUploadApi } from "../REDUX_SLICES/BulkUpload_api/bulkUploadApi";
+import bulkUploadReducer from "../REDUX_SLICES/BulkUpload_api/bulkUploadSlice";
+import { stockApi } from "../REDUX_SLICES/Stock_api/stockApi";
+import stockReducer from "../REDUX_SLICES/Stock_api/stockSlice";
+import { purchaseApi } from "../REDUX_SLICES/Purchase_api/purchaseApi";
+import purchaseReducer from "../REDUX_SLICES/Purchase_api/purchaseSlice";
+import { shopApi } from "../REDUX_SLICES/Shop_api/shopApi";
+import shopReducer from "../REDUX_SLICES/Shop_api/shopSlice";
+import { transferApi } from "../REDUX_SLICES/Transfer_api/transferApi";
+import transferReducer from "../REDUX_SLICES/Transfer_api/transferSlice";
 
 export const store = configureStore({
   reducer: {
@@ -26,6 +38,18 @@ export const store = configureStore({
     [inwardApi.reducerPath]: inwardApi.reducer,
     category: categoryReducer,
     [categoryApi.reducerPath]: categoryApi.reducer,
+    product: productReducer,
+    [productApi.reducerPath]: productApi.reducer,
+    bulkUpload: bulkUploadReducer,
+    [bulkUploadApi.reducerPath]: bulkUploadApi.reducer,
+    stock: stockReducer,
+    [stockApi.reducerPath]: stockApi.reducer,
+    purchase: purchaseReducer,
+    [purchaseApi.reducerPath]: purchaseApi.reducer,
+    shop: shopReducer,
+    [shopApi.reducerPath]: shopApi.reducer,
+    transfer: transferReducer,
+    [transferApi.reducerPath]: transferApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(
@@ -35,5 +59,11 @@ export const store = configureStore({
       userApi.middleware,
       inwardApi.middleware,
       categoryApi.middleware,
+      productApi.middleware,
+      bulkUploadApi.middleware,
+      stockApi.middleware,
+      purchaseApi.middleware,
+      shopApi.middleware,
+      transferApi.middleware,
     ),
 });

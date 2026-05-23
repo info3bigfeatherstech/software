@@ -1,13 +1,162 @@
 // src/Components/roles.js
 
+// ─────────────────────────────────────────────────────────────────────────────
+// SUB-TAB PERMISSIONS — Controls visibility of sidebar dropdown sub-items & internal horizontal tabs
+// Format: "parentTabId.subTabId" OR "parentTabId.internal.subTabId" → array of roles
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const SUB_TAB_PERMISSIONS = {
+
+    // Products
+    "product.read": ["SUPER_ADMIN", "WH_MANAGER", "WH_STOCK_LISTER"],
+    "product.create": ["SUPER_ADMIN", "WH_MANAGER", "WH_STOCK_LISTER"],
+    "product.edit": ["SUPER_ADMIN", "WH_MANAGER"],
+    "product.delete": ["SUPER_ADMIN", "WH_MANAGER"],
+    "product.permanent_delete": ["SUPER_ADMIN"], // ADD THIS LINE
+
+
+    // Warehouses sidebar dropdown (from TabRegistry.js)
+    "warehouses.overview": ["SUPER_ADMIN", "WH_MANAGER", "WH_STOCK_LISTER"],
+    "warehouses.receive": ["SUPER_ADMIN", "WH_MANAGER"],
+
+    // Warehouses internal horizontal tabs (from warehousesTabRegistry.js)
+    "warehouses.internal.overview": ["SUPER_ADMIN", "WH_MANAGER", "WH_STOCK_LISTER"],
+    "warehouses.internal.receive": ["SUPER_ADMIN", "WH_MANAGER"],
+    "warehouses.internal.inward": ["SUPER_ADMIN", "WH_MANAGER"],
+
+    // Sales sidebar dropdown
+    "sales.billing": ["SUPER_ADMIN", "BILLING_STAFF", "SHOP_OWNER", "WH_MANAGER"],
+    "sales.invoices": ["SUPER_ADMIN", "SHOP_OWNER", "BILLING_STAFF", "WH_MANAGER"],
+    "sales.customers": ["SUPER_ADMIN", "SHOP_OWNER", "BILLING_STAFF", "WH_MANAGER"],
+    "sales.wholesale": ["SUPER_ADMIN", "SHOP_OWNER", "WH_MANAGER"],
+    "sales.returns": ["SUPER_ADMIN", "SHOP_OWNER", "WH_MANAGER"],
+    "sales.credit-notes": ["SUPER_ADMIN", "SHOP_OWNER", "WH_MANAGER"],
+
+    // Settings sidebar dropdown
+    "settings.users": ["SUPER_ADMIN"],
+    "settings.shops": ["SUPER_ADMIN"],
+    "settings.vendors": ["SUPER_ADMIN", "WH_MANAGER"],
+
+    // Transfers sidebar dropdown
+    "transfers.wh-to-shop": ["SUPER_ADMIN", "WH_MANAGER", "WH_STOCK_LISTER"],
+    "transfers.shop-to-shop": ["SUPER_ADMIN", "SHOP_OWNER"],
+    "transfers.wh-to-wh": ["SUPER_ADMIN", "WH_MANAGER"],
+    "transfers.history": ["SUPER_ADMIN", "WH_MANAGER", "WH_STOCK_LISTER", "SHOP_OWNER"],
+};
+
+/**
+ * Check if a specific sub-tab is visible to the current user
+ * @param {string} parentTabId - e.g., "warehouses", "sales", "settings"
+ * @param {string} subTabId     - e.g., "overview", "receive", "billing"
+ * @returns {boolean}
+ */
+export const canViewSubTab = (parentTabId, subTabId) => {
+    const currentRole = CURRENT_USER.role;
+    if (currentRole === ROLES.SUPER_ADMIN) return true;
+
+    const key = `${parentTabId}.${subTabId}`;
+    const allowedRoles = SUB_TAB_PERMISSIONS[key];
+
+    if (!allowedRoles) return true;
+
+    return allowedRoles.includes(currentRole);
+};
+
+/**
+ * Filter sub-items array based on current user's role
+ * @param {string} parentTabId - The parent tab's id
+ * @param {Array} subItems      - The subItems array from TAB_REGISTRY
+ * @returns {Array}             - Filtered subItems
+ */
+export const filterSubItemsByRole = (parentTabId, subItems) => {
+    if (!subItems || !Array.isArray(subItems)) return [];
+    if (CURRENT_USER.role === ROLES.SUPER_ADMIN) return subItems;
+
+    return subItems.filter(subItem =>
+        canViewSubTab(parentTabId, subItem.id)
+    );
+};
+
+/**
+ * Filter internal tab registry based on current user's role
+ * Use this for horizontal tabs inside dashboards (e.g., WarehousesDashboard)
+ * @param {string} parentTabId - The parent tab's id (e.g., "warehouses")
+ * @param {Array} tabRegistry   - The tab registry array (e.g., WAREHOUSES_TAB_REGISTRY)
+ * @returns {Array}             - Filtered tab registry
+ */
+export const filterInternalTabsByRole = (parentTabId, tabRegistry) => {
+    if (!tabRegistry || !Array.isArray(tabRegistry)) return [];
+    if (CURRENT_USER.role === ROLES.SUPER_ADMIN) return tabRegistry;
+
+    return tabRegistry.filter(tab =>
+        canViewSubTab(`${parentTabId}.internal`, tab.id)
+    );
+};
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ACTION PERMISSIONS — Controls visibility of CRUD buttons (Add, Edit, Delete)
+// Format: "resource.action" → array of roles that can perform this action
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const ACTION_PERMISSIONS = {
+
+    // Products / Inventory/ Product Master
+    "productMs.read": ["SUPER_ADMIN", "WH_MANAGER", "WH_STOCK_LISTER", "SHOP_OWNER", "SHOP_STOCK_LISTER"],
+    "productMs.create": ["SUPER_ADMIN", "WH_MANAGER"],
+    "productMs.edit": ["SUPER_ADMIN", "WH_MANAGER"],
+    "productMs.archive": ["SUPER_ADMIN", "WH_MANAGER"],
+    "productMs.bulk_upload": ["SUPER_ADMIN", "WH_MANAGER"],
+    "productMs.category_add": ["SUPER_ADMIN", "WH_MANAGER"],
+
+    // Vendors
+    "vendor.read": ["SUPER_ADMIN", "WH_MANAGER", "WH_STOCK_LISTER", "SHOP_OWNER", "BILLING_STAFF", "SHOP_STOCK_LISTER"],
+    "vendor.create": ["SUPER_ADMIN"],
+    "vendor.edit": ["SUPER_ADMIN"],
+    "vendor.delete": ["SUPER_ADMIN"],
+
+    // Warehouses
+    "warehouse.read": ["SUPER_ADMIN", "WH_MANAGER", "WH_STOCK_LISTER"],
+    "warehouse.create": ["SUPER_ADMIN"],
+    "warehouse.edit": ["SUPER_ADMIN", "WH_MANAGER"],
+    "warehouse.delete": ["SUPER_ADMIN"],
+
+    // Users
+    "user.read": ["SUPER_ADMIN"],
+    "user.create": ["SUPER_ADMIN"],
+    "user.edit": ["SUPER_ADMIN"],
+    "user.delete": ["SUPER_ADMIN"],
+
+    // Inwards
+    "inward.read": ["SUPER_ADMIN", "WH_MANAGER", "WH_STOCK_LISTER"],
+    "inward.schedule": ["SUPER_ADMIN", "WH_MANAGER"],
+    "inward.arrive": ["SUPER_ADMIN", "WH_MANAGER"],
+    "inward.map": ["SUPER_ADMIN", "WH_MANAGER"],
+    "inward.cancel": ["SUPER_ADMIN", "WH_MANAGER"],
+};
+
+/**
+ * Check if current user can perform a specific action
+ * @param {string} actionKey - Format: "resource.action" e.g., "vendor.edit"
+ * @returns {boolean}
+ */
+export const can = (actionKey) => {
+    const role = CURRENT_USER.role;
+    if (role === ROLES.SUPER_ADMIN) return true;
+    const allowedRoles = ACTION_PERMISSIONS[actionKey];
+    return allowedRoles ? allowedRoles.includes(role) : false;
+};
+
+
+
+//
 export const ROLES = {
     SUPER_ADMIN: "SUPER_ADMIN",
-    ACCOUNTANT: "ACCOUNTANT",
-    BILLING_STAFF: "BILLING_STAFF",
-    STOCK_LISTER: "STOCK_LISTER",
-    CASHIER: "CASHIER",
     WH_MANAGER: "WH_MANAGER",
+    WH_STOCK_LISTER: "WH_STOCK_LISTER",
     SHOP_OWNER: "SHOP_OWNER",
+    BILLING_STAFF: "BILLING_STAFF",
+    SHOP_STOCK_LISTER: "SHOP_STOCK_LISTER",
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -15,9 +164,15 @@ export const ROLES = {
 // ─────────────────────────────────────────────────────────────────────────────
 // HARDCODED USER IS DISABLED.
 // This object is now hydrated from login API response.
+// export const CURRENT_USER = {
+//     role: null,
+//     locationId: null,
+//     name: null,
+// };
 export const CURRENT_USER = {
     role: null,
     locationId: null,
+    locationName: null,
     name: null,
 };
 
@@ -30,19 +185,24 @@ export const syncCurrentUserFromAuth = (user) => {
     }
 
     CURRENT_USER.role = user.role || null;
+    // CURRENT_USER.locationId = user.warehouse_id || user.shop_id || null;
+    // CURRENT_USER.name = user.name || null;
     CURRENT_USER.locationId = user.warehouse_id || user.shop_id || null;
+    CURRENT_USER.locationName = user.locationName || user.warehouse_id || user.shop_id || null;
     CURRENT_USER.name = user.name || null;
 };
 
 // Role permissions for tabs (controls which tabs appear in sidebar)
 export const ROLE_PERMISSIONS = {
-    [ROLES.SUPER_ADMIN]: ["dashboard", "sales", "purchase", "inventory", "transfers", "warehouses", "parties", "reports", "settings","vendors"],
+    [ROLES.SUPER_ADMIN]: ["dashboard", "sales", "purchase", "inventory", "archive", "transfers", "warehouses", "parties", "reports", "settings", "vendors"],
     [ROLES.ACCOUNTANT]: ["dashboard", "sales", "purchase", "parties", "reports"],
     [ROLES.BILLING_STAFF]: ["dashboard", "sales", "parties", "transfers"],
     [ROLES.STOCK_LISTER]: ["dashboard", "inventory", "transfers"],
     [ROLES.CASHIER]: ["dashboard", "sales"],
-    [ROLES.WH_MANAGER]: ["dashboard", "warehouses", "transfers", "inventory", "purchase", "parties", "settings","vendors","reports","sales"],
+    [ROLES.WH_MANAGER]: ["dashboard", "warehouses", "transfers", "inventory", "archive", "purchase", "parties", "settings", "vendors", "reports", "sales"],
+    [ROLES.WH_STOCK_LISTER]: ["dashboard", "warehouses", "transfers", "inventory", "purchase", "parties", "settings", "vendors", "reports", "sales"],
     [ROLES.SHOP_OWNER]: ["dashboard", "sales", "purchase", "inventory", "transfers", "parties", "reports"],
+    [ROLES.SHOP_STOCK_LISTER]: ["dashboard", "sales", "purchase", "inventory", "transfers", "parties", "reports"],
 };
 
 export const ROLE_LABELS = {
@@ -52,7 +212,9 @@ export const ROLE_LABELS = {
     [ROLES.STOCK_LISTER]: "Stock Lister",
     [ROLES.CASHIER]: "Cashier / Billing Staff",
     [ROLES.WH_MANAGER]: "Warehouse Manager",
+    [ROLES.WH_STOCK_LISTER]: "Warehouse Stock Lister",
     [ROLES.SHOP_OWNER]: "Shop Owner",
+    [ROLES.SHOP_STOCK_LISTER]: "Shop Stock Lister",
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -98,7 +260,7 @@ export const isWarehouseRole = () => CURRENT_USER.role === ROLES.WH_MANAGER;
  */
 export const getControlledLocations = (list) => {
     if (!Array.isArray(list)) return [];
-    if (isAdmin()) return list; 
+    if (isAdmin()) return list;
     return list.filter(loc => loc.id === CURRENT_USER.locationId);
 };
 
@@ -109,7 +271,7 @@ export const getControlledLocations = (list) => {
  */
 export const getVisibleLocations = (list) => {
     if (!Array.isArray(list)) return [];
-    if (isAdmin()) return list; 
+    if (isAdmin()) return list;
 
     const isWH = isWarehouseRole();
     const locId = CURRENT_USER.locationId;
@@ -119,7 +281,7 @@ export const getVisibleLocations = (list) => {
         if (loc.id === locId) return true;
 
         // 2. If I'm a WH manager, I can see all other warehouses and all shops
-        if (isWH) return true; 
+        if (isWH) return true;
 
         // 3. If I'm a Shop user, I can see all warehouses (as sources)
         // Check if IDs usually start with WH- for warehouses

@@ -104,15 +104,15 @@ export default function UserFormBody({ formData, onChange, formErrors, isEdit = 
             {needsWH && (
                 <div className="col-span-2">
                     <label className="block text-xs font-medium text-gray-600 mb-1">
-                        Warehouse ID <span className="text-red-500">*</span>
+                        Warehouse ID <span className="text-gray-400">(optional for now)</span>
                     </label>
                     <input
                         {...field("warehouse_id")}
-                        placeholder="e.g. clxyz123abc (CUID from warehouses list)"
+                        placeholder="e.g., clxyz123abc — can be updated later"
                         className={inputCls("warehouse_id")}
                     />
                     <p className="text-xs text-gray-400 mt-1">
-                        Required for {role === "WH_MANAGER" ? "Warehouse Manager" : "WH Stock Lister"} role
+                        You can assign warehouse after creation
                     </p>
                     {errorMsg("warehouse_id")}
                 </div>
@@ -122,20 +122,19 @@ export default function UserFormBody({ formData, onChange, formErrors, isEdit = 
             {needsShop && (
                 <div className="col-span-2">
                     <label className="block text-xs font-medium text-gray-600 mb-1">
-                        Shop ID <span className="text-red-500">*</span>
+                        Shop ID <span className="text-gray-400">(optional for now)</span>
                     </label>
                     <input
                         {...field("shop_id")}
-                        placeholder="e.g. clxyz456def (CUID from shops list)"
+                        placeholder="e.g., clxyz456def — can be updated later"
                         className={inputCls("shop_id")}
                     />
                     <p className="text-xs text-gray-400 mt-1">
-                        Required for {USER_ROLES.find(r => r.value === role)?.label} role
+                        You can assign shop after creation
                     </p>
                     {errorMsg("shop_id")}
                 </div>
             )}
-
             {/* SUPER_ADMIN note */}
             {role === "SUPER_ADMIN" && (
                 <div className="col-span-2 bg-purple-50 border border-purple-100 rounded-lg px-4 py-2">

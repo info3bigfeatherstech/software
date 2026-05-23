@@ -1,296 +1,1903 @@
-// src/Components/TABS/INVENTORY/InventoryTab.jsx
-import React, { useState, useEffect } from 'react';
-import { INITIAL_PRODUCTS, INITIAL_SHOPS } from '../../demoData';
-import { CURRENT_USER, filterByLocation, filterLocationList, isAdmin } from '../../roles';
-import AddProductModal from './AddProductModal';
-import EditProductModal from './EditProductModal';
-import InventoryTable from './InventoryTable';
-import StatsCards from '../../shared/StatsCards';
-import BulkUploadModal from './BulkUploadModal';
+
+import React, { useState } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { X, Plus, Package, Tag, TrendingUp, Layers, Eye, Upload, FolderPlus, CheckSquare, Square } from "lucide-react";
+import { toast } from "react-toastify";
+import {
+  useGetProductsQuery,
+  useDeleteProductMutation,
+  useBulkUpdateProductsMutation,
+  useBulkArchiveProductsMutation,
+} from "../../../REDUX_FEATURES/REDUX_SLICES/Product_api/productApi";
 import CategoriesTab from "../../shared/CategoriesTab/CategoriesTab";
 import { useGetCategoriesQuery } from "../../../REDUX_FEATURES/REDUX_SLICES/Category_api/categoryApi";
-const STORAGE_KEYS = {
-    PRODUCTS: 'vyapar_products',
-    SHOPS: 'vyapar_shops'
-};
+import {
+  openAddForm, closeAddForm,
+  openEditForm, closeEditForm,
+  openViewModal, closeViewModal,
+  setSearch, setCategoryFilter, setActiveFilter,
+  setCurrentPage, setPageSize, resetFilters,
+  setSelectedProductIds,
+  clearSelectedProducts,
+  toggleSelectAll,
+} from "../../../REDUX_FEATURES/REDUX_SLICES/Product_api/productSlice";
+import ProductAddForm from "./ProductShared/ProductAddForm";
+import ProductEditForm from "./ProductShared/ProductEditForm";
+import ProductView from "./ProductShared/ProductView";
+import { CURRENT_USER,can  } from "../../../Components/roles";
+import BulkUploadTab from "./BulkUploadTab/BulkUploadTab";
+import BulkActionBar from "././BulkActionBar/BulkActionBar";
 
-const getData = (key, initialData) => {
-    const stored = localStorage.getItem(key);
-    if (stored) return JSON.parse(stored);
-    localStorage.setItem(key, JSON.stringify(initialData));
-    return initialData;
-};
+const StatusBadge = ({ isActive }) => (
+  <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${
+    isActive ? "bg-emerald-50 text-emerald-700" : "bg-gray-100 text-gray-500"
+  }`}>
+    <span className={`w-1.5 h-1.5 rounded-full ${isActive ? "bg-emerald-500" : "bg-gray-400"}`} />
+    {isActive ? "Active" : "Inactive"}
+  </span>
+);
 
-const saveData = (key, data) => {
-    localStorage.setItem(key, JSON.stringify(data));
-};
+export default function InventoryTab() {
+  const dispatch = useDispatch();
 
-const InventoryTab = () => {
-    const [products, setProducts] = useState([]);
-    const [shops, setShops] = useState([]);
-    const [selectedShop, setSelectedShop] = useState(CURRENT_USER.locationId);
-    const [showAddModal, setShowAddModal] = useState(false);
-    const [showBulkUpload, setShowBulkUpload] = useState(false);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [editingProduct, setEditingProduct] = useState(null);
-    const [selectedCategory, setSelectedCategory] = useState('all');
-    const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const {
+    showAddForm, showEditForm, showViewModal,
+    formData, formErrors,
+    variants, showVariantModal, variantForm, variantErrors,
+    editingVariantIndex, selectedProduct,
+    search, categoryFilter, activeFilter, currentPage, pageSize,
+    selectedProductIds, // ADD THIS
+  } = useSelector((state) => state.product);
 
-    const { data: categoriesData } = useGetCategoriesQuery({
-        is_active: true,
-        limit: 100
-    });
+  const warehouseId = CURRENT_USER.role === "SUPER_ADMIN" ? "" : CURRENT_USER.locationId || "";
 
-    // Transform categories for the dropdown
-    const categoryOptions = [
-        { category_id: 'all', name: 'All Categories' },
-        ...(categoriesData?.categories || [])
-    ];
+  const { data, isLoading, isFetching, refetch } = useGetProductsQuery({
+    page: currentPage, limit: pageSize,
+    search, category_id: categoryFilter,
+    is_active: activeFilter, warehouse_id: warehouseId,
+  });
 
-    useEffect(() => {
-        const allProducts = getData(STORAGE_KEYS.PRODUCTS, INITIAL_PRODUCTS);
-        const allShops = getData(STORAGE_KEYS.SHOPS, INITIAL_SHOPS);
+  // ADD THIS - same query, just get all for stats
+  const { data: allData } = useGetProductsQuery({
+    page: 1, limit: 100,  // Get all records
+    search, category_id: categoryFilter,
+    is_active: activeFilter, warehouse_id: warehouseId,
+  }, { skip: false }); // Always fetch
 
-        const scopedProducts = isAdmin()
-            ? allProducts.filter(p => (p.shopId === selectedShop) || (p.locationId === selectedShop))
-            : filterByLocation(allProducts);
+  const [showBulkUpload, setShowBulkUpload] = useState(false);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const { data: categoriesData } = useGetCategoriesQuery({ is_active: true, limit: 100 });
+  const [deleteProduct, { isLoading: isDeleting }] = useDeleteProductMutation();
+  const [bulkUpdate] = useBulkUpdateProductsMutation();
+  const [bulkArchive] = useBulkArchiveProductsMutation();
 
-        setProducts(scopedProducts);
-        setShops(filterLocationList(allShops));
-    }, [selectedShop]);
+  const products = data?.products || [];
+  const meta = data?.meta || { total: 0, page: 1, limit: 20, totalPages: 1 };
+  const categories = categoriesData?.categories || [];
 
-    const generateBarcode = () => {
-        const prefix = 'VYP';
-        const shopCode = selectedShop.replace('SHP-', '');
-        const timestamp = Date.now().toString().slice(-6);
-        return `${prefix}-${shopCode}-${timestamp}`;
-    };
+  // Check if all products on current page are selected
+  const allSelectedOnPage = products.length > 0 && 
+    products.every(p => selectedProductIds.includes(p.product_id));
+  
+  // Some selected on page
+  const someSelected = products.some(p => selectedProductIds.includes(p.product_id));
 
-    const handleAddProduct = (newProduct) => {
-        const allProducts = getData(STORAGE_KEYS.PRODUCTS, INITIAL_PRODUCTS);
-        saveData(STORAGE_KEYS.PRODUCTS, [...allProducts, newProduct]);
+// Then use allData?.products for stats
+const allProducts = allData?.products || [];
+const totalActiveCount = allProducts.filter(p => p.is_active).length;
+const totalMultiVariant = allProducts.filter(p => p.variant_count > 1).length;
+const totalAvgMrp = allProducts.length
+  ? Math.round(allProducts.reduce((s, p) => s + (p.mrp || 0), 0) / allProducts.length)
+  : 0;
 
-        // Refresh view
-        const updatedProducts = getData(STORAGE_KEYS.PRODUCTS, INITIAL_PRODUCTS);
-        setProducts(isAdmin()
-            ? updatedProducts.filter(p => p.shopId === selectedShop || p.locationId === selectedShop)
-            : filterByLocation(updatedProducts));
-        alert('✅ New product added successfully!');
-    };
+  // ── Handle individual product archive (replaces deactivate) ──
+  const handleArchive = async (productId, name) => {
+    if (!window.confirm(`Archive "${name}"? This will soft delete the product.`)) return;
+    try {
+      await deleteProduct(productId).unwrap();
+      toast.success(`"${name}" archived successfully`);
+      refetch();
+      dispatch(clearSelectedProducts());
+    } catch (err) {
+      toast.error(err?.data?.message || "Failed to archive product");
+    }
+  };
 
-    const handleEditProduct = (updatedProduct) => {
-        const allProducts = getData(STORAGE_KEYS.PRODUCTS, INITIAL_PRODUCTS);
-        const updated = allProducts.map(p =>
-            p.id === updatedProduct.id ? updatedProduct : p
-        );
-        saveData(STORAGE_KEYS.PRODUCTS, updated);
+  // ── Handle bulk actions ──
+  const handleBulkAction = async (action, productIds) => {
+    if (action === "activate") {
+      const items = productIds.map(id => ({ product_id: id, is_active: true }));
+      await bulkUpdate(items).unwrap();
+    } else if (action === "deactivate") {
+      const items = productIds.map(id => ({ product_id: id, is_active: false }));
+      await bulkUpdate(items).unwrap();
+    } else if (action === "archive") {
+      await bulkArchive(productIds).unwrap();
+    }
+    refetch();
+  };
 
-        // Refresh view
-        setProducts(isAdmin()
-            ? updated.filter(p => p.shopId === selectedShop || p.locationId === selectedShop)
-            : filterByLocation(updated));
-        setEditingProduct(null);
-        alert('✅ Product updated successfully!');
-    };
+  // ── Toggle individual product selection ──
+  const toggleSelectProduct = (productId) => {
+    if (selectedProductIds.includes(productId)) {
+      dispatch(setSelectedProductIds(selectedProductIds.filter(id => id !== productId)));
+    } else {
+      dispatch(setSelectedProductIds([...selectedProductIds, productId]));
+    }
+  };
 
-    const handleDeleteProduct = (productId) => {
-        if (window.confirm('⚠️ Are you sure you want to delete this product? This action cannot be undone.')) {
-            const allProducts = getData(STORAGE_KEYS.PRODUCTS, INITIAL_PRODUCTS);
-            const filtered = allProducts.filter(p => p.id !== productId);
-            saveData(STORAGE_KEYS.PRODUCTS, filtered);
-            setProducts(isAdmin()
-                ? filtered.filter(p => p.shopId === selectedShop || p.locationId === selectedShop)
-                : filterByLocation(filtered));
-            alert('✅ Product deleted successfully');
+  // ── Toggle select all on current page ──
+  const handleSelectAll = () => {
+    if (allSelectedOnPage) {
+      // Deselect all on current page
+      const remainingIds = selectedProductIds.filter(id => !products.some(p => p.product_id === id));
+      dispatch(setSelectedProductIds(remainingIds));
+    } else {
+      // Select all on current page
+      const newIds = [...selectedProductIds];
+      products.forEach(p => {
+        if (!newIds.includes(p.product_id)) {
+          newIds.push(p.product_id);
         }
-    };
+      });
+      dispatch(setSelectedProductIds(newIds));
+    }
+  };
 
-    const handleStockAdjust = (product, newStock) => {
-        const allProducts = getData(STORAGE_KEYS.PRODUCTS, INITIAL_PRODUCTS);
-        const updated = allProducts.map(p =>
-            p.id === product.id
-                ? { ...p, stock: newStock, updatedAt: new Date().toISOString() }
-                : p
-        );
-        saveData(STORAGE_KEYS.PRODUCTS, updated);
-        setProducts(isAdmin()
-            ? updated.filter(p => p.shopId === selectedShop || p.locationId === selectedShop)
-            : filterByLocation(updated));
-        alert(`✅ Stock updated to ${newStock} units`);
-    };
+  const handleSaveSuccess = () => {
+    dispatch(closeAddForm());
+    dispatch(closeEditForm());
+    refetch();
+    dispatch(clearSelectedProducts());
+  };
 
-    const handleBulkUpload = (newProducts) => {
-        const allProducts = getData(STORAGE_KEYS.PRODUCTS, INITIAL_PRODUCTS);
-        saveData(STORAGE_KEYS.PRODUCTS, [...allProducts, ...newProducts]);
+  const getCategoryName = (id) => categories.find(c => c.category_id === id)?.name || "—";
 
-        // Refresh view
-        const updatedProducts = getData(STORAGE_KEYS.PRODUCTS, INITIAL_PRODUCTS);
-        setProducts(isAdmin()
-            ? updatedProducts.filter(p => p.shopId === selectedShop || p.locationId === selectedShop)
-            : filterByLocation(updatedProducts));
-    };
+  return (
+    <div className="space-y-5">
 
-    const printBarcode = (product) => {
-        const printWindow = window.open('', '_blank', 'width=400,height=400');
-        printWindow.document.write(`
-            <html>
-                <head>
-                    <title>Print Barcode - ${product.barcode}</title>
-                    <style>
-                        body { text-align: center; font-family: sans-serif; padding-top: 50px; }
-                        img { max-width: 100%; height: auto; margin-bottom: 10px; }
-                        p { margin: 0; font-size: 14px; font-weight: bold; }
-                        .sku { font-size: 12px; color: #555; }
-                        @media print {
-                            body { padding-top: 0; }
-                        }
-                    </style>
-                </head>
-                <body>
-                    <p>${product.name}</p>
-                    <img src="https://barcode.tec-it.com/barcode.ashx?data=${product.barcode}&code=Code128&dpi=96&dataseparator=" alt="Barcode" />
-                    <p>${product.barcode}</p>
-                    ${product.sku ? `<p class="sku">SKU: ${product.sku}</p>` : ''}
-                    <p style="margin-top: 5px;">MRP: ₹${product.mrp}</p>
-                    <script>
-                        window.onload = () => { setTimeout(() => { window.print(); window.close(); }, 500); }
-                    </script>
-                </body>
-            </html>
-        `);
-        printWindow.document.close();
-    };
-
-    // Filter products
-    const filteredProducts = products.filter(p => {
-        const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            p.barcode.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (p.sku && p.sku.toLowerCase().includes(searchTerm.toLowerCase()));
-        const matchesCategory = selectedCategory === 'all' || p.category === selectedCategory;
-        return matchesSearch && matchesCategory;
-    });
-
-    return (
-        <div className="space-y-6">
-            <StatsCards
-                products={filteredProducts}
-                selectedShopName={shops.find(s => s.id === selectedShop)?.name || selectedShop}
-            />
-
-            {/* Action Bar */}
-            <div className="flex justify-between items-center">
-                <div className="flex items-center gap-4">
-                    <h2 className="text-xl font-bold text-gray-800">📦 Inventory Management</h2>
-                    {isAdmin() ? (
-                        <select
-                            value={selectedShop}
-                            onChange={(e) => setSelectedShop(e.target.value)}
-                            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-700"
-                        >
-                            {shops.map(shop => (
-                                <option key={shop.id} value={shop.id}>{shop.name} - {shop.city}</option>
-                            ))}
-                        </select>
-                    ) : (
-                        <span className="px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-lg text-xs font-semibold text-blue-700">
-                            📍 {shops[0]?.name || CURRENT_USER.locationId}
-                        </span>
-                    )}
-                </div>
-                <div className="flex gap-2">
-                    <button
-                        onClick={() => setShowBulkUpload(true)}
-                        className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition flex items-center gap-2"
-                    >
-                        📤 Bulk Upload
-                    </button>
-                    <button
-                        onClick={() => setShowAddModal(true)}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
-                    >
-                        + Add Product
-                    </button>
-
-                    <button
-                        onClick={() => setShowCategoryModal(true)}
-                        className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition flex items-center gap-2"
-                    >
-                        📁 Add Category
-                    </button>
-                </div>
-            </div>
-
-            {/* Search and Filter */}
-            <div className="flex gap-4">
-                <div className="flex-1 relative">
-                    <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                    <input
-                        type="text"
-                        placeholder="🔍 Search by name, barcode, or SKU..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                    />
-                </div>
-                <select
-                    value={selectedCategory}
-                    onChange={(e) => setSelectedCategory(e.target.value)}
-                    className="px-4 py-2 border border-gray-300 rounded-lg text-sm bg-white text-gray-700"
-                >
-                    {categoryOptions.map(cat => (
-                        <option key={cat.category_id} value={cat.category_id === 'all' ? 'all' : cat.category_id}>
-                            {cat.name}
-                        </option>
-                    ))}
-                </select>
-            </div>
-
-            {/* Inventory Table */}
-            <InventoryTable
-                products={filteredProducts}
-                onEdit={setEditingProduct}
-                onDelete={handleDeleteProduct}
-                onStockAdjust={handleStockAdjust}
-                onPrintBarcode={printBarcode}
-                selectedShop={selectedShop}
-                showNetworkButton={isAdmin()}
-            />
-
-            {/* Modals */}
-            <AddProductModal
-                isOpen={showAddModal}
-                onClose={() => setShowAddModal(false)}
-                onSave={handleAddProduct}
-                selectedShop={selectedShop}
-            // categories={categories}
-            />
-
-            <EditProductModal
-                isOpen={!!editingProduct}
-                onClose={() => setEditingProduct(null)}
-                onSave={handleEditProduct}
-                product={editingProduct}
-            // categories={categories}
-            />
-
-            <BulkUploadModal
-                isOpen={showBulkUpload}
-                onClose={() => setShowBulkUpload(false)}
-                onUpload={handleBulkUpload}
-                selectedShop={selectedShop}
-                generateBarcode={generateBarcode}
-            />
-
-            {showCategoryModal && (
-                <CategoriesTab onClose={() => setShowCategoryModal(false)} />
-            )}
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-gray-100">
+        <div>
+          <h2 className="text-xl font-bold text-gray-900 tracking-tight">Products & Inventory</h2>
+          <p className="text-sm text-gray-500 mt-1">
+            Manage products, variants, pricing matrices, and master barcode configurations.
+          </p>
         </div>
-    );
-};
+        
+        <div className="flex items-center gap-2.5 self-end sm:self-auto">
+          {can("productMs.category_add") && (
+            <button
+              onClick={() => setShowCategoryModal(true)}
+              className="inline-flex items-center gap-2 px-3.5 py-2 text-sm font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg shadow-sm transition-all duration-150 cursor-pointer"
+            >
+              <FolderPlus size={16} /> Add Category
+            </button>
+          )}
+          
+          {can("productMs.bulk_upload") && (
+            <button
+              onClick={() => setShowBulkUpload(true)}
+              className="inline-flex items-center gap-2 px-3.5 py-2 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 border border-gray-300 rounded-lg shadow-sm transition-all duration-150 cursor-pointer"
+            >
+              <Upload size={16} className="text-gray-500" /> Bulk Upload
+            </button>
+          )}
+          
+          {can("productMs.create") && (
+          <button
+            onClick={() => dispatch(openAddForm())}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 border border-blue-700 rounded-lg shadow-sm transition-all duration-150 cursor-pointer"
+          >
+            <Plus size={16} /> Add Product
+          </button>
+        )}
+        </div>
+      </div>
 
-export default InventoryTab;
+      {/* Stats Cards */}
+      {/* Stats Cards */}
+<div className="grid grid-cols-4 gap-4">
+  <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-4 text-white shadow-md">
+    <div className="flex items-center justify-between mb-2">
+      <p className="text-xs opacity-75 uppercase tracking-wide font-medium">Total Products</p>
+      <Package size={16} className="opacity-60" />
+    </div>
+    <p className="text-3xl font-bold">{allProducts.length}</p>
+    <p className="text-xs opacity-60 mt-1">matching filters</p>
+  </div>
+  <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl p-4 text-white shadow-md">
+    <div className="flex items-center justify-between mb-2">
+      <p className="text-xs opacity-75 uppercase tracking-wide font-medium">Active</p>
+      <Tag size={16} className="opacity-60" />
+    </div>
+    <p className="text-3xl font-bold">{allProducts.filter(p => p.is_active).length}</p>
+    <p className="text-xs opacity-60 mt-1">total in system</p>
+  </div>
+  <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl p-4 text-white shadow-md">
+    <div className="flex items-center justify-between mb-2">
+      <p className="text-xs opacity-75 uppercase tracking-wide font-medium">Multi-Variant</p>
+      <Layers size={16} className="opacity-60" />
+    </div>
+    <p className="text-3xl font-bold">{allProducts.filter(p => p.variant_count > 1).length}</p>
+    <p className="text-xs opacity-60 mt-1">total in system</p>
+  </div>
+  <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-4 text-white shadow-md">
+    <div className="flex items-center justify-between mb-2">
+      <p className="text-xs opacity-75 uppercase tracking-wide font-medium">Avg MRP</p>
+      <TrendingUp size={16} className="opacity-60" />
+    </div>
+    <p className="text-3xl font-bold">
+      ₹{allProducts.length 
+        ? Math.round(allProducts.reduce((s, p) => s + (p.mrp || 0), 0) / allProducts.length).toLocaleString() 
+        : 0}
+    </p>
+    <p className="text-xs opacity-60 mt-1">across all products</p>
+  </div>
+</div>
+
+      {/* Filters */}
+      <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+        <div className="flex gap-3">
+          <input
+            value={search}
+            onChange={(e) => dispatch(setSearch(e.target.value))}
+            placeholder="Search by product name or code…"
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <button
+            onClick={() => dispatch(resetFilters())}
+            className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 cursor-pointer"
+          >
+            <X size={14} /> Clear
+          </button>
+        </div>
+        <div className="flex gap-3 flex-wrap">
+          <select
+            value={categoryFilter}
+            onChange={(e) => dispatch(setCategoryFilter(e.target.value))}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">All Categories</option>
+            {categories.map(c => <option key={c.category_id} value={c.category_id}>{c.name}</option>)}
+          </select>
+          <select
+            value={activeFilter}
+            onChange={(e) => dispatch(setActiveFilter(e.target.value))}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">All Status</option>
+            <option value="true">Active</option>
+            <option value="false">Inactive</option>
+          </select>
+          <select
+            value={pageSize}
+            onChange={(e) => dispatch(setPageSize(Number(e.target.value)))}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 ml-auto cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            {[10, 20, 50].map(s => <option key={s} value={s}>{s} per page</option>)}
+          </select>
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-gray-50 border-b border-gray-100">
+            <tr>
+              {/* Checkbox column */}
+              {/* Bulk select checkbox column — only show if user can perform bulk actions */}
+            {(can("productMs.edit") || can("productMs.archive")) && (
+              <th className="px-4 py-3 w-10">
+                <button
+                  onClick={handleSelectAll}
+                  className="text-gray-500 hover:text-blue-600 transition-colors"
+                >
+                  {allSelectedOnPage ? (
+                    <CheckSquare size={18} />
+                  ) : someSelected ? (
+                    <Square size={18} className="text-blue-500" />
+                  ) : (
+                    <Square size={18} />
+                  )}
+                </button>
+              </th>
+            )}
+              {["Product", "Vendor", "Category", "Pricing", "Variants", "Status", "Actions"].map(h => (
+                <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-50">
+
+            {(isLoading || isFetching) && (
+              <tr><td colSpan={8} className="px-4 py-10 text-center">
+                <div className="flex justify-center"><div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" /></div>
+              </td></tr>
+            )}
+
+            {!isLoading && !isFetching && products.length === 0 && (
+              <tr><td colSpan={8} className="px-4 py-14 text-center">
+                <div className="flex flex-col items-center gap-2">
+                  <Package size={32} className="text-gray-300" />
+                  <p className="text-gray-400 text-sm">No products found</p>
+                  <button onClick={() => dispatch(openAddForm())} className="text-blue-600 text-xs font-medium hover:underline cursor-pointer">Add your first product</button>
+                </div>
+              </td></tr>
+            )}
+
+            {!isLoading && products.map(p => (
+              <tr key={p.product_id} className="hover:bg-gray-50 transition-colors">
+                {/* Checkbox */}
+                {/* Row checkbox — only show if user can perform bulk actions */}
+                {(can("productMs.edit") || can("productMs.archive")) && (
+                  <td className="px-4 py-3">
+                    <button
+                      onClick={() => toggleSelectProduct(p.product_id)}
+                      className="text-gray-400 hover:text-blue-600 transition-colors"
+                    >
+                      {selectedProductIds.includes(p.product_id) ? (
+                        <CheckSquare size={18} className="text-blue-600" />
+                      ) : (
+                        <Square size={18} />
+                      )}
+                    </button>
+                  </td>
+                )}
+
+                {/* Product */}
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 shrink-0 border border-gray-200">
+                      {p.primary_variant?.images?.[0]?.url ? (
+                        <img src={p.primary_variant.images[0].url} alt={p.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Package size={16} className="text-gray-300" />
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-800 text-sm">{p.name}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-xs font-mono text-gray-400">{p.product_code}</span>
+                        {p.brand_name && <span className="text-xs text-gray-400">· {p.brand_name}</span>}
+                      </div>
+                    </div>
+                  </div>
+                </td>
+
+                {/* Vendor */}
+                <td className="px-4 py-3">
+                  {p.primary_vendor?.company_name ? (
+                    <div>
+                      <p className="text-sm text-gray-700 font-medium">{p.primary_vendor.company_name}</p>
+                      {p.primary_vendor.city && <p className="text-xs text-gray-400">{p.primary_vendor.city}</p>}
+                    </div>
+                  ) : (
+                    <span className="text-xs text-gray-400">—</span>
+                  )}
+                </td>
+
+                {/* Category */}
+                <td className="px-4 py-3">
+                  <span className="px-2.5 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium">
+                    {p.category?.name || getCategoryName(p.category_id)}
+                  </span>
+                </td>
+
+                {/* Pricing */}
+                <td className="px-4 py-3">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-gray-400 w-14">MRP</span>
+                      <span className="text-sm font-bold text-red-600">₹{p.mrp?.toLocaleString()}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-gray-400 w-14">Wholesale</span>
+                      <span className="text-xs font-semibold text-green-600">₹{p.wholesale_price?.toLocaleString()}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-gray-400 w-14">Retail</span>
+                      <span className="text-xs font-semibold text-blue-600">₹{p.retail_price?.toLocaleString()}</span>
+                    </div>
+                  </div>
+                </td>
+
+                {/* Variants */}
+                <td className="px-4 py-3">
+                  <div className="flex flex-col gap-1">
+                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold w-fit ${
+                      p.variant_count > 1 ? "bg-indigo-50 text-indigo-700" : "bg-gray-100 text-gray-600"
+                    }`}>
+                      <Layers size={10} />
+                      {p.variant_count || 1} variant{p.variant_count !== 1 ? "s" : ""}
+                    </span>
+                    {p.primary_variant?.system_barcode && (
+                      <span className="text-xs font-mono text-gray-400">{p.primary_variant.system_barcode}</span>
+                    )}
+                  </div>
+                </td>
+
+                {/* Status */}
+                <td className="px-4 py-3">
+                  <StatusBadge isActive={p.is_active} />
+                </td>
+
+                {/* Actions */}
+                <td className="px-4 py-3">
+                  <div className="flex gap-2">
+                    {can("productMs.read") && (
+                  <button
+                    onClick={() => dispatch(openViewModal(p))}
+                    className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    title="View Details"
+                  >
+                    <Eye size={16} />
+                  </button>
+                )}
+                    {can("productMs.edit") && (
+                      <button
+                        onClick={() => dispatch(openEditForm(p))}
+                        className="px-3 py-1.5 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg cursor-pointer transition-colors"
+                      >
+                        Edit
+                      </button>
+                    )}
+                    {/* Archive button replaces Deactivate */}
+                     {can("productMs.archive") && (
+                        <button
+                          onClick={() => handleArchive(p.product_id, p.name)}
+                          disabled={isDeleting}
+                          className="px-3 py-1.5 text-xs font-semibold text-red-500 bg-red-50 hover:bg-red-100 rounded-lg cursor-pointer transition-colors disabled:opacity-40"
+                        >
+                          Archive
+                        </button>
+                      )}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Pagination */}
+      {meta.totalPages > 1 && (
+        <div className="flex justify-between items-center bg-white rounded-xl border border-gray-200 px-4 py-3">
+          <p className="text-sm text-gray-500">
+            Showing {((currentPage - 1) * pageSize) + 1}–{Math.min(currentPage * pageSize, meta.total)} of {meta.total}
+          </p>
+          <div className="flex gap-2">
+            <button onClick={() => dispatch(setCurrentPage(currentPage - 1))} disabled={currentPage === 1} className="px-3 py-1 border border-gray-300 rounded-lg text-sm disabled:opacity-40 hover:bg-gray-50">Previous</button>
+            <span className="px-3 py-1 text-sm text-gray-600">{currentPage} / {meta.totalPages}</span>
+            <button onClick={() => dispatch(setCurrentPage(currentPage + 1))} disabled={currentPage === meta.totalPages} className="px-3 py-1 border border-gray-300 rounded-lg text-sm disabled:opacity-40 hover:bg-gray-50">Next</button>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Action Bar */}
+      {selectedProductIds.length > 0 && (
+        <BulkActionBar
+          selectedCount={selectedProductIds.length}
+          selectedProductIds={selectedProductIds}
+          onBulkAction={handleBulkAction}
+        />
+      )}
+
+      {/* Modals */}
+      {showAddForm && (
+        <ProductAddForm
+          formData={formData} formErrors={formErrors}
+          variants={variants} showVariantModal={showVariantModal}
+          variantForm={variantForm} variantErrors={variantErrors}
+          editingVariantIndex={editingVariantIndex}
+          onSave={handleSaveSuccess}
+        />
+      )}
+
+      {showEditForm && selectedProduct && (
+        <ProductEditForm
+          formData={formData} formErrors={formErrors}
+          selectedProduct={selectedProduct}
+          showVariantModal={showVariantModal}
+          variantForm={variantForm} variantErrors={variantErrors}
+          editingVariantIndex={editingVariantIndex}
+          onSave={handleSaveSuccess}
+        />
+      )}
+
+      {showViewModal && selectedProduct && (
+        <ProductView
+          productId={selectedProduct.product_id}
+          onClose={() => dispatch(closeViewModal())}
+        />
+      )}
+
+      <BulkUploadTab
+        isOpen={showBulkUpload}
+        onClose={() => {
+          setShowBulkUpload(false);
+          refetch();
+        }}
+      />
+
+      {showCategoryModal && (                 
+        <CategoriesTab onClose={() => setShowCategoryModal(false)} />
+      )}
+
+    </div>
+  );
+}
+// add bulk operation 
+
+// import React, { useState } from "react";
+// import { useSelector, useDispatch } from "react-redux";
+// import { X, Plus, Package, Tag, TrendingUp, Layers, Eye ,Upload,FolderPlus} from "lucide-react";
+// import {
+//   useGetProductsQuery,
+//   useDeleteProductMutation,
+// } from "../../../REDUX_FEATURES/REDUX_SLICES/Product_api/productApi";
+// import CategoriesTab from "../../shared/CategoriesTab/CategoriesTab";
+// import { useGetCategoriesQuery } from "../../../REDUX_FEATURES/REDUX_SLICES/Category_api/categoryApi";
+// import {
+//   openAddForm, closeAddForm,
+//   openEditForm, closeEditForm,
+//   openViewModal,closeViewModal,
+//   setSearch, setCategoryFilter, setActiveFilter,
+//   setCurrentPage, setPageSize, resetFilters,
+// } from "../../../REDUX_FEATURES/REDUX_SLICES/Product_api/productSlice";
+// import ProductAddForm  from "./ProductShared/ProductAddForm";
+// import ProductEditForm from "./ProductShared/ProductEditForm";
+// import ProductView     from "./ProductShared/ProductView";
+// import { CURRENT_USER } from "../../../Components/roles";
+// import BulkUploadTab from "././BulkUploadTab/BulkUploadTab";
+
+// const StatusBadge = ({ isActive }) => (
+//   <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${
+//     isActive ? "bg-emerald-50 text-emerald-700" : "bg-gray-100 text-gray-500"
+//   }`}>
+//     <span className={`w-1.5 h-1.5 rounded-full ${isActive ? "bg-emerald-500" : "bg-gray-400"}`} />
+//     {isActive ? "Active" : "Inactive"}
+//   </span>
+// );
+
+// export default function InventoryTab() {
+//   const dispatch = useDispatch();
+
+//   const {
+//     showAddForm, showEditForm, showViewModal,
+//     formData, formErrors,
+//     variants, showVariantModal, variantForm, variantErrors,
+//     editingVariantIndex, selectedProduct,
+//     search, categoryFilter, activeFilter, currentPage, pageSize,
+//   } = useSelector((state) => state.product);
+
+//   const warehouseId = CURRENT_USER.role === "SUPER_ADMIN" ? "" : CURRENT_USER.locationId || "";
+
+//   const { data, isLoading, isFetching, refetch } = useGetProductsQuery({
+//     page: currentPage, limit: pageSize,
+//     search, category_id: categoryFilter,
+//     is_active: activeFilter, warehouse_id: warehouseId,
+//   });
+
+//   const [showBulkUpload, setShowBulkUpload] = useState(false);
+//   const [showCategoryModal, setShowCategoryModal] = useState(false);
+//   const { data: categoriesData } = useGetCategoriesQuery({ is_active: true, limit: 100 });
+//   const [deleteProduct, { isLoading: isDeleting }] = useDeleteProductMutation();
+
+//   const products   = data?.products || [];
+//   const meta       = data?.meta || { total: 0, page: 1, limit: 20, totalPages: 1 };
+//   const categories = categoriesData?.categories || [];
+
+//   // ── Stats from current page data ──────────────────────────────────────────
+//   const activeCount    = products.filter(p => p.is_active).length;
+//   const multiVariant   = products.filter(p => p.variant_count > 1).length;
+//   const avgMrp         = products.length
+//     ? Math.round(products.reduce((s, p) => s + (p.mrp || 0), 0) / products.length)
+//     : 0;
+
+//   const handleDelete = async (productId, name) => {
+//     if (!window.confirm(`Deactivate "${name}"?`)) return;
+//     try {
+//       await deleteProduct(productId).unwrap();
+//       refetch();
+//     } catch (err) {
+//       alert(err?.data?.message || "Failed to deactivate product");
+//     }
+//   };
+
+//   const handleSaveSuccess = () => {
+//     dispatch(closeAddForm());
+//     dispatch(closeEditForm());
+//     refetch();
+//   };
+
+//   const getCategoryName = (id) => categories.find(c => c.category_id === id)?.name || "—";
+
+//   return (
+//     <div className="space-y-5">
+
+//       {/* ── Header ────────────────────────────────────────────────────── */}
+     
+// <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-gray-100">
+//         <div>
+//           <h2 className="text-xl font-bold text-gray-900 tracking-tight">Products & Inventory</h2>
+//           <p className="text-sm text-gray-500 mt-1">
+//             Manage products, variants, pricing matrices, and master barcode configurations.
+//           </p>
+//         </div>
+        
+//         {/* Right Aligned Clean Control Tray */}
+//         <div className="flex items-center gap-2.5 self-end sm:self-auto">
+//           <button
+//             onClick={() => setShowCategoryModal(true)}
+//             className="inline-flex items-center gap-2 px-3.5 py-2 text-sm font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg shadow-sm transition-all duration-150 cursor-pointer"
+//           >
+//             <FolderPlus size={16} /> Add Category
+//           </button>
+          
+//           <button
+//             onClick={() => setShowBulkUpload(true)}
+//             className="inline-flex items-center gap-2 px-3.5 py-2 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 border border-gray-300 rounded-lg shadow-sm transition-all duration-150 cursor-pointer"
+//           >
+//             <Upload size={16} className="text-gray-500" /> Bulk Upload
+//           </button>
+          
+//           <button
+//             onClick={() => dispatch(openAddForm())}
+//             className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 border border-blue-700 rounded-lg shadow-sm transition-all duration-150 cursor-pointer"
+//           >
+//             <Plus size={16} /> Add Product
+//           </button>
+//         </div>
+//       </div>
+
+//       {/* ── Stats Cards ───────────────────────────────────────────────── */}
+//       <div className="grid grid-cols-4 gap-4">
+//         <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-4 text-white shadow-md">
+//           <div className="flex items-center justify-between mb-2">
+//             <p className="text-xs opacity-75 uppercase tracking-wide font-medium">Total Products</p>
+//             <Package size={16} className="opacity-60" />
+//           </div>
+//           <p className="text-3xl font-bold">{meta.total}</p>
+//         </div>
+//         <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl p-4 text-white shadow-md">
+//           <div className="flex items-center justify-between mb-2">
+//             <p className="text-xs opacity-75 uppercase tracking-wide font-medium">Active</p>
+//             <Tag size={16} className="opacity-60" />
+//           </div>
+//           <p className="text-3xl font-bold">{activeCount}</p>
+//           <p className="text-xs opacity-60 mt-1">on this page</p>
+//         </div>
+//         <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl p-4 text-white shadow-md">
+//           <div className="flex items-center justify-between mb-2">
+//             <p className="text-xs opacity-75 uppercase tracking-wide font-medium">Multi-Variant</p>
+//             <Layers size={16} className="opacity-60" />
+//           </div>
+//           <p className="text-3xl font-bold">{multiVariant}</p>
+//           <p className="text-xs opacity-60 mt-1">on this page</p>
+//         </div>
+//         <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-4 text-white shadow-md">
+//           <div className="flex items-center justify-between mb-2">
+//             <p className="text-xs opacity-75 uppercase tracking-wide font-medium">Avg MRP</p>
+//             <TrendingUp size={16} className="opacity-60" />
+//           </div>
+//           <p className="text-3xl font-bold">₹{avgMrp.toLocaleString()}</p>
+//           <p className="text-xs opacity-60 mt-1">on this page</p>
+//         </div>
+//       </div>
+
+//       {/* ── Filters ───────────────────────────────────────────────────── */}
+//       <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+//         <div className="flex gap-3">
+//           <input
+//             value={search}
+//             onChange={(e) => dispatch(setSearch(e.target.value))}
+//             placeholder="Search by product name or code…"
+//             className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+//           />
+//           <button
+//             onClick={() => dispatch(resetFilters())}
+//             className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 cursor-pointer"
+//           >
+//             <X size={14} /> Clear
+//           </button>
+//         </div>
+//         <div className="flex gap-3 flex-wrap">
+//           <select
+//             value={categoryFilter}
+//             onChange={(e) => dispatch(setCategoryFilter(e.target.value))}
+//             className="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+//           >
+//             <option value="">All Categories</option>
+//             {categories.map(c => <option key={c.category_id} value={c.category_id}>{c.name}</option>)}
+//           </select>
+//           <select
+//             value={activeFilter}
+//             onChange={(e) => dispatch(setActiveFilter(e.target.value))}
+//             className="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+//           >
+//             <option value="">All Status</option>
+//             <option value="true">Active</option>
+//             <option value="false">Inactive</option>
+//           </select>
+//           <select
+//             value={pageSize}
+//             onChange={(e) => dispatch(setPageSize(Number(e.target.value)))}
+//             className="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 ml-auto cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+//           >
+//             {[10, 20, 50].map(s => <option key={s} value={s}>{s} per page</option>)}
+//           </select>
+//         </div>
+//       </div>
+
+//       {/* ── Table ─────────────────────────────────────────────────────── */}
+//       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+//         <table className="w-full text-sm">
+//           <thead className="bg-gray-50 border-b border-gray-100">
+//             <tr>
+//               {["Product", "Vendor", "Category", "Pricing", "Variants", "Status", "Actions"].map(h => (
+//                 <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
+//                   {h}
+//                 </th>
+//               ))}
+//             </tr>
+//           </thead>
+//           <tbody className="divide-y divide-gray-50">
+
+//             {(isLoading || isFetching) && (
+//               <tr><td colSpan={7} className="px-4 py-10 text-center">
+//                 <div className="flex justify-center"><div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" /></div>
+//               </td></tr>
+//             )}
+
+//             {!isLoading && !isFetching && products.length === 0 && (
+//               <tr><td colSpan={7} className="px-4 py-14 text-center">
+//                 <div className="flex flex-col items-center gap-2">
+//                   <Package size={32} className="text-gray-300" />
+//                   <p className="text-gray-400 text-sm">No products found</p>
+//                   <button onClick={() => dispatch(openAddForm())} className="text-blue-600 text-xs font-medium hover:underline cursor-pointer">Add your first product</button>
+//                 </div>
+//               </td></tr>
+//             )}
+
+//             {!isLoading && products.map(p => (
+//               <tr key={p.product_id} className="hover:bg-gray-50 transition-colors">
+
+//                 {/* Product */}
+//                 <td className="px-4 py-3">
+//                   <div className="flex items-center gap-3">
+//                     {/* Image or placeholder */}
+//                     <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 shrink-0 border border-gray-200">
+//                       {p.primary_variant?.images?.[0]?.url ? (
+//                         <img src={p.primary_variant.images[0].url} alt={p.name} className="w-full h-full object-cover" />
+//                       ) : (
+//                         <div className="w-full h-full flex items-center justify-center">
+//                           <Package size={16} className="text-gray-300" />
+//                         </div>
+//                       )}
+//                     </div>
+//                     <div>
+//                       <p className="font-semibold text-gray-800 text-sm">{p.name}</p>
+//                       <div className="flex items-center gap-2 mt-0.5">
+//                         <span className="text-xs font-mono text-gray-400">{p.product_code}</span>
+//                         {p.brand_name && <span className="text-xs text-gray-400">· {p.brand_name}</span>}
+//                       </div>
+//                     </div>
+//                   </div>
+//                 </td>
+
+//                 {/* Vendor */}
+//                 <td className="px-4 py-3">
+//                   {p.primary_vendor?.company_name ? (
+//                     <div>
+//                       <p className="text-sm text-gray-700 font-medium">{p.primary_vendor.company_name}</p>
+//                       {p.primary_vendor.city && <p className="text-xs text-gray-400">{p.primary_vendor.city}</p>}
+//                     </div>
+//                   ) : (
+//                     <span className="text-xs text-gray-400">—</span>
+//                   )}
+//                 </td>
+
+//                 {/* Category */}
+//                 <td className="px-4 py-3">
+//                   <span className="px-2.5 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium">
+//                     {p.category?.name || getCategoryName(p.category_id)}
+//                   </span>
+//                 </td>
+
+//                 {/* Pricing */}
+//                 <td className="px-4 py-3">
+//                   <div className="space-y-0.5">
+//                     <div className="flex items-center gap-1.5">
+//                       <span className="text-xs text-gray-400 w-14">MRP</span>
+//                       <span className="text-sm font-bold text-red-600">₹{p.mrp?.toLocaleString()}</span>
+//                     </div>
+//                     <div className="flex items-center gap-1.5">
+//                       <span className="text-xs text-gray-400 w-14">Wholesale</span>
+//                       <span className="text-xs font-semibold text-green-600">₹{p.wholesale_price?.toLocaleString()}</span>
+//                     </div>
+//                     <div className="flex items-center gap-1.5">
+//                       <span className="text-xs text-gray-400 w-14">Retail</span>
+//                       <span className="text-xs font-semibold text-blue-600">₹{p.retail_price?.toLocaleString()}</span>
+//                     </div>
+//                   </div>
+//                 </td>
+
+//                 {/* Variants */}
+//                 <td className="px-4 py-3">
+//                   <div className="flex flex-col gap-1">
+//                     <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold w-fit ${
+//                       p.variant_count > 1 ? "bg-indigo-50 text-indigo-700" : "bg-gray-100 text-gray-600"
+//                     }`}>
+//                       <Layers size={10} />
+//                       {p.variant_count || 1} variant{p.variant_count !== 1 ? "s" : ""}
+//                     </span>
+//                     {p.primary_variant?.system_barcode && (
+//                       <span className="text-xs font-mono text-gray-400">{p.primary_variant.system_barcode}</span>
+//                     )}
+//                   </div>
+//                 </td>
+
+//                 {/* Status */}
+//                 <td className="px-4 py-3">
+//                   <StatusBadge isActive={p.is_active} />
+//                 </td>
+
+//                 {/* Actions */}
+//                 <td className="px-4 py-3">
+//                   <div className="flex gap-2">
+//                     <button
+//                       onClick={() => dispatch(openViewModal(p))}
+//                       className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+//                       title="View Details"
+//                     >
+//                       <Eye size={16} />
+//                     </button>
+//                     <button
+//                       onClick={() => dispatch(openEditForm(p))}
+//                       className="px-3 py-1.5 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg cursor-pointer transition-colors"
+//                     >
+//                       Edit
+//                     </button>
+//                     {p.is_active && (
+//                       <button
+//                         onClick={() => handleDelete(p.product_id, p.name)}
+//                         disabled={isDeleting}
+//                         className="px-3 py-1.5 text-xs font-semibold text-red-500 bg-red-50 hover:bg-red-100 rounded-lg cursor-pointer transition-colors disabled:opacity-40"
+//                       >
+//                         Deactivate
+//                       </button>
+//                     )}
+//                   </div>
+//                 </td>
+//               </tr>
+//             ))}
+//           </tbody>
+//         </table>
+//       </div>
+
+//       {/* ── Pagination ─────────────────────────────────────────────────── */}
+//       {meta.totalPages > 1 && (
+//         <div className="flex justify-between items-center bg-white rounded-xl border border-gray-200 px-4 py-3">
+//           <p className="text-sm text-gray-500">
+//             Showing {((currentPage - 1) * pageSize) + 1}–{Math.min(currentPage * pageSize, meta.total)} of {meta.total}
+//           </p>
+//           <div className="flex gap-2">
+//             <button onClick={() => dispatch(setCurrentPage(currentPage - 1))} disabled={currentPage === 1} className="px-3 py-1 border border-gray-300 rounded-lg text-sm disabled:opacity-40 hover:bg-gray-50">Previous</button>
+//             <span className="px-3 py-1 text-sm text-gray-600">{currentPage} / {meta.totalPages}</span>
+//             <button onClick={() => dispatch(setCurrentPage(currentPage + 1))} disabled={currentPage === meta.totalPages} className="px-3 py-1 border border-gray-300 rounded-lg text-sm disabled:opacity-40 hover:bg-gray-50">Next</button>
+//           </div>
+//         </div>
+//       )}
+
+//       {/* ── Modals ─────────────────────────────────────────────────────── */}
+//       {showAddForm && (
+//         <ProductAddForm
+//           formData={formData} formErrors={formErrors}
+//           variants={variants} showVariantModal={showVariantModal}
+//           variantForm={variantForm} variantErrors={variantErrors}
+//           editingVariantIndex={editingVariantIndex}
+//           onSave={handleSaveSuccess}
+//         />
+//       )}
+
+//       {showEditForm && selectedProduct && (
+//         <ProductEditForm
+//           formData={formData} formErrors={formErrors}
+//           selectedProduct={selectedProduct}
+//           showVariantModal={showVariantModal}
+//           variantForm={variantForm} variantErrors={variantErrors}
+//           editingVariantIndex={editingVariantIndex}
+//           onSave={handleSaveSuccess}
+//         />
+//       )}
+
+//      {showViewModal && selectedProduct && (
+//         <ProductView
+//           productId={selectedProduct.product_id}
+//           onClose={() => dispatch(closeViewModal())}
+//         />
+//       )}
+
+//        {/* Bulk Upload Modal */}
+//       <BulkUploadTab
+//         isOpen={showBulkUpload}
+//         onClose={() => {
+//           setShowBulkUpload(false);
+//           // Refetch your inventory data here
+//           // refetch();
+//         }}
+//       />
+
+//       {showCategoryModal && (                 
+//         <CategoriesTab onClose={() => setShowCategoryModal(false)} />
+//             )}
+
+//     </div>
+//   );
+// }
+
+// down code is working but upper code have view modal for particualr product 
+
+// import React from "react";
+// import { useSelector, useDispatch } from "react-redux";
+// import { X, Plus, Package, Tag, TrendingUp, Layers } from "lucide-react";
+// import {
+//   useGetProductsQuery,
+//   useDeleteProductMutation,
+// } from "../../../REDUX_FEATURES/REDUX_SLICES/Product_api/productApi";
+// import { useGetCategoriesQuery } from "../../../REDUX_FEATURES/REDUX_SLICES/Category_api/categoryApi";
+// import {
+//   openAddForm, closeAddForm,
+//   openEditForm, closeEditForm,
+//   setSearch, setCategoryFilter, setActiveFilter,
+//   setCurrentPage, setPageSize, resetFilters,
+// } from "../../../REDUX_FEATURES/REDUX_SLICES/Product_api/productSlice";
+// import ProductAddForm  from "./ProductShared/ProductAddForm";
+// import ProductEditForm from "./ProductShared/ProductEditForm";
+// import { CURRENT_USER } from "../../../Components/roles";
+
+// const StatusBadge = ({ isActive }) => (
+//   <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${
+//     isActive ? "bg-emerald-50 text-emerald-700" : "bg-gray-100 text-gray-500"
+//   }`}>
+//     <span className={`w-1.5 h-1.5 rounded-full ${isActive ? "bg-emerald-500" : "bg-gray-400"}`} />
+//     {isActive ? "Active" : "Inactive"}
+//   </span>
+// );
+
+// export default function InventoryTab() {
+//   const dispatch = useDispatch();
+
+//   const {
+//     showAddForm, showEditForm, formData, formErrors,
+//     variants, showVariantModal, variantForm, variantErrors,
+//     editingVariantIndex, selectedProduct,
+//     search, categoryFilter, activeFilter, currentPage, pageSize,
+//   } = useSelector((state) => state.product);
+
+//   const warehouseId = CURRENT_USER.role === "SUPER_ADMIN" ? "" : CURRENT_USER.locationId || "";
+
+//   const { data, isLoading, isFetching, refetch } = useGetProductsQuery({
+//     page: currentPage, limit: pageSize,
+//     search, category_id: categoryFilter,
+//     is_active: activeFilter, warehouse_id: warehouseId,
+//   });
+
+//   const { data: categoriesData } = useGetCategoriesQuery({ is_active: true, limit: 100 });
+//   const [deleteProduct, { isLoading: isDeleting }] = useDeleteProductMutation();
+
+//   const products   = data?.products || [];
+//   const meta       = data?.meta || { total: 0, page: 1, limit: 20, totalPages: 1 };
+//   const categories = categoriesData?.categories || [];
+
+//   // ── Stats from current page data ──────────────────────────────────────────
+//   const activeCount    = products.filter(p => p.is_active).length;
+//   const multiVariant   = products.filter(p => p.variant_count > 1).length;
+//   const avgMrp         = products.length
+//     ? Math.round(products.reduce((s, p) => s + (p.mrp || 0), 0) / products.length)
+//     : 0;
+
+//   const handleDelete = async (productId, name) => {
+//     if (!window.confirm(`Deactivate "${name}"?`)) return;
+//     try {
+//       await deleteProduct(productId).unwrap();
+//       refetch();
+//     } catch (err) {
+//       alert(err?.data?.message || "Failed to deactivate product");
+//     }
+//   };
+
+//   const handleSaveSuccess = () => {
+//     dispatch(closeAddForm());
+//     dispatch(closeEditForm());
+//     refetch();
+//   };
+
+//   const getCategoryName = (id) => categories.find(c => c.category_id === id)?.name || "—";
+
+//   return (
+//     <div className="space-y-5">
+
+//       {/* ── Header ────────────────────────────────────────────────────── */}
+//       <div className="flex items-center justify-between">
+//         <div>
+//           <h2 className="text-base font-semibold text-gray-800">Products & Inventory</h2>
+//           <p className="text-xs text-gray-400 mt-0.5">
+//             Manage products, variants, prices, and barcode listing
+//           </p>
+//         </div>
+//         <button
+//           onClick={() => dispatch(openAddForm())}
+//           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 cursor-pointer shadow-sm transition-colors"
+//         >
+//           <Plus size={15} /> Add Product
+//         </button>
+//       </div>
+
+//       {/* ── Stats Cards ───────────────────────────────────────────────── */}
+//       <div className="grid grid-cols-4 gap-4">
+//         <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-4 text-white shadow-md">
+//           <div className="flex items-center justify-between mb-2">
+//             <p className="text-xs opacity-75 uppercase tracking-wide font-medium">Total Products</p>
+//             <Package size={16} className="opacity-60" />
+//           </div>
+//           <p className="text-3xl font-bold">{meta.total}</p>
+//         </div>
+//         <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl p-4 text-white shadow-md">
+//           <div className="flex items-center justify-between mb-2">
+//             <p className="text-xs opacity-75 uppercase tracking-wide font-medium">Active</p>
+//             <Tag size={16} className="opacity-60" />
+//           </div>
+//           <p className="text-3xl font-bold">{activeCount}</p>
+//           <p className="text-xs opacity-60 mt-1">on this page</p>
+//         </div>
+//         <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl p-4 text-white shadow-md">
+//           <div className="flex items-center justify-between mb-2">
+//             <p className="text-xs opacity-75 uppercase tracking-wide font-medium">Multi-Variant</p>
+//             <Layers size={16} className="opacity-60" />
+//           </div>
+//           <p className="text-3xl font-bold">{multiVariant}</p>
+//           <p className="text-xs opacity-60 mt-1">on this page</p>
+//         </div>
+//         <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-4 text-white shadow-md">
+//           <div className="flex items-center justify-between mb-2">
+//             <p className="text-xs opacity-75 uppercase tracking-wide font-medium">Avg MRP</p>
+//             <TrendingUp size={16} className="opacity-60" />
+//           </div>
+//           <p className="text-3xl font-bold">₹{avgMrp.toLocaleString()}</p>
+//           <p className="text-xs opacity-60 mt-1">on this page</p>
+//         </div>
+//       </div>
+
+//       {/* ── Filters ───────────────────────────────────────────────────── */}
+//       <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+//         <div className="flex gap-3">
+//           <input
+//             value={search}
+//             onChange={(e) => dispatch(setSearch(e.target.value))}
+//             placeholder="Search by product name or code…"
+//             className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+//           />
+//           <button
+//             onClick={() => dispatch(resetFilters())}
+//             className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 cursor-pointer"
+//           >
+//             <X size={14} /> Clear
+//           </button>
+//         </div>
+//         <div className="flex gap-3 flex-wrap">
+//           <select
+//             value={categoryFilter}
+//             onChange={(e) => dispatch(setCategoryFilter(e.target.value))}
+//             className="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+//           >
+//             <option value="">All Categories</option>
+//             {categories.map(c => <option key={c.category_id} value={c.category_id}>{c.name}</option>)}
+//           </select>
+//           <select
+//             value={activeFilter}
+//             onChange={(e) => dispatch(setActiveFilter(e.target.value))}
+//             className="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+//           >
+//             <option value="">All Status</option>
+//             <option value="true">Active</option>
+//             <option value="false">Inactive</option>
+//           </select>
+//           <select
+//             value={pageSize}
+//             onChange={(e) => dispatch(setPageSize(Number(e.target.value)))}
+//             className="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 ml-auto cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+//           >
+//             {[10, 20, 50].map(s => <option key={s} value={s}>{s} per page</option>)}
+//           </select>
+//         </div>
+//       </div>
+
+//       {/* ── Table ─────────────────────────────────────────────────────── */}
+//       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+//         <table className="w-full text-sm">
+//           <thead className="bg-gray-50 border-b border-gray-100">
+//             <tr>
+//               {["Product", "Vendor", "Category", "Pricing", "Variants", "Status", "Actions"].map(h => (
+//                 <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
+//                   {h}
+//                 </th>
+//               ))}
+//             </tr>
+//           </thead>
+//           <tbody className="divide-y divide-gray-50">
+
+//             {(isLoading || isFetching) && (
+//               <tr><td colSpan={7} className="px-4 py-10 text-center">
+//                 <div className="flex justify-center"><div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" /></div>
+//               </td></tr>
+//             )}
+
+//             {!isLoading && !isFetching && products.length === 0 && (
+//               <tr><td colSpan={7} className="px-4 py-14 text-center">
+//                 <div className="flex flex-col items-center gap-2">
+//                   <Package size={32} className="text-gray-300" />
+//                   <p className="text-gray-400 text-sm">No products found</p>
+//                   <button onClick={() => dispatch(openAddForm())} className="text-blue-600 text-xs font-medium hover:underline cursor-pointer">Add your first product</button>
+//                 </div>
+//               </td></tr>
+//             )}
+
+//             {!isLoading && products.map(p => (
+//               <tr key={p.product_id} className="hover:bg-gray-50 transition-colors">
+
+//                 {/* Product */}
+//                 <td className="px-4 py-3">
+//                   <div className="flex items-center gap-3">
+//                     {/* Image or placeholder */}
+//                     <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 shrink-0 border border-gray-200">
+//                       {p.primary_variant?.images?.[0]?.url ? (
+//                         <img src={p.primary_variant.images[0].url} alt={p.name} className="w-full h-full object-cover" />
+//                       ) : (
+//                         <div className="w-full h-full flex items-center justify-center">
+//                           <Package size={16} className="text-gray-300" />
+//                         </div>
+//                       )}
+//                     </div>
+//                     <div>
+//                       <p className="font-semibold text-gray-800 text-sm">{p.name}</p>
+//                       <div className="flex items-center gap-2 mt-0.5">
+//                         <span className="text-xs font-mono text-gray-400">{p.product_code}</span>
+//                         {p.brand_name && <span className="text-xs text-gray-400">· {p.brand_name}</span>}
+//                       </div>
+//                     </div>
+//                   </div>
+//                 </td>
+
+//                 {/* Vendor */}
+//                 <td className="px-4 py-3">
+//                   {p.primary_vendor?.company_name ? (
+//                     <div>
+//                       <p className="text-sm text-gray-700 font-medium">{p.primary_vendor.company_name}</p>
+//                       {p.primary_vendor.city && <p className="text-xs text-gray-400">{p.primary_vendor.city}</p>}
+//                     </div>
+//                   ) : (
+//                     <span className="text-xs text-gray-400">—</span>
+//                   )}
+//                 </td>
+
+//                 {/* Category */}
+//                 <td className="px-4 py-3">
+//                   <span className="px-2.5 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium">
+//                     {p.category?.name || getCategoryName(p.category_id)}
+//                   </span>
+//                 </td>
+
+//                 {/* Pricing */}
+//                 <td className="px-4 py-3">
+//                   <div className="space-y-0.5">
+//                     <div className="flex items-center gap-1.5">
+//                       <span className="text-xs text-gray-400 w-14">MRP</span>
+//                       <span className="text-sm font-bold text-red-600">₹{p.mrp?.toLocaleString()}</span>
+//                     </div>
+//                     <div className="flex items-center gap-1.5">
+//                       <span className="text-xs text-gray-400 w-14">Wholesale</span>
+//                       <span className="text-xs font-semibold text-green-600">₹{p.wholesale_price?.toLocaleString()}</span>
+//                     </div>
+//                     <div className="flex items-center gap-1.5">
+//                       <span className="text-xs text-gray-400 w-14">Retail</span>
+//                       <span className="text-xs font-semibold text-blue-600">₹{p.retail_price?.toLocaleString()}</span>
+//                     </div>
+//                   </div>
+//                 </td>
+
+//                 {/* Variants */}
+//                 <td className="px-4 py-3">
+//                   <div className="flex flex-col gap-1">
+//                     <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold w-fit ${
+//                       p.variant_count > 1 ? "bg-indigo-50 text-indigo-700" : "bg-gray-100 text-gray-600"
+//                     }`}>
+//                       <Layers size={10} />
+//                       {p.variant_count || 1} variant{p.variant_count !== 1 ? "s" : ""}
+//                     </span>
+//                     {p.primary_variant?.system_barcode && (
+//                       <span className="text-xs font-mono text-gray-400">{p.primary_variant.system_barcode}</span>
+//                     )}
+//                   </div>
+//                 </td>
+
+//                 {/* Status */}
+//                 <td className="px-4 py-3">
+//                   <StatusBadge isActive={p.is_active} />
+//                 </td>
+
+//                 {/* Actions */}
+//                 <td className="px-4 py-3">
+//                   <div className="flex gap-2">
+//                     <button
+//                       onClick={() => dispatch(openEditForm(p))}
+//                       className="px-3 py-1.5 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg cursor-pointer transition-colors"
+//                     >
+//                       Edit
+//                     </button>
+//                     {p.is_active && (
+//                       <button
+//                         onClick={() => handleDelete(p.product_id, p.name)}
+//                         disabled={isDeleting}
+//                         className="px-3 py-1.5 text-xs font-semibold text-red-500 bg-red-50 hover:bg-red-100 rounded-lg cursor-pointer transition-colors disabled:opacity-40"
+//                       >
+//                         Deactivate
+//                       </button>
+//                     )}
+//                   </div>
+//                 </td>
+//               </tr>
+//             ))}
+//           </tbody>
+//         </table>
+//       </div>
+
+//       {/* ── Pagination ─────────────────────────────────────────────────── */}
+//       {meta.totalPages > 1 && (
+//         <div className="flex justify-between items-center bg-white rounded-xl border border-gray-200 px-4 py-3">
+//           <p className="text-sm text-gray-500">
+//             Showing {((currentPage - 1) * pageSize) + 1}–{Math.min(currentPage * pageSize, meta.total)} of {meta.total}
+//           </p>
+//           <div className="flex gap-2">
+//             <button onClick={() => dispatch(setCurrentPage(currentPage - 1))} disabled={currentPage === 1} className="px-3 py-1 border border-gray-300 rounded-lg text-sm disabled:opacity-40 hover:bg-gray-50">Previous</button>
+//             <span className="px-3 py-1 text-sm text-gray-600">{currentPage} / {meta.totalPages}</span>
+//             <button onClick={() => dispatch(setCurrentPage(currentPage + 1))} disabled={currentPage === meta.totalPages} className="px-3 py-1 border border-gray-300 rounded-lg text-sm disabled:opacity-40 hover:bg-gray-50">Next</button>
+//           </div>
+//         </div>
+//       )}
+
+//       {/* ── Modals ─────────────────────────────────────────────────────── */}
+//       {showAddForm && (
+//         <ProductAddForm
+//           formData={formData} formErrors={formErrors}
+//           variants={variants} showVariantModal={showVariantModal}
+//           variantForm={variantForm} variantErrors={variantErrors}
+//           editingVariantIndex={editingVariantIndex}
+//           onSave={handleSaveSuccess}
+//         />
+//       )}
+
+//       {showEditForm && selectedProduct && (
+//         <ProductEditForm
+//           formData={formData} formErrors={formErrors}
+//           selectedProduct={selectedProduct}
+//           showVariantModal={showVariantModal}
+//           variantForm={variantForm} variantErrors={variantErrors}
+//           editingVariantIndex={editingVariantIndex}
+//           onSave={handleSaveSuccess}
+//         />
+//       )}
+
+//     </div>
+//   );
+// }
+
+// import React, { useState } from "react";
+// import { useDispatch, useSelector } from "react-redux";
+// import { useGetProductsQuery, useDeleteProductMutation } from "../../../REDUX_FEATURES/REDUX_SLICES/Product_api/productApi";
+// import { useGetCategoriesQuery } from "../../../REDUX_FEATURES/REDUX_SLICES/Category_api/categoryApi";
+// import {
+//   openAddForm,
+//   openEditForm,
+//   setSearch,
+//   setCategoryFilter,
+//   setActiveFilter,
+//   setCurrentPage,
+//   closeAddForm,
+//   closeEditForm,
+// } from "../../../REDUX_FEATURES/REDUX_SLICES/Product_api/productSlice";
+// import ProductAddForm from "./ProductShared/ProductAddForm";
+// import ProductEditForm from "./ProductShared/ProductEditForm";
+// import { CURRENT_USER } from "../../../Components/roles";
+
+// export default function InventoryTab() {
+//   const dispatch = useDispatch();
+  
+//   // ── Redux State ───────────────────────────────────────────────────────────
+//   const {
+//     showAddForm,
+//     showEditForm,
+//     formData,
+//     formErrors,
+//     variants,
+//     showVariantModal,
+//     variantForm,
+//     variantErrors,
+//     editingVariantIndex,
+//     selectedProduct,
+//     search,
+//     categoryFilter,
+//     activeFilter,
+//     currentPage,
+//     pageSize,
+//     isSubmitting,
+//   } = useSelector((state) => state.product);
+  
+//   // ── Queries ───────────────────────────────────────────────────────────────
+//   const warehouseFilter = CURRENT_USER.role === "SUPER_ADMIN" ? "" : CURRENT_USER.locationId || "";
+  
+//   const { data, isLoading, refetch } = useGetProductsQuery({
+//     page: currentPage,
+//     limit: pageSize,
+//     search: search,
+//     category_id: categoryFilter,
+//     is_active: activeFilter,
+//     warehouse_id: warehouseFilter,
+//   });
+  
+//   const { data: categoriesData } = useGetCategoriesQuery({ is_active: true, limit: 100 });
+//   const categories = categoriesData?.categories || [];
+  
+//   const [deleteProduct, { isLoading: isDeleting }] = useDeleteProductMutation();
+  
+//   const products = data?.products || [];
+//   const meta = data?.meta || { total: 0, page: 1, limit: 20, totalPages: 1 };
+  
+//   // ── Handlers ──────────────────────────────────────────────────────────────
+//   const handleDelete = async (productId) => {
+//     if (!window.confirm("Are you sure? This product will be deactivated.")) return;
+//     try {
+//       await deleteProduct(productId).unwrap();
+//       refetch();
+//     } catch (err) {
+//       alert(err?.data?.message || "Failed to delete product");
+//     }
+//   };
+  
+//   const handleEdit = (product) => {
+//     dispatch(openEditForm(product));
+//   };
+  
+//   const handleAdd = () => {
+//     dispatch(openAddForm());
+//   };
+  
+//   const handleModalClose = () => {
+//     dispatch(closeAddForm());
+//     dispatch(closeEditForm());
+//     refetch();
+//   };
+  
+//   // ── Category name helper ──────────────────────────────────────────────────
+//   const getCategoryName = (categoryId) => {
+//     const cat = categories.find(c => c.category_id === categoryId);
+//     return cat?.name || categoryId?.slice(0, 8) || "-";
+//   };
+  
+//   // ── Status Badge ──────────────────────────────────────────────────────────
+//   const StatusBadge = ({ isActive }) => (
+//     <span className={`px-2 py-1 rounded-full text-xs font-medium ${isActive ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+//       {isActive ? "Active" : "Inactive"}
+//     </span>
+//   );
+  
+//   return (
+//     <div className="p-6">
+//       {/* Header */}
+//       <div className="flex items-center justify-between mb-6">
+//         <div>
+//           <h2 className="text-xl font-bold text-gray-800">Inventory / Products</h2>
+//           <p className="text-sm text-gray-500 mt-1">Manage your products and variants</p>
+//         </div>
+//         <button
+//           onClick={handleAdd}
+//           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+//         >
+//           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+//             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+//           </svg>
+//           Add Product
+//         </button>
+//       </div>
+      
+//       {/* Filters */}
+//       <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6">
+//         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+//           {/* Search */}
+//           <div>
+//             <label className="block text-xs font-medium text-gray-700 mb-1">Search</label>
+//             <input
+//               type="text"
+//               value={search}
+//               onChange={(e) => dispatch(setSearch(e.target.value))}
+//               placeholder="Product name or code..."
+//               className="w-full px-3 py-2 border text-gray-700 border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+//             />
+//           </div>
+          
+//           {/* Category Filter */}
+//           <div>
+//             <label className="block text-xs font-medium text-gray-700 mb-1">Category</label>
+//             <select
+//               value={categoryFilter}
+//               onChange={(e) => dispatch(setCategoryFilter(e.target.value))}
+//               className="w-full px-3 py-2 border text-gray-700 border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+//             >
+//               <option value="">All Categories</option>
+//               {categories.map((cat) => (
+//                 <option key={cat.category_id} value={cat.category_id}>{cat.name}</option>
+//               ))}
+//             </select>
+//           </div>
+          
+//           {/* Status Filter */}
+//           <div>
+//             <label className="block text-xs font-medium text-gray-700 mb-1">Status</label>
+//             <select
+//               value={activeFilter}
+//               onChange={(e) => dispatch(setActiveFilter(e.target.value))}
+//               className="w-full px-3 py-2 border text-gray-700 border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+//             >
+//               <option value="">All</option>
+//               <option value="true">Active</option>
+//               <option value="false">Inactive</option>
+//             </select>
+//           </div>
+          
+//           {/* Reset Button */}
+//           <div className="flex items-end">
+//             <button
+//               onClick={() => {
+//                 dispatch(setSearch(""));
+//                 dispatch(setCategoryFilter(""));
+//                 dispatch(setActiveFilter(""));
+//                 dispatch(setCurrentPage(1));
+//               }}
+//               className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50"
+//             >
+//               Clear Filters
+//             </button>
+//           </div>
+//         </div>
+//       </div>
+      
+//       {/* Products Table */}
+//       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+//         <div className="overflow-x-auto">
+//           <table className="w-full">
+//             <thead className="bg-gray-50 border-b border-gray-200">
+//               <tr>
+//                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Product Code</th>
+//                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+//                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vendor</th>
+//                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
+//                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">MRP</th>
+//                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Variants</th>
+//                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+//                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+//               </tr>
+//             </thead>
+//             <tbody className="divide-y divide-gray-100">
+//               {isLoading ? (
+//                 <tr>
+//                   <td colSpan="8" className="px-4 py-8 text-center text-gray-400">Loading products...</td>
+//                 </tr>
+//               ) : products.length === 0 ? (
+//                 <tr>
+//                   <td colSpan="8" className="px-4 py-8 text-center text-gray-400">No products found</td>
+//                 </tr>
+//               ) : (
+//                 products.map((product) => (
+//                   <tr key={product.product_id} className="hover:bg-gray-50">
+//                     <td className="px-4 py-3 text-sm font-mono text-gray-600">{product.product_code}</td>
+//                     <td className="px-4 py-3 text-sm font-medium text-gray-800">{product.name}</td>
+//                     <td className="px-4 py-3 text-sm text-gray-500">{product.primary_vendor?.company_name || "-"}</td>
+//                     <td className="px-4 py-3 text-sm text-gray-500">{getCategoryName(product.category_id)}</td>
+//                     <td className="px-4 py-3 text-sm text-gray-600">₹{product.mrp?.toLocaleString() || 0}</td>
+//                     <td className="px-4 py-3 text-sm">
+//                       <span className="px-2 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-medium">
+//                         {product.variant_count || 1} variant{product.variant_count !== 1 ? "s" : ""}
+//                       </span>
+//                     </td>
+//                     <td className="px-4 py-3"><StatusBadge isActive={product.is_active} /></td>
+//                     <td className="px-4 py-3 text-right">
+//                       <div className="flex items-center justify-end gap-2">
+//                         <button
+//                           onClick={() => handleEdit(product)}
+//                           className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+//                           title="Edit"
+//                         >
+//                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+//                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+//                           </svg>
+//                         </button>
+//                         <button
+//                           onClick={() => handleDelete(product.product_id)}
+//                           disabled={isDeleting}
+//                           className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+//                           title="Delete"
+//                         >
+//                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+//                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+//                           </svg>
+//                         </button>
+//                       </div>
+//                     </td>
+//                   </tr>
+//                 ))
+//               )}
+//             </tbody>
+//           </table>
+//         </div>
+        
+//         {/* Pagination */}
+//         {meta.totalPages > 1 && (
+//           <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-between">
+//             <div className="text-sm text-gray-500">
+//               Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, meta.total)} of {meta.total}
+//             </div>
+//             <div className="flex gap-2">
+//               <button
+//                 onClick={() => dispatch(setCurrentPage(currentPage - 1))}
+//                 disabled={currentPage === 1}
+//                 className="px-3 py-1 border border-gray-300 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+//               >
+//                 Previous
+//               </button>
+//               <span className="px-3 py-1 text-sm text-gray-600">
+//                 Page {currentPage} of {meta.totalPages}
+//               </span>
+//               <button
+//                 onClick={() => dispatch(setCurrentPage(currentPage + 1))}
+//                 disabled={currentPage === meta.totalPages}
+//                 className="px-3 py-1 border border-gray-300 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+//               >
+//                 Next
+//               </button>
+//             </div>
+//           </div>
+//         )}
+//       </div>
+      
+//       {/* ── Modals ──────────────────────────────────────────────────────────── */}
+//       {showAddForm && (
+//         <ProductAddForm
+//           formData={formData}
+//           formErrors={formErrors}
+//           variants={variants}
+//           showVariantModal={showVariantModal}
+//           variantForm={variantForm}
+//           variantErrors={variantErrors}
+//           editingVariantIndex={editingVariantIndex}
+//           onSave={handleModalClose}
+//         />
+//       )}
+      
+//       {showEditForm && selectedProduct && (
+//         <ProductEditForm
+//           formData={formData}
+//           formErrors={formErrors}
+//           selectedProduct={selectedProduct}
+//           variants={variants}
+//           showVariantModal={showVariantModal}
+//           variantForm={variantForm}
+//           variantErrors={variantErrors}
+//           editingVariantIndex={editingVariantIndex}
+//           onSave={handleModalClose}
+//         />
+//       )}
+//     </div>
+//   );
+// }
+// down code is just for ui real api intgration have upper code 
+// // src/Components/TABS/INVENTORY/InventoryTab.jsx
+// import React, { useState, useEffect } from 'react';
+// import { INITIAL_PRODUCTS, INITIAL_SHOPS } from '../../demoData';
+// import { CURRENT_USER, filterByLocation, filterLocationList, isAdmin } from '../../roles';
+// import AddProductModal from './AddProductModal';
+// import EditProductModal from './EditProductModal';
+// import InventoryTable from './InventoryTable';
+// import StatsCards from '../../shared/StatsCards';
+// import BulkUploadModal from './BulkUploadModal';
+// import CategoriesTab from "../../shared/CategoriesTab/CategoriesTab";
+// import { useGetCategoriesQuery } from "../../../REDUX_FEATURES/REDUX_SLICES/Category_api/categoryApi";
+// const STORAGE_KEYS = {
+//     PRODUCTS: 'vyapar_products',
+//     SHOPS: 'vyapar_shops'
+// };
+
+// const getData = (key, initialData) => {
+//     const stored = localStorage.getItem(key);
+//     if (stored) return JSON.parse(stored);
+//     localStorage.setItem(key, JSON.stringify(initialData));
+//     return initialData;
+// };
+
+// const saveData = (key, data) => {
+//     localStorage.setItem(key, JSON.stringify(data));
+// };
+
+// const InventoryTab = () => {
+//     const [products, setProducts] = useState([]);
+//     const [shops, setShops] = useState([]);
+//     const [selectedShop, setSelectedShop] = useState(CURRENT_USER.locationId);
+//     const [showAddModal, setShowAddModal] = useState(false);
+//     const [showBulkUpload, setShowBulkUpload] = useState(false);
+//     const [searchTerm, setSearchTerm] = useState('');
+//     const [editingProduct, setEditingProduct] = useState(null);
+//     const [selectedCategory, setSelectedCategory] = useState('all');
+//     const [showCategoryModal, setShowCategoryModal] = useState(false);
+
+//     const { data: categoriesData } = useGetCategoriesQuery({
+//         is_active: true,
+//         limit: 100
+//     });
+
+//     // Transform categories for the dropdown
+//     const categoryOptions = [
+//         { category_id: 'all', name: 'All Categories' },
+//         ...(categoriesData?.categories || [])
+//     ];
+
+//     useEffect(() => {
+//         const allProducts = getData(STORAGE_KEYS.PRODUCTS, INITIAL_PRODUCTS);
+//         const allShops = getData(STORAGE_KEYS.SHOPS, INITIAL_SHOPS);
+
+//         const scopedProducts = isAdmin()
+//             ? allProducts.filter(p => (p.shopId === selectedShop) || (p.locationId === selectedShop))
+//             : filterByLocation(allProducts);
+
+//         setProducts(scopedProducts);
+//         setShops(filterLocationList(allShops));
+//     }, [selectedShop]);
+
+//     const generateBarcode = () => {
+//         const prefix = 'VYP';
+//         const shopCode = selectedShop.replace('SHP-', '');
+//         const timestamp = Date.now().toString().slice(-6);
+//         return `${prefix}-${shopCode}-${timestamp}`;
+//     };
+
+//     const handleAddProduct = (newProduct) => {
+//         const allProducts = getData(STORAGE_KEYS.PRODUCTS, INITIAL_PRODUCTS);
+//         saveData(STORAGE_KEYS.PRODUCTS, [...allProducts, newProduct]);
+
+//         // Refresh view
+//         const updatedProducts = getData(STORAGE_KEYS.PRODUCTS, INITIAL_PRODUCTS);
+//         setProducts(isAdmin()
+//             ? updatedProducts.filter(p => p.shopId === selectedShop || p.locationId === selectedShop)
+//             : filterByLocation(updatedProducts));
+//         alert('✅ New product added successfully!');
+//     };
+
+//     const handleEditProduct = (updatedProduct) => {
+//         const allProducts = getData(STORAGE_KEYS.PRODUCTS, INITIAL_PRODUCTS);
+//         const updated = allProducts.map(p =>
+//             p.id === updatedProduct.id ? updatedProduct : p
+//         );
+//         saveData(STORAGE_KEYS.PRODUCTS, updated);
+
+//         // Refresh view
+//         setProducts(isAdmin()
+//             ? updated.filter(p => p.shopId === selectedShop || p.locationId === selectedShop)
+//             : filterByLocation(updated));
+//         setEditingProduct(null);
+//         alert('✅ Product updated successfully!');
+//     };
+
+//     const handleDeleteProduct = (productId) => {
+//         if (window.confirm('⚠️ Are you sure you want to delete this product? This action cannot be undone.')) {
+//             const allProducts = getData(STORAGE_KEYS.PRODUCTS, INITIAL_PRODUCTS);
+//             const filtered = allProducts.filter(p => p.id !== productId);
+//             saveData(STORAGE_KEYS.PRODUCTS, filtered);
+//             setProducts(isAdmin()
+//                 ? filtered.filter(p => p.shopId === selectedShop || p.locationId === selectedShop)
+//                 : filterByLocation(filtered));
+//             alert('✅ Product deleted successfully');
+//         }
+//     };
+
+//     const handleStockAdjust = (product, newStock) => {
+//         const allProducts = getData(STORAGE_KEYS.PRODUCTS, INITIAL_PRODUCTS);
+//         const updated = allProducts.map(p =>
+//             p.id === product.id
+//                 ? { ...p, stock: newStock, updatedAt: new Date().toISOString() }
+//                 : p
+//         );
+//         saveData(STORAGE_KEYS.PRODUCTS, updated);
+//         setProducts(isAdmin()
+//             ? updated.filter(p => p.shopId === selectedShop || p.locationId === selectedShop)
+//             : filterByLocation(updated));
+//         alert(`✅ Stock updated to ${newStock} units`);
+//     };
+
+//     const handleBulkUpload = (newProducts) => {
+//         const allProducts = getData(STORAGE_KEYS.PRODUCTS, INITIAL_PRODUCTS);
+//         saveData(STORAGE_KEYS.PRODUCTS, [...allProducts, ...newProducts]);
+
+//         // Refresh view
+//         const updatedProducts = getData(STORAGE_KEYS.PRODUCTS, INITIAL_PRODUCTS);
+//         setProducts(isAdmin()
+//             ? updatedProducts.filter(p => p.shopId === selectedShop || p.locationId === selectedShop)
+//             : filterByLocation(updatedProducts));
+//     };
+
+//     const printBarcode = (product) => {
+//         const printWindow = window.open('', '_blank', 'width=400,height=400');
+//         printWindow.document.write(`
+//             <html>
+//                 <head>
+//                     <title>Print Barcode - ${product.barcode}</title>
+//                     <style>
+//                         body { text-align: center; font-family: sans-serif; padding-top: 50px; }
+//                         img { max-width: 100%; height: auto; margin-bottom: 10px; }
+//                         p { margin: 0; font-size: 14px; font-weight: bold; }
+//                         .sku { font-size: 12px; color: #555; }
+//                         @media print {
+//                             body { padding-top: 0; }
+//                         }
+//                     </style>
+//                 </head>
+//                 <body>
+//                     <p>${product.name}</p>
+//                     <img src="https://barcode.tec-it.com/barcode.ashx?data=${product.barcode}&code=Code128&dpi=96&dataseparator=" alt="Barcode" />
+//                     <p>${product.barcode}</p>
+//                     ${product.sku ? `<p class="sku">SKU: ${product.sku}</p>` : ''}
+//                     <p style="margin-top: 5px;">MRP: ₹${product.mrp}</p>
+//                     <script>
+//                         window.onload = () => { setTimeout(() => { window.print(); window.close(); }, 500); }
+//                     </script>
+//                 </body>
+//             </html>
+//         `);
+//         printWindow.document.close();
+//     };
+
+//     // Filter products
+//     const filteredProducts = products.filter(p => {
+//         const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+//             p.barcode.toLowerCase().includes(searchTerm.toLowerCase()) ||
+//             (p.sku && p.sku.toLowerCase().includes(searchTerm.toLowerCase()));
+//         const matchesCategory = selectedCategory === 'all' || p.category === selectedCategory;
+//         return matchesSearch && matchesCategory;
+//     });
+
+//     return (
+//         <div className="space-y-6">
+//             <StatsCards
+//                 products={filteredProducts}
+//                 selectedShopName={shops.find(s => s.id === selectedShop)?.name || selectedShop}
+//             />
+
+//             {/* Action Bar */}
+//             <div className="flex justify-between items-center">
+//                 <div className="flex items-center gap-4">
+//                     <h2 className="text-xl font-bold text-gray-800">📦 Inventory Management</h2>
+//                     {isAdmin() ? (
+//                         <select
+//                             value={selectedShop}
+//                             onChange={(e) => setSelectedShop(e.target.value)}
+//                             className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-700"
+//                         >
+//                             {shops.map(shop => (
+//                                 <option key={shop.id} value={shop.id}>{shop.name} - {shop.city}</option>
+//                             ))}
+//                         </select>
+//                     ) : (
+//                         <span className="px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-lg text-xs font-semibold text-blue-700">
+//                             📍 {shops[0]?.name || CURRENT_USER.locationId}
+//                         </span>
+//                     )}
+//                 </div>
+//                 <div className="flex gap-2">
+//                     <button
+//                         onClick={() => setShowBulkUpload(true)}
+//                         className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition flex items-center gap-2"
+//                     >
+//                         📤 Bulk Upload
+//                     </button>
+//                     <button
+//                         onClick={() => setShowAddModal(true)}
+//                         className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
+//                     >
+//                         + Add Product
+//                     </button>
+
+//                     <button
+//                         onClick={() => setShowCategoryModal(true)}
+//                         className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition flex items-center gap-2"
+//                     >
+//                         📁 Add Category
+//                     </button>
+//                 </div>
+//             </div>
+
+//             {/* Search and Filter */}
+//             <div className="flex gap-4">
+//                 <div className="flex-1 relative">
+//                     <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+//                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+//                     </svg>
+//                     <input
+//                         type="text"
+//                         placeholder="🔍 Search by name, barcode, or SKU..."
+//                         value={searchTerm}
+//                         onChange={(e) => setSearchTerm(e.target.value)}
+//                         className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+//                     />
+//                 </div>
+//                 <select
+//                     value={selectedCategory}
+//                     onChange={(e) => setSelectedCategory(e.target.value)}
+//                     className="px-4 py-2 border border-gray-300 rounded-lg text-sm bg-white text-gray-700"
+//                 >
+//                     {categoryOptions.map(cat => (
+//                         <option key={cat.category_id} value={cat.category_id === 'all' ? 'all' : cat.category_id}>
+//                             {cat.name}
+//                         </option>
+//                     ))}
+//                 </select>
+//             </div>
+
+//             {/* Inventory Table */}
+//             <InventoryTable
+//                 products={filteredProducts}
+//                 onEdit={setEditingProduct}
+//                 onDelete={handleDeleteProduct}
+//                 onStockAdjust={handleStockAdjust}
+//                 onPrintBarcode={printBarcode}
+//                 selectedShop={selectedShop}
+//                 showNetworkButton={isAdmin()}
+//             />
+
+//             {/* Modals */}
+//             <AddProductModal
+//                 isOpen={showAddModal}
+//                 onClose={() => setShowAddModal(false)}
+//                 onSave={handleAddProduct}
+//                 selectedShop={selectedShop}
+//             // categories={categories}
+//             />
+
+//             <EditProductModal
+//                 isOpen={!!editingProduct}
+//                 onClose={() => setEditingProduct(null)}
+//                 onSave={handleEditProduct}
+//                 product={editingProduct}
+//             // categories={categories}
+//             />
+
+//             <BulkUploadModal
+//                 isOpen={showBulkUpload}
+//                 onClose={() => setShowBulkUpload(false)}
+//                 onUpload={handleBulkUpload}
+//                 selectedShop={selectedShop}
+//                 generateBarcode={generateBarcode}
+//             />
+
+//             {showCategoryModal && (
+//                 <CategoriesTab onClose={() => setShowCategoryModal(false)} />
+//             )}
+//         </div>
+//     );
+// };
+
+// export default InventoryTab;
 
 // down code is good but we move to make seprate component based struture
 // // src/Components/TABS/INVENTORY/InventoryTab.jsx
