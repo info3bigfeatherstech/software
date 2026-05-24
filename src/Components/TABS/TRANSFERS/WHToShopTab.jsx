@@ -9,7 +9,7 @@ import { Search, Plus, RefreshCw } from "lucide-react";
 import { toast } from "react-toastify";
 import { useGetWarehousesQuery } from "../../../REDUX_FEATURES/REDUX_SLICES/Warehouse_api/warehouseApi";
 import { useGetShopsQuery } from "../../../REDUX_FEATURES/REDUX_SLICES/Shop_api/shopApi";
-import { useGetProductStocksQuery  } from "../../../REDUX_FEATURES/REDUX_SLICES/Stock_api/stockApi";
+import { useGetProductStocksQuery } from "../../../REDUX_FEATURES/REDUX_SLICES/Stock_api/stockApi";
 import { useGetStockLedgerQuery } from "../../../REDUX_FEATURES/REDUX_SLICES/Transfer_api/transferApi";
 import { useWhToShopTransferMutation } from "../../../REDUX_FEATURES/REDUX_SLICES/Transfer_api/transferApi";
 import {
@@ -40,28 +40,32 @@ export default function WHToShopTab() {
 
     const [searchTerm, setSearchTerm] = useState("");
     // Use transferHistory from the query instead of transfers state
-    const [transfers, setTransfers] = useState([]);
-const {  refetch: refetchHistory } = useGetStockLedgerQuery({
-    movement_type: "WH_TO_SHOP",
-    from_date: "",
-    to_date: "",
-    page: 1,
-    limit: 50,
-});
+    const { refetch: refetchHistory } = useGetStockLedgerQuery({
+        movement_type: "WH_TO_SHOP",
+        from_date: "",
+        to_date: "",
+        page: 1,
+        limit: 50,
+    });
 
-// Then in table, use: transferHistory?.ledger || []
+    // Then in table, use: transferHistory?.ledger || []
 
     // ── Queries ─────────────────────────────────────────────────────────────
     const { data: warehousesData, refetch: refetchWarehouses } = useGetWarehousesQuery({ page: 1, limit: 100, is_active: "true" });
     const { data: shopsData, refetch: refetchShops } = useGetShopsQuery({ page: 1, limit: 100, is_active: "true" });
-    const { data: stocksData, refetch: refetchStocks } = useGetProductStocksQuery({ page: 1, limit: 50 });
+    // const { data: stocksData, refetch: refetchStocks } = useGetProductStocksQuery({ page: 1, limit: 50 });
+    const { data: stocksData, refetch: refetchStocks, isLoading: stocksLoading } = useGetProductStocksQuery({
+        page: 1,
+        limit: 50,
+        warehouse_id: fromLocation || user?.warehouse_id || "",
+    });
 
     const [whToShopTransfer] = useWhToShopTransferMutation();
 
     const warehouses = warehousesData?.warehouses || [];
     const shops = shopsData?.shops || [];
     const stocks = stocksData?.stocks || [];
-  
+
     // Filter products by selected warehouse
     const availableProducts = fromLocation
         ? stocks.filter(s => s.warehouse_id === fromLocation && s.quantity > 0)
@@ -79,16 +83,24 @@ const {  refetch: refetchHistory } = useGetStockLedgerQuery({
             dispatch(setFromLocation(user.warehouse_id));
         }
     }, [user]);
-      console.log("fromLocation:", fromLocation);
-    console.log("stocks length:", stocks.length);
-    console.log("availableProducts:", availableProducts.length);
     const { data: transferHistory } = useGetStockLedgerQuery({
-    movement_type: "WH_TO_SHOP",  // or "SHOP_TO_SHOP", "WH_TO_WH"
-    from_date: "",
-    to_date: "",
-    page: 1,
-    limit: 50,
-});
+        movement_type: "WH_TO_SHOP",  // or "SHOP_TO_SHOP", "WH_TO_WH"
+        from_date: "",
+        to_date: "",
+        page: 1,
+        limit: 50,
+    });
+    useEffect(() => {
+        if (fromLocation) {
+            refetchStocks();
+            refetchHistory();
+        }
+    }, [fromLocation]);
+
+    console.log("Reason value:", reason);
+    console.log("To Location:", toLocation);
+    console.log("From Location:", fromLocation);
+    console.log("Cart length:", cart.length);
     const validateForm = () => {
         const errors = {};
         if (!fromLocation) errors.from = "Source warehouse is required";
@@ -142,9 +154,6 @@ const {  refetch: refetchHistory } = useGetStockLedgerQuery({
                 createdAt: new Date().toISOString().split("T")[0],
                 reason: reason,
             };
-
-            refetchStocks();
-
             // Reset form
             dispatch(resetForm());
             dispatch(setShowForm(false));
@@ -164,6 +173,9 @@ const {  refetch: refetchHistory } = useGetStockLedgerQuery({
             dispatch(setIsSubmitting(false));
         }
     };
+    console.log("fromLocation:", fromLocation);
+    console.log("stocks length:", stocks.length);
+    console.log("availableProducts:", availableProducts.length);
 
     const handleAddToCart = (stock) => {
         dispatch(addToCart({
@@ -196,11 +208,18 @@ const {  refetch: refetchHistory } = useGetStockLedgerQuery({
                     </p>
                 </div>
                 <button
-                    onClick={() => {
+                   onClick={() => {
+                    if (!showForm) {
+                        // Only reset when OPENING the form
                         dispatch(resetForm());
-                        dispatch(setShowForm(!showForm));
-                        dispatch(clearFormErrors());
-                    }}
+                        // Re-set the fromLocation for WH_MANAGER after reset
+                        if (!isAdmin() && isWarehouseRole() && user?.warehouse_id) {
+                            dispatch(setFromLocation(user.warehouse_id));
+                        }
+                    }
+                    dispatch(setShowForm(!showForm));
+                    dispatch(clearFormErrors());
+                }}
                     className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 cursor-pointer flex items-center gap-2"
                 >
                     <Plus size={16} /> New Challan
@@ -246,7 +265,11 @@ const {  refetch: refetchHistory } = useGetStockLedgerQuery({
                                 />
                             </div>
                             <div className="grid grid-cols-3 md:grid-cols-4 gap-2 max-h-48 overflow-y-auto border border-gray-100 rounded-lg p-2 bg-gray-50">
-                                {filteredProducts.length === 0 ? (
+                                {stocksLoading ? (
+                                    <p className="col-span-4 text-center text-xs text-gray-400 py-4">
+                                        Loading products...
+                                    </p>
+                                ) : filteredProducts.length === 0 ? (
                                     <p className="col-span-4 text-center text-xs text-gray-400 py-4">
                                         No products available in this warehouse
                                     </p>
@@ -257,8 +280,8 @@ const {  refetch: refetchHistory } = useGetStockLedgerQuery({
                                             onClick={() => handleAddToCart(p)}
                                             disabled={p.quantity === 0}
                                             className={`text-left p-2 rounded-lg text-xs border transition-colors cursor-pointer ${p.quantity === 0
-                                                    ? "opacity-40 bg-gray-100 cursor-not-allowed"
-                                                    : "bg-white hover:bg-blue-50 border-gray-200 hover:border-blue-300"
+                                                ? "opacity-40 bg-gray-100 cursor-not-allowed"
+                                                : "bg-white hover:bg-blue-50 border-gray-200 hover:border-blue-300"
                                                 }`}
                                         >
                                             <p className="font-medium text-gray-800 truncate">{p.variant?.product?.name || "Unknown"}</p>
@@ -305,10 +328,7 @@ const {  refetch: refetchHistory } = useGetStockLedgerQuery({
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
                 <div className="px-5 py-4 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
                     <h3 className="font-semibold text-gray-700 text-sm">Dispatch Log</h3>
-                    <button onClick={() => {
-                        const stored = localStorage.getItem("vyapar_wh_to_shop_transfers");
-                        setTransfers(stored ? JSON.parse(stored) : []);
-                    }} className="text-xs text-gray-500 hover:text-blue-600">
+                    <button onClick={() => refetchHistory()} className="text-xs text-gray-500 hover:text-blue-600">
                         <RefreshCw size={14} />
                     </button>
                 </div>
@@ -324,15 +344,15 @@ const {  refetch: refetchHistory } = useGetStockLedgerQuery({
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                        {transfers.length === 0 ? (
+                        {!transferHistory?.ledger?.length ? (
                             <tr>
                                 <td colSpan={6} className="px-4 py-10 text-center text-gray-400 text-sm">
                                     No dispatch challans yet
                                 </td>
                             </tr>
                         ) : (
-                            transfers.map(t => (
-                                <tr key={t.id} className="hover:bg-gray-50">
+                            transferHistory.ledger.map(t => (
+                                <tr key={t.ledger_id} className="hover:bg-gray-50">
                                     <td className="px-4 py-3 font-mono text-xs text-gray-500">{t.transferNumber}</td>
                                     <td className="px-4 py-3 font-medium text-gray-700">{t.fromWarehouseName || getWarehouseName(t.fromWarehouseId)}</td>
                                     <td className="px-4 py-3 text-gray-600">{t.toShopName || getShopName(t.toShopId)}</td>

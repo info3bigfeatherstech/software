@@ -118,7 +118,7 @@ const transferSlice = createSlice({
         },
         
         resetForm: (state) => {
-            state.fromLocation = "";
+            // state.fromLocation = "";
             state.toLocation = "";
             state.reason = "";
             state.remarks = "";

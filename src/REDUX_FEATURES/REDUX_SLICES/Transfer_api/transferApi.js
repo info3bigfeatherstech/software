@@ -38,22 +38,29 @@ export const transferApi = createApi({
 
         // POST /stock-transfer/transfer/wh-to-shop
         whToShopTransfer: builder.mutation({
-            query: ({ idempotencyKey, ...data }) => ({
-                url: "/stock-transfer/transfer/wh-to-shop",
-                method: "POST",
-                data,
-                headers: {
-                    "Idempotency-Key": idempotencyKey,
-                },
-            }),
-            invalidatesTags: ["Transfer", "StockLedger", "ProductStock"],
-            transformResponse: (response) => response.data,
+            query: ({ idempotencyKey, ...data }) => {
+                console.log("Request URL:", "/stock/transfer/wh-to-shop");
+                console.log("Request Data:", data);
+                console.log("Idempotency Key:", idempotencyKey);
+                return {
+                    url: "/stock/transfer/wh-to-shop",
+                    method: "POST",
+                    data,
+                    headers: {
+                        "Idempotency-Key": idempotencyKey,
+                    },
+                };
+            },
+            transformErrorResponse: (response) => {
+                console.log("Full error response:", response);
+                return response.data;
+            },
         }),
 
         // POST /stock-transfer/transfer/shop-to-shop
         shopToShopTransfer: builder.mutation({
             query: ({ idempotencyKey, ...data }) => ({
-                url: "/stock-transfer/transfer/shop-to-shop",
+                url: "/stock/transfer/shop-to-shop",
                 method: "POST",
                 data,
                 headers: {
@@ -67,7 +74,7 @@ export const transferApi = createApi({
         // POST /stock-transfer/transfer/wh-to-wh
         whToWhTransfer: builder.mutation({
             query: ({ idempotencyKey, ...data }) => ({
-                url: "/stock-transfer/transfer/wh-to-wh",
+                url: "/stock/transfer/wh-to-wh",
                 method: "POST",
                 data,
                 headers: {
@@ -81,7 +88,7 @@ export const transferApi = createApi({
         // POST /stock-transfer/reconcile (SUPER_ADMIN only)
         reconcileStock: builder.mutation({
             query: ({ idempotencyKey, ...data }) => ({
-                url: "/stock-transfer/reconcile",
+                url: "/stock/transfer/reconcile",
                 method: "POST",
                 data,
                 headers: {

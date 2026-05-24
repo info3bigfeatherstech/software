@@ -9,7 +9,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { Search, Plus, RefreshCw } from "lucide-react";
 import { toast } from "react-toastify";
 import { useGetShopsQuery } from "../../../REDUX_FEATURES/REDUX_SLICES/Shop_api/shopApi";
-import { useGetProductStocksQuery  } from "../../../REDUX_FEATURES/REDUX_SLICES/Stock_api/stockApi";
+import { useGetProductStocksQuery } from "../../../REDUX_FEATURES/REDUX_SLICES/Stock_api/stockApi";
 import { useGetStockLedgerQuery } from "../../../REDUX_FEATURES/REDUX_SLICES/Transfer_api/transferApi";
 import { useShopToShopTransferMutation } from "../../../REDUX_FEATURES/REDUX_SLICES/Transfer_api/transferApi";
 import {
@@ -37,10 +37,12 @@ export default function ShopToShopTab() {
     const dispatch = useDispatch();
     const { user } = useSelector((state) => state.auth);
     const { cart, fromLocation, toLocation, reason, showForm, isSubmitting, formErrors } = useSelector((state) => state.transfer);
-
+    const fmtDate = (iso) => {
+        if (!iso) return "—";
+        return new Date(iso).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+    };
     const [searchTerm, setSearchTerm] = useState("");
     // Use transferHistory from the query instead of transfers state
-    const [transfers, setTransfers] = useState([]);
     const { refetch: refetchHistory } = useGetStockLedgerQuery({
         movement_type: "SHOP_TO_SHOP",
         from_date: "",
@@ -258,10 +260,7 @@ export default function ShopToShopTab() {
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
                 <div className="px-5 py-4 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
                     <h3 className="font-semibold text-gray-700 text-sm">Shop-to-Shop Transfers</h3>
-                    <button onClick={() => {
-                        const stored = localStorage.getItem("vyapar_shop_to_shop_transfers");
-                        setTransfers(stored ? JSON.parse(stored) : []);
-                    }} className="text-xs text-gray-500 hover:text-blue-600">
+                    <button onClick={() => refetchHistory()} className="text-xs text-gray-500 hover:text-blue-600">
                         <RefreshCw size={14} />
                     </button>
                 </div>
@@ -277,17 +276,17 @@ export default function ShopToShopTab() {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                        {transfers.length === 0 ? (
+                        {!transferHistory?.ledger?.length ? (
                             <tr><td colSpan={6} className="px-4 py-10 text-center text-gray-400 text-sm">No transfers yet</td></tr>
                         ) : (
-                            transfers.map(t => (
-                                <tr key={t.id} className="hover:bg-gray-50">
-                                    <td className="px-4 py-3 font-mono text-xs text-gray-500">{t.transferNumber}</td>
-                                    <td className="px-4 py-3 font-medium text-gray-700">{t.fromShopName || getShopName(t.fromShopId)}</td>
-                                    <td className="px-4 py-3 text-gray-600">{t.toShopName || getShopName(t.toShopId)}</td>
-                                    <td className="px-4 py-3 text-center text-gray-500">{t.items?.length || 0}</td>
-                                    <td className="px-4 py-3 text-xs text-gray-400">{t.createdAt}</td>
-                                    <td className="px-4 py-3"><TransferStatusBadge status={t.status} /></td>
+                            transferHistory.ledger.map((entry, idx) => (
+                                <tr key={entry.ledger_id || idx} className="hover:bg-gray-50">
+                                    <td className="px-4 py-3 font-mono text-xs text-gray-500">STS-{entry.created_at?.slice(0, 10)}</td>
+                                    <td className="px-4 py-3 font-medium text-gray-700">{getShopName(entry.from_shop_id)}</td>
+                                    <td className="px-4 py-3 text-gray-600">{getShopName(entry.to_shop_id)}</td>
+                                    <td className="px-4 py-3 text-center text-gray-500">{Math.abs(entry.quantity)}</td>
+                                    <td className="px-4 py-3 text-xs text-gray-400">{fmtDate(entry.created_at)}</td>
+                                    <td className="px-4 py-3"><TransferStatusBadge status="completed" /></td>
                                 </tr>
                             ))
                         )}
