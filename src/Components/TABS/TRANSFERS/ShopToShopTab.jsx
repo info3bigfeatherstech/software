@@ -49,6 +49,7 @@ export default function ShopToShopTab() {
         to_date: "",
         page: 1,
         limit: 50,
+        
     });
 
     // Then in table, use: transferHistory?.ledger || []
