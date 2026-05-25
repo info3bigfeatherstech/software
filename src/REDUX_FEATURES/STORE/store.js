@@ -23,6 +23,17 @@ import { shopApi } from "../REDUX_SLICES/Shop_api/shopApi";
 import shopReducer from "../REDUX_SLICES/Shop_api/shopSlice";
 import { transferApi } from "../REDUX_SLICES/Transfer_api/transferApi";
 import transferReducer from "../REDUX_SLICES/Transfer_api/transferSlice";
+import { shopStockApi } from "../REDUX_SLICES/ShopStock_api/shopStockApi";
+import shopStockReducer from "../REDUX_SLICES/ShopStock_api/shopStockSlice";
+import { transferRequestApi } from "../REDUX_SLICES/TransferRequest_api/transferRequestApi";
+import transferRequestReducer from "../REDUX_SLICES/TransferRequest_api/transferRequestSlice";
+
+import { stockSearchApi } from "../REDUX_SLICES/StockSearch_api/stockSearchApi";
+import stockSearchReducer from "../REDUX_SLICES/StockSearch_api/stockSearchSlice";
+import { shopLevelsApi } from "../REDUX_SLICES/ShopLevels_api/shopLevelsApi";
+import shopLevelsReducer from "../REDUX_SLICES/ShopLevels_api/shopLevelsSlice";
+import { bulkTransferApi } from "../REDUX_SLICES/BulkTransfer_api/bulkTransferApi";
+import bulkTransferReducer from "../REDUX_SLICES/BulkTransfer_api/bulkTransferSlice";
 
 export const store = configureStore({
   reducer: {
@@ -50,6 +61,17 @@ export const store = configureStore({
     [shopApi.reducerPath]: shopApi.reducer,
     transfer: transferReducer,
     [transferApi.reducerPath]: transferApi.reducer,
+    shopStock: shopStockReducer,
+    [shopStockApi.reducerPath]: shopStockApi.reducer,
+    transferRequest: transferRequestReducer,
+    [transferRequestApi.reducerPath]: transferRequestApi.reducer,
+
+    stockSearch: stockSearchReducer,
+    [stockSearchApi.reducerPath]: stockSearchApi.reducer,
+    shopLevels: shopLevelsReducer,
+    [shopLevelsApi.reducerPath]: shopLevelsApi.reducer,
+    bulkTransfer: bulkTransferReducer,
+    [bulkTransferApi.reducerPath]: bulkTransferApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(
@@ -64,6 +86,11 @@ export const store = configureStore({
       stockApi.middleware,
       purchaseApi.middleware,
       shopApi.middleware,
-      transferApi.middleware,
+      shopStockApi.middleware,
+      transferRequestApi.middleware,
+      stockSearchApi.middleware,
+      shopLevelsApi.middleware,
+      bulkTransferApi.middleware,
+       transferApi.middleware,
     ),
 });

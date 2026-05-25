@@ -53,7 +53,6 @@ export default function WHToShopTab() {
     // ── Queries ─────────────────────────────────────────────────────────────
     const { data: warehousesData, refetch: refetchWarehouses } = useGetWarehousesQuery({ page: 1, limit: 100, is_active: "true" });
     const { data: shopsData, refetch: refetchShops } = useGetShopsQuery({ page: 1, limit: 100, is_active: "true" });
-    // const { data: stocksData, refetch: refetchStocks } = useGetProductStocksQuery({ page: 1, limit: 50 });
     const { data: stocksData, refetch: refetchStocks, isLoading: stocksLoading } = useGetProductStocksQuery({
         page: 1,
         limit: 50,
@@ -109,6 +108,11 @@ export default function WHToShopTab() {
         if (cart.length === 0) errors.cart = "At least one item is required";
         return errors;
     };
+
+    const fmtDate = (iso) => {
+    if (!iso) return "—";
+    return new Date(iso).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+};
 
     const handleSubmitTransfer = async () => {
         const errors = validateForm();
@@ -351,16 +355,28 @@ export default function WHToShopTab() {
                                 </td>
                             </tr>
                         ) : (
-                            transferHistory.ledger.map(t => (
-                                <tr key={t.ledger_id} className="hover:bg-gray-50">
-                                    <td className="px-4 py-3 font-mono text-xs text-gray-500">{t.transferNumber}</td>
-                                    <td className="px-4 py-3 font-medium text-gray-700">{t.fromWarehouseName || getWarehouseName(t.fromWarehouseId)}</td>
-                                    <td className="px-4 py-3 text-gray-600">{t.toShopName || getShopName(t.toShopId)}</td>
-                                    <td className="px-4 py-3 text-center text-gray-500">{t.items?.length || 0}</td>
-                                    <td className="px-4 py-3 text-xs text-gray-400">{t.createdAt}</td>
-                                    <td className="px-4 py-3"><TransferStatusBadge status={t.status} /></td>
-                                </tr>
-                            ))
+                            transferHistory.ledger.map((entry) => (
+    <tr key={entry.ledger_id}>
+        <td className="px-4 py-3 font-mono text-xs text-gray-500">
+            CHAL-{entry.created_at?.slice(0,10).replace(/-/g, '')}
+        </td>
+        <td className="px-4 py-3 font-medium text-gray-700">
+            {getWarehouseName(entry.from_warehouse_id)}
+        </td>
+        <td className="px-4 py-3 text-gray-600">
+            {getShopName(entry.to_shop_id)}
+        </td>
+        <td className="px-4 py-3 text-center text-gray-500">
+            {Math.abs(entry.quantity)}
+        </td>
+        <td className="px-4 py-3 text-xs text-gray-400">
+            {fmtDate(entry.created_at)}
+        </td>
+        <td className="px-4 py-3">
+            <TransferStatusBadge status="completed" />
+        </td>
+    </tr>
+))
                         )}
                     </tbody>
                 </table>

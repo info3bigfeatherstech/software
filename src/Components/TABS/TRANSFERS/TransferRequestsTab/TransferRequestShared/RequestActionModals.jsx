@@ -1,0 +1,1293 @@
+// TABS/TRANSFERS/TransferRequestShared/RequestActionModals.jsx
+// 
+// FIXED: Moved all useState hooks to top level to prevent hook order issues
+
+import React, { useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { X, AlertTriangle } from "lucide-react";
+import { toast } from "react-toastify";
+import { useGetWarehousesQuery } from "../../../../../REDUX_FEATURES/REDUX_SLICES/Warehouse_api/warehouseApi";
+import { useGetShopsQuery } from "../../../../../REDUX_FEATURES/REDUX_SLICES/Shop_api/shopApi";
+import { useGetProductStocksQuery } from "../../../../../REDUX_FEATURES/REDUX_SLICES/Stock_api/stockApi";
+import {
+    useCreateTransferRequestMutation,
+    useCreateEmergencyTransferRequestMutation,
+    useApproveTransferRequestMutation,
+    useRejectTransferRequestMutation,
+    useDispatchTransferRequestMutation,
+    useReceiveTransferRequestMutation,
+    useCancelTransferRequestMutation,
+    generateIdempotencyKey,
+} from "../../../../../REDUX_FEATURES/REDUX_SLICES/TransferRequest_api/transferRequestApi";
+import {
+    closeCreateModal,
+    updateCreateForm,
+    setCreateErrors,
+    clearCreateErrors,
+    closeApproveRejectModal,
+    setRejectReason,
+    closeDispatchModal,
+    setTrackingNumber,
+    setExpectedDelivery,
+    closeReceiveModal,
+    setReceivedQuantity,
+    setReceiveRemarks,
+    closeCancelModal,
+    setCancelReason,
+    setActionErrors,
+    clearActionErrors,
+} from "../../../../../REDUX_FEATURES/REDUX_SLICES/TransferRequest_api/transferRequestSlice";
+import { CURRENT_USER, isAdmin } from "../../../../roles";
+
+export default function RequestActionModals({ onSuccess }) {
+    const dispatch = useDispatch();
+    const { user } = useSelector((state) => state.auth);
+    const {
+        showCreateModal,
+        showApproveRejectModal,
+        showDispatchModal,
+        showReceiveModal,
+        showCancelModal,
+        selectedRequest,
+        createForm,
+        createErrors,
+        rejectReason,
+        trackingNumber,
+        expectedDelivery,
+        receivedQuantity,
+        receiveRemarks,
+        cancelReason,
+        actionErrors,
+    } = useSelector((state) => state.transferRequest);
+
+    // ✅ ALL HOOKS AT TOP LEVEL - never inside conditionals
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isEmergency, setIsEmergency] = useState(false);
+    const [approveRejectAction, setApproveRejectAction] = useState("approve"); // Moved from conditional
+
+    const { data: warehousesData } = useGetWarehousesQuery({ page: 1, limit: 50, is_active: "true" });
+    const { data: shopsData } = useGetShopsQuery({ page: 1, limit: 100, is_active: "true" });
+    const { data: stocksData } = useGetProductStocksQuery({ page: 1, limit: 100 });
+
+    const warehouses = warehousesData?.warehouses || [];
+    const shops = shopsData?.shops || [];
+    const stocks = stocksData?.stocks || [];
+
+    const userWarehouseId = user?.warehouse_id || "";
+    const userShopId = user?.shop_id || "";
+    const isShopOwner = user?.role === "SHOP_OWNER";
+    const isWHManager = ["WH_MANAGER", "WH_STOCK_LISTER"].includes(user?.role);
+
+    const [createRequest] = useCreateTransferRequestMutation();
+    const [createEmergencyRequest] = useCreateEmergencyTransferRequestMutation();
+    const [approveRequest] = useApproveTransferRequestMutation();
+    const [rejectRequest] = useRejectTransferRequestMutation();
+    const [dispatchRequest] = useDispatchTransferRequestMutation();
+    const [receiveRequest] = useReceiveTransferRequestMutation();
+    const [cancelRequest] = useCancelTransferRequestMutation();
+
+    const getAvailableRequestTypes = () => {
+        if (isShopOwner) {
+            return [
+                { value: "WH_TO_SHOP", label: "Warehouse → My Shop" },
+                { value: "SHOP_TO_SHOP", label: "Other Shop → My Shop" }
+            ];
+        }
+        if (isWHManager) {
+            return [
+                { value: "WH_TO_SHOP", label: "Warehouse → Shop" },
+                { value: "WH_TO_WH", label: "Warehouse → Warehouse" }
+            ];
+        }
+        return [
+            { value: "WH_TO_SHOP", label: "Warehouse → Shop" },
+            { value: "WH_TO_WH", label: "Warehouse → Warehouse" },
+            { value: "SHOP_TO_SHOP", label: "Shop → Shop" }
+        ];
+    };
+
+    const availableRequestTypes = getAvailableRequestTypes();
+
+    React.useEffect(() => {
+        if (showCreateModal && isShopOwner && userShopId) {
+            dispatch(updateCreateForm({
+                from_shop_id: userShopId,
+                request_type: "SHOP_TO_SHOP"
+            }));
+        }
+    }, [showCreateModal, isShopOwner, userShopId]);
+
+    const getAvailableVariants = () => {
+        if (createForm.request_type === "WH_TO_SHOP" || createForm.request_type === "WH_TO_WH") {
+            const warehouseId = createForm.from_warehouse_id;
+            if (!warehouseId) return [];
+            return stocks.filter(s => s.warehouse_id === warehouseId && s.quantity > 0);
+        }
+        return [];
+    };
+
+    const validateCreate = () => {
+        const errors = {};
+        if (!createForm.request_type) errors.request_type = "Request type is required";
+        if (createForm.request_type === "WH_TO_SHOP") {
+            if (!createForm.from_warehouse_id) errors.from_warehouse_id = "Source warehouse is required";
+            if (!createForm.to_shop_id) errors.to_shop_id = "Destination shop is required";
+        } else if (createForm.request_type === "WH_TO_WH") {
+            if (!createForm.from_warehouse_id) errors.from_warehouse_id = "Source warehouse is required";
+            if (!createForm.to_warehouse_id) errors.to_warehouse_id = "Destination warehouse is required";
+            if (createForm.from_warehouse_id === createForm.to_warehouse_id) errors.to_warehouse_id = "Source and destination cannot be the same";
+        } else if (createForm.request_type === "SHOP_TO_SHOP") {
+            if (!createForm.from_shop_id) errors.from_shop_id = "Source shop is required";
+            if (!createForm.to_shop_id) errors.to_shop_id = "Destination shop is required";
+            if (createForm.from_shop_id === createForm.to_shop_id) errors.to_shop_id = "Source and destination cannot be the same";
+        }
+        if (!createForm.variant_id) errors.variant_id = "Product is required";
+        if (!createForm.quantity || createForm.quantity <= 0) errors.quantity = "Valid quantity is required";
+        return errors;
+    };
+
+    const handleCreateSubmit = async () => {
+        const errors = validateCreate();
+        if (Object.keys(errors).length > 0) {
+            dispatch(setCreateErrors(errors));
+            toast.error("Please fix the errors");
+            return;
+        }
+
+        setIsSubmitting(true);
+        dispatch(clearCreateErrors());
+
+        try {
+            const payload = {
+                request_type: createForm.request_type,
+                quantity: parseInt(createForm.quantity),
+                variant_id: createForm.variant_id,
+                request_remarks: createForm.request_remarks?.trim() || null,
+            };
+
+            if (isEmergency) {
+                payload.priority = createForm.priority || "HIGH";
+                if (createForm.expected_delivery) {
+                    payload.expected_delivery = new Date(createForm.expected_delivery).toISOString();
+                }
+            }
+
+            if (createForm.request_type === "WH_TO_SHOP") {
+                payload.from_warehouse_id = createForm.from_warehouse_id;
+                payload.to_shop_id = createForm.to_shop_id;
+            } else if (createForm.request_type === "WH_TO_WH") {
+                payload.from_warehouse_id = createForm.from_warehouse_id;
+                payload.to_warehouse_id = createForm.to_warehouse_id;
+            } else if (createForm.request_type === "SHOP_TO_SHOP") {
+                payload.from_shop_id = createForm.from_shop_id;
+                payload.to_shop_id = createForm.to_shop_id;
+            }
+
+            const mutation = isEmergency ? createEmergencyRequest : createRequest;
+            await mutation({ idempotencyKey: generateIdempotencyKey(), ...payload }).unwrap();
+            
+            toast.success(isEmergency ? "Emergency transfer request created" : "Transfer request created successfully");
+            dispatch(closeCreateModal());
+            if (onSuccess) onSuccess();
+        } catch (err) {
+            if (err?.data?.errors?.length) {
+                const be = {};
+                err.data.errors.forEach(({ field, message }) => { be[field] = message; });
+                dispatch(setCreateErrors(be));
+            } else {
+                toast.error(err?.data?.message || "Failed to create request");
+            }
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    // APPROVE / REJECT / DISPATCH / RECEIVE / CANCEL handlers
+    const handleApprove = async () => {
+        setIsSubmitting(true);
+        try {
+            await approveRequest({ requestId: selectedRequest.request_id, idempotencyKey: generateIdempotencyKey() }).unwrap();
+            toast.success("Request approved successfully");
+            dispatch(closeApproveRejectModal());
+            if (onSuccess) onSuccess();
+        } catch (err) {
+            toast.error(err?.data?.message || "Failed to approve");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleReject = async () => {
+        if (!rejectReason?.trim()) {
+            dispatch(setActionErrors({ reject_reason: "Rejection reason is required" }));
+            return;
+        }
+        setIsSubmitting(true);
+        try {
+            await rejectRequest({ requestId: selectedRequest.request_id, rejection_reason: rejectReason, idempotencyKey: generateIdempotencyKey() }).unwrap();
+            toast.success("Request rejected");
+            dispatch(closeApproveRejectModal());
+            if (onSuccess) onSuccess();
+        } catch (err) {
+            toast.error(err?.data?.message || "Failed to reject");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleDispatch = async () => {
+        setIsSubmitting(true);
+        try {
+            await dispatchRequest({
+                requestId: selectedRequest.request_id,
+                tracking_number: trackingNumber?.trim() || null,
+                expected_delivery: expectedDelivery || null,
+                idempotencyKey: generateIdempotencyKey(),
+            }).unwrap();
+            toast.success("Goods dispatched successfully");
+            dispatch(closeDispatchModal());
+            if (onSuccess) onSuccess();
+        } catch (err) {
+            toast.error(err?.data?.message || "Failed to dispatch");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleReceive = async () => {
+        const qty = parseInt(receivedQuantity);
+        if (!receivedQuantity || qty <= 0) {
+            dispatch(setActionErrors({ received_quantity: "Valid quantity is required" }));
+            return;
+        }
+        if (qty > selectedRequest?.quantity) {
+            dispatch(setActionErrors({ received_quantity: `Cannot receive more than ${selectedRequest.quantity}` }));
+            return;
+        }
+        setIsSubmitting(true);
+        try {
+            await receiveRequest({
+                requestId: selectedRequest.request_id,
+                received_quantity: qty,
+                receive_remarks: receiveRemarks?.trim() || null,
+                idempotencyKey: generateIdempotencyKey(),
+            }).unwrap();
+            toast.success(`Received ${qty} units successfully`);
+            dispatch(closeReceiveModal());
+            if (onSuccess) onSuccess();
+        } catch (err) {
+            toast.error(err?.data?.message || "Failed to receive");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleCancel = async () => {
+        if (!cancelReason?.trim()) {
+            dispatch(setActionErrors({ cancel_reason: "Cancellation reason is required" }));
+            return;
+        }
+        setIsSubmitting(true);
+        try {
+            await cancelRequest({
+                requestId: selectedRequest.request_id,
+                cancel_reason: cancelReason,
+                idempotencyKey: generateIdempotencyKey(),
+            }).unwrap();
+            toast.success("Request cancelled");
+            dispatch(closeCancelModal());
+            if (onSuccess) onSuccess();
+        } catch (err) {
+            toast.error(err?.data?.message || "Failed to cancel");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const inputCls = (name, errors) => `w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors?.[name] ? "border-red-400" : "border-gray-300"}`;
+
+    // ─────────────────────────────────────────────────────────────
+    // CREATE MODAL RENDER
+    // ─────────────────────────────────────────────────────────────
+    if (showCreateModal) {
+        const availableVariants = getAvailableVariants();
+        const selectedVariant = stocks.find(s => s.variant_id === createForm.variant_id);
+
+        return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto text-gray-700">
+                    <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex justify-between">
+                        <div>
+                            <h3 className="text-base font-semibold text-gray-800">
+                                {isEmergency ? "🚨 Emergency Transfer Request" : "New Transfer Request"}
+                            </h3>
+                            <p className="text-xs text-gray-400 mt-0.5">
+                                {isEmergency ? "High priority — immediate approval required" : "Request stock from another location"}
+                            </p>
+                        </div>
+                        <button onClick={() => dispatch(closeCreateModal())} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+                    </div>
+                    <div className="p-6 space-y-4">
+                        {/* Emergency Toggle */}
+                        <div className="flex items-center justify-between bg-yellow-50 p-3 rounded-lg">
+                            <div>
+                                <p className="text-sm font-medium text-yellow-800">🚨 Emergency Request</p>
+                                <p className="text-xs text-yellow-600">Priority: HIGH, faster approval</p>
+                            </div>
+                            <label className="relative inline-flex items-center cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={isEmergency}
+                                    onChange={(e) => setIsEmergency(e.target.checked)}
+                                    className="sr-only peer"
+                                />
+                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
+                            </label>
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">Request Type <span className="text-red-500">*</span></label>
+                            <select value={createForm.request_type} onChange={(e) => dispatch(updateCreateForm({ request_type: e.target.value, variant_id: "", from_warehouse_id: "", to_shop_id: "", from_shop_id: "", to_warehouse_id: "" }))} className={inputCls("request_type", createErrors)}>
+                                {availableRequestTypes.map(type => (
+                                    <option key={type.value} value={type.value}>{type.label}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {isEmergency && (
+                            <>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">Priority <span className="text-red-500">*</span></label>
+                                    <select value={createForm.priority} onChange={(e) => dispatch(updateCreateForm({ priority: e.target.value }))} className={inputCls("priority", createErrors)}>
+                                        <option value="HIGH">🔴 HIGH — Emergency</option>
+                                        <option value="NORMAL">🟢 NORMAL — Regular</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">Expected Delivery Date</label>
+                                    <input type="datetime-local" value={createForm.expected_delivery} onChange={(e) => dispatch(updateCreateForm({ expected_delivery: e.target.value }))} className={inputCls("expected_delivery", createErrors)} />
+                                </div>
+                            </>
+                        )}
+
+                        {createForm.request_type === "WH_TO_SHOP" && (
+                            <>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">Source Warehouse <span className="text-red-500">*</span></label>
+                                    <select value={createForm.from_warehouse_id} onChange={(e) => dispatch(updateCreateForm({ from_warehouse_id: e.target.value, variant_id: "" }))} className={inputCls("from_warehouse_id", createErrors)}>
+                                        <option value="">Select warehouse</option>
+                                        {warehouses.map(w => <option key={w.warehouse_id} value={w.warehouse_id}>{w.warehouse_name} — {w.city}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">Destination Shop <span className="text-red-500">*</span></label>
+                                    <select value={createForm.to_shop_id} onChange={(e) => dispatch(updateCreateForm({ to_shop_id: e.target.value }))} className={inputCls("to_shop_id", createErrors)}>
+                                        <option value="">Select shop</option>
+                                        {shops.filter(s => !isShopOwner || s.shop_id !== userShopId).map(s => <option key={s.shop_id} value={s.shop_id}>{s.shop_name} — {s.city}</option>)}
+                                    </select>
+                                </div>
+                            </>
+                        )}
+
+                        {createForm.request_type === "WH_TO_WH" && (
+                            <>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">Source Warehouse <span className="text-red-500">*</span></label>
+                                    <select value={createForm.from_warehouse_id} onChange={(e) => dispatch(updateCreateForm({ from_warehouse_id: e.target.value, variant_id: "" }))} className={inputCls("from_warehouse_id", createErrors)}>
+                                        <option value="">Select warehouse</option>
+                                        {warehouses.map(w => <option key={w.warehouse_id} value={w.warehouse_id}>{w.warehouse_name} — {w.city}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">Destination Warehouse <span className="text-red-500">*</span></label>
+                                    <select value={createForm.to_warehouse_id} onChange={(e) => dispatch(updateCreateForm({ to_warehouse_id: e.target.value }))} className={inputCls("to_warehouse_id", createErrors)}>
+                                        <option value="">Select warehouse</option>
+                                        {warehouses.filter(w => w.warehouse_id !== createForm.from_warehouse_id).map(w => <option key={w.warehouse_id} value={w.warehouse_id}>{w.warehouse_name} — {w.city}</option>)}
+                                    </select>
+                                </div>
+                            </>
+                        )}
+
+                        {createForm.request_type === "SHOP_TO_SHOP" && (
+                            <>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">Source Shop <span className="text-red-500">*</span></label>
+                                    {isShopOwner ? (
+                                        <input type="text" value={shops.find(s => s.shop_id === userShopId)?.shop_name || userShopId} readOnly disabled className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-gray-50 text-gray-500" />
+                                    ) : (
+                                        <select value={createForm.from_shop_id} onChange={(e) => dispatch(updateCreateForm({ from_shop_id: e.target.value, variant_id: "" }))} className={inputCls("from_shop_id", createErrors)}>
+                                            <option value="">Select shop</option>
+                                            {shops.filter(s => isAdmin() || s.shop_id === userShopId).map(s => <option key={s.shop_id} value={s.shop_id}>{s.shop_name} — {s.city}</option>)}
+                                        </select>
+                                    )}
+                                    <input type="hidden" name="from_shop_id_hidden" value={userShopId} />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">Destination Shop <span className="text-red-500">*</span></label>
+                                    <select value={createForm.to_shop_id} onChange={(e) => dispatch(updateCreateForm({ to_shop_id: e.target.value }))} className={inputCls("to_shop_id", createErrors)}>
+                                        <option value="">Select shop</option>
+                                        {shops.filter(s => s.shop_id !== createForm.from_shop_id).map(s => <option key={s.shop_id} value={s.shop_id}>{s.shop_name} — {s.city}</option>)}
+                                    </select>
+                                </div>
+                            </>
+                        )}
+
+                        <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">Product <span className="text-red-500">*</span></label>
+                            <select value={createForm.variant_id} onChange={(e) => dispatch(updateCreateForm({ variant_id: e.target.value }))} className={inputCls("variant_id", createErrors)}>
+                                <option value="">Select product</option>
+                                {availableVariants.map(v => (
+                                    <option key={v.variant_id} value={v.variant_id}>
+                                        {v.variant?.product?.name} ({v.variant?.sku}) - Stock: {v.quantity}
+                                    </option>
+                                ))}
+                            </select>
+                            {selectedVariant && <p className="text-xs text-gray-400 mt-1">Available stock: {selectedVariant.quantity} units</p>}
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">Quantity <span className="text-red-500">*</span></label>
+                            <input type="number" min="1" value={createForm.quantity} onChange={(e) => dispatch(updateCreateForm({ quantity: e.target.value }))} className={inputCls("quantity", createErrors)} />
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">Remarks</label>
+                            <textarea value={createForm.request_remarks} onChange={(e) => dispatch(updateCreateForm({ request_remarks: e.target.value }))} rows={2} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm resize-none" />
+                        </div>
+                    </div>
+                    <div className="sticky bottom-0 bg-white border-t border-gray-100 px-6 py-4 flex justify-end gap-3">
+                        <button onClick={() => dispatch(closeCreateModal())} className="px-4 py-2 border rounded-lg text-sm">Cancel</button>
+                        <button onClick={handleCreateSubmit} disabled={isSubmitting} className={`px-5 py-2 rounded-lg text-sm font-medium text-white ${isEmergency ? "bg-red-600 hover:bg-red-700" : "bg-blue-600 hover:bg-blue-700"} disabled:opacity-60`}>
+                            {isSubmitting ? "Creating..." : isEmergency ? "Create Emergency Request" : "Create Request"}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // APPROVE/REJECT MODAL RENDER (FIXED - using top-level action state)
+    // ─────────────────────────────────────────────────────────────
+    if (showApproveRejectModal && selectedRequest) {
+        const isEmergencyRequest = selectedRequest.priority === "HIGH";
+        
+        return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4">
+                    <div className="px-6 py-4 border-b border-gray-100 flex justify-between">
+                        <div>
+                            <h3 className="text-base font-semibold text-gray-800">
+                                {isEmergencyRequest && "🚨 "}Review Request
+                            </h3>
+                            <p className="text-xs text-gray-400">{selectedRequest.request_number}</p>
+                        </div>
+                        <button onClick={() => {
+                            dispatch(closeApproveRejectModal());
+                            setApproveRejectAction("approve"); // Reset on close
+                        }} className="text-gray-400"><X size={20} /></button>
+                    </div>
+                    <div className="p-6 space-y-4">
+                        {isEmergencyRequest && (
+                            <div className="bg-red-50 border border-red-200 rounded-lg p-2 text-center">
+                                <p className="text-xs text-red-600 font-medium">⚠️ EMERGENCY REQUEST — Priority HIGH</p>
+                            </div>
+                        )}
+                        <div className="bg-gray-50 rounded-lg p-3 text-sm">
+                            <p><strong>Product:</strong> {selectedRequest.variant?.product?.name}</p>
+                            <p><strong>Quantity:</strong> {selectedRequest.quantity}</p>
+                            <p><strong>Remarks:</strong> {selectedRequest.request_remarks || "—"}</p>
+                        </div>
+                        <div className="flex gap-3">
+                            <button 
+                                onClick={() => setApproveRejectAction("approve")} 
+                                className={`flex-1 py-2 rounded-lg text-sm font-medium ${approveRejectAction === "approve" ? "bg-green-600 text-white" : "bg-gray-100 text-gray-600"}`}
+                            >
+                                Approve
+                            </button>
+                            <button 
+                                onClick={() => setApproveRejectAction("reject")} 
+                                className={`flex-1 py-2 rounded-lg text-sm font-medium ${approveRejectAction === "reject" ? "bg-red-600 text-white" : "bg-gray-100 text-gray-600"}`}
+                            >
+                                Reject
+                            </button>
+                        </div>
+                        {approveRejectAction === "reject" && (
+                            <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">Rejection Reason <span className="text-red-500">*</span></label>
+                                <textarea 
+                                    value={rejectReason} 
+                                    onChange={(e) => dispatch(setRejectReason(e.target.value))} 
+                                    rows={2} 
+                                    className={inputCls("reject_reason", actionErrors)} 
+                                    placeholder="Why is this request being rejected?" 
+                                />
+                                {actionErrors.reject_reason && <p className="text-xs text-red-500 mt-1">{actionErrors.reject_reason}</p>}
+                            </div>
+                        )}
+                    </div>
+                    <div className="border-t border-gray-100 px-6 py-4 flex justify-end gap-3">
+                        <button onClick={() => {
+                            dispatch(closeApproveRejectModal());
+                            setApproveRejectAction("approve");
+                        }} className="px-4 py-2 border rounded-lg text-sm">Cancel</button>
+                        <button 
+                            onClick={approveRejectAction === "approve" ? handleApprove : handleReject} 
+                            disabled={isSubmitting} 
+                            className={`px-5 py-2 rounded-lg text-sm font-medium text-white ${approveRejectAction === "approve" ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"} disabled:opacity-60`}
+                        >
+                            {isSubmitting ? "Processing..." : approveRejectAction === "approve" ? "Approve" : "Reject"}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // DISPATCH MODAL RENDER
+    // ─────────────────────────────────────────────────────────────
+    if (showDispatchModal && selectedRequest) {
+        return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4">
+                    <div className="px-6 py-4 border-b border-gray-100 flex justify-between">
+                        <div><h3 className="text-base font-semibold text-gray-800">Dispatch Goods</h3><p className="text-xs text-gray-400">{selectedRequest.request_number}</p></div>
+                        <button onClick={() => dispatch(closeDispatchModal())} className="text-gray-400"><X size={20} /></button>
+                    </div>
+                    <div className="p-6 space-y-4">
+                        <div className="bg-gray-50 rounded-lg p-3 text-sm">
+                            <p><strong>Product:</strong> {selectedRequest.variant?.product?.name}</p>
+                            <p><strong>Quantity:</strong> {selectedRequest.quantity}</p>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">Tracking Number</label>
+                            <input value={trackingNumber} onChange={(e) => dispatch(setTrackingNumber(e.target.value))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="Optional" />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">Expected Delivery Date</label>
+                            <input type="date" value={expectedDelivery} onChange={(e) => dispatch(setExpectedDelivery(e.target.value))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                        </div>
+                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex gap-2">
+                            <AlertTriangle size={16} className="text-amber-500" />
+                            <p className="text-xs text-amber-700">Stock will be deducted from source and marked as in-transit.</p>
+                        </div>
+                    </div>
+                    <div className="border-t border-gray-100 px-6 py-4 flex justify-end gap-3">
+                        <button onClick={() => dispatch(closeDispatchModal())} className="px-4 py-2 border rounded-lg text-sm">Cancel</button>
+                        <button onClick={handleDispatch} disabled={isSubmitting} className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-60">{isSubmitting ? "Processing..." : "Dispatch"}</button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // RECEIVE MODAL RENDER
+    // ─────────────────────────────────────────────────────────────
+    if (showReceiveModal && selectedRequest) {
+        const remaining = selectedRequest.quantity - (selectedRequest.received_quantity || 0);
+        return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4">
+                    <div className="px-6 py-4 border-b border-gray-100 flex justify-between">
+                        <div><h3 className="text-base font-semibold text-gray-800">Receive Goods</h3><p className="text-xs text-gray-400">{selectedRequest.request_number}</p></div>
+                        <button onClick={() => dispatch(closeReceiveModal())} className="text-gray-400"><X size={20} /></button>
+                    </div>
+                    <div className="p-6 space-y-4">
+                        <div className="bg-gray-50 rounded-lg p-3 text-sm">
+                            <p><strong>Product:</strong> {selectedRequest.variant?.product?.name}</p>
+                            <p><strong>Total Requested:</strong> {selectedRequest.quantity}</p>
+                            <p><strong>Already Received:</strong> {selectedRequest.received_quantity || 0}</p>
+                            <p><strong>Remaining to Receive:</strong> <span className="font-bold text-blue-600">{remaining}</span></p>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">Quantity to Receive <span className="text-red-500">*</span></label>
+                            <input type="number" min="1" max={remaining} value={receivedQuantity} onChange={(e) => dispatch(setReceivedQuantity(e.target.value))} className={inputCls("received_quantity", actionErrors)} placeholder={`Max ${remaining}`} />
+                            {actionErrors.received_quantity && <p className="text-xs text-red-500 mt-1">{actionErrors.received_quantity}</p>}
+                        </div>
+                        <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">Remarks</label>
+                            <textarea value={receiveRemarks} onChange={(e) => dispatch(setReceiveRemarks(e.target.value))} rows={2} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm resize-none" placeholder="Optional" />
+                        </div>
+                    </div>
+                    <div className="border-t border-gray-100 px-6 py-4 flex justify-end gap-3">
+                        <button onClick={() => dispatch(closeReceiveModal())} className="px-4 py-2 border rounded-lg text-sm">Cancel</button>
+                        <button onClick={handleReceive} disabled={isSubmitting} className="px-5 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-60">{isSubmitting ? "Processing..." : "Receive"}</button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // CANCEL MODAL RENDER
+    // ─────────────────────────────────────────────────────────────
+    if (showCancelModal && selectedRequest) {
+        return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4">
+                    <div className="px-6 py-4 border-b border-gray-100 flex justify-between">
+                        <div><h3 className="text-base font-semibold text-gray-800">Cancel Request</h3><p className="text-xs text-gray-400">{selectedRequest.request_number}</p></div>
+                        <button onClick={() => dispatch(closeCancelModal())} className="text-gray-400"><X size={20} /></button>
+                    </div>
+                    <div className="p-6 space-y-4">
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
+                            <p><strong>Warning:</strong> This action cannot be undone.</p>
+                            {selectedRequest.status === "DISPATCHED" && <p className="text-xs mt-1">Stock will be reversed to source location.</p>}
+                        </div>
+                        <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">Cancellation Reason <span className="text-red-500">*</span></label>
+                            <textarea value={cancelReason} onChange={(e) => dispatch(setCancelReason(e.target.value))} rows={2} className={inputCls("cancel_reason", actionErrors)} placeholder="Why is this request being cancelled?" />
+                            {actionErrors.cancel_reason && <p className="text-xs text-red-500 mt-1">{actionErrors.cancel_reason}</p>}
+                        </div>
+                    </div>
+                    <div className="border-t border-gray-100 px-6 py-4 flex justify-end gap-3">
+                        <button onClick={() => dispatch(closeCancelModal())} className="px-4 py-2 border rounded-lg text-sm">Cancel</button>
+                        <button onClick={handleCancel} disabled={isSubmitting} className="px-5 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-60">{isSubmitting ? "Processing..." : "Confirm Cancel"}</button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    return null;
+}
+
+
+
+// // TABS/TRANSFERS/TransferRequestShared/RequestActionModals.jsx
+// // 
+// // MODIFIED: Added priority dropdown for emergency requests
+// // Also supports expected_delivery date
+
+// import React, { useState } from "react";
+// import { useDispatch, useSelector } from "react-redux";
+// import { X, AlertTriangle } from "lucide-react";
+// import { toast } from "react-toastify";
+// import { useGetWarehousesQuery } from "../../../../../REDUX_FEATURES/REDUX_SLICES/Warehouse_api/warehouseApi";
+// import { useGetShopsQuery } from "../../../../../REDUX_FEATURES/REDUX_SLICES/Shop_api/shopApi";
+// import { useGetProductStocksQuery } from "../../../../../REDUX_FEATURES/REDUX_SLICES/Stock_api/stockApi";
+// import {
+//     useCreateTransferRequestMutation,
+//     useCreateEmergencyTransferRequestMutation,  // ✅ NEW
+//     useApproveTransferRequestMutation,
+//     useRejectTransferRequestMutation,
+//     useDispatchTransferRequestMutation,
+//     useReceiveTransferRequestMutation,
+//     useCancelTransferRequestMutation,
+//     generateIdempotencyKey,
+// } from "../../../../../REDUX_FEATURES/REDUX_SLICES/TransferRequest_api/transferRequestApi";
+// import {
+//     closeCreateModal,
+//     updateCreateForm,
+//     setCreateErrors,
+//     clearCreateErrors,
+//     closeApproveRejectModal,
+//     setRejectReason,
+//     closeDispatchModal,
+//     setTrackingNumber,
+//     setExpectedDelivery,
+//     closeReceiveModal,
+//     setReceivedQuantity,
+//     setReceiveRemarks,
+//     closeCancelModal,
+//     setCancelReason,
+//     setActionErrors,
+//     clearActionErrors,
+// } from "../../../../../REDUX_FEATURES/REDUX_SLICES/TransferRequest_api/transferRequestSlice";
+// import { CURRENT_USER, isAdmin } from "../../../../roles";
+
+// export default function RequestActionModals({ onSuccess }) {
+//     const dispatch = useDispatch();
+//     const { user } = useSelector((state) => state.auth);
+//     const {
+//         showCreateModal,
+//         showApproveRejectModal,
+//         showDispatchModal,
+//         showReceiveModal,
+//         showCancelModal,
+//         selectedRequest,
+//         createForm,
+//         createErrors,
+//         rejectReason,
+//         trackingNumber,
+//         expectedDelivery,
+//         receivedQuantity,
+//         receiveRemarks,
+//         cancelReason,
+//         actionErrors,
+//     } = useSelector((state) => state.transferRequest);
+
+//     const [isSubmitting, setIsSubmitting] = useState(false);
+//     const [isEmergency, setIsEmergency] = useState(false);  // ✅ NEW — toggle for emergency
+
+//     // const { data: warehousesData } = useGetWarehousesQuery({ page: 1, limit: 100, is_active: "true" });
+
+//         const { data: warehousesData } = useGetWarehousesQuery({ page: 1, limit: 50, is_active: "true" });
+
+//     const { data: shopsData } = useGetShopsQuery({ page: 1, limit: 100, is_active: "true" });
+//     const { data: stocksData } = useGetProductStocksQuery({ page: 1, limit: 100 });
+
+//     const warehouses = warehousesData?.warehouses || [];
+//     const shops = shopsData?.shops || [];
+//     const stocks = stocksData?.stocks || [];
+
+//     const userWarehouseId = user?.warehouse_id || "";
+//     const userShopId = user?.shop_id || "";
+//     const isShopOwner = user?.role === "SHOP_OWNER";
+//     const isWHManager = ["WH_MANAGER", "WH_STOCK_LISTER"].includes(user?.role);
+
+//     const [createRequest] = useCreateTransferRequestMutation();
+//     const [createEmergencyRequest] = useCreateEmergencyTransferRequestMutation();  // ✅ NEW
+//     const [approveRequest] = useApproveTransferRequestMutation();
+//     const [rejectRequest] = useRejectTransferRequestMutation();
+//     const [dispatchRequest] = useDispatchTransferRequestMutation();
+//     const [receiveRequest] = useReceiveTransferRequestMutation();
+//     const [cancelRequest] = useCancelTransferRequestMutation();
+
+//     const getAvailableRequestTypes = () => {
+//         if (isShopOwner) {
+//             return [
+//                 { value: "WH_TO_SHOP", label: "Warehouse → My Shop" },
+//                 { value: "SHOP_TO_SHOP", label: "Other Shop → My Shop" }
+//             ];
+//         }
+//         if (isWHManager) {
+//             return [
+//                 { value: "WH_TO_SHOP", label: "Warehouse → Shop" },
+//                 { value: "WH_TO_WH", label: "Warehouse → Warehouse" }
+//             ];
+//         }
+//         return [
+//             { value: "WH_TO_SHOP", label: "Warehouse → Shop" },
+//             { value: "WH_TO_WH", label: "Warehouse → Warehouse" },
+//             { value: "SHOP_TO_SHOP", label: "Shop → Shop" }
+//         ];
+//     };
+
+//     const availableRequestTypes = getAvailableRequestTypes();
+
+//     React.useEffect(() => {
+//         if (showCreateModal && isShopOwner && userShopId) {
+//             dispatch(updateCreateForm({
+//                 from_shop_id: userShopId,
+//                 request_type: "SHOP_TO_SHOP"
+//             }));
+//         }
+//     }, [showCreateModal, isShopOwner, userShopId]);
+
+//     const getAvailableVariants = () => {
+//         if (createForm.request_type === "WH_TO_SHOP" || createForm.request_type === "WH_TO_WH") {
+//             const warehouseId = createForm.from_warehouse_id;
+//             if (!warehouseId) return [];
+//             return stocks.filter(s => s.warehouse_id === warehouseId && s.quantity > 0);
+//         }
+//         return [];
+//     };
+
+//     const validateCreate = () => {
+//         const errors = {};
+//         if (!createForm.request_type) errors.request_type = "Request type is required";
+//         if (createForm.request_type === "WH_TO_SHOP") {
+//             if (!createForm.from_warehouse_id) errors.from_warehouse_id = "Source warehouse is required";
+//             if (!createForm.to_shop_id) errors.to_shop_id = "Destination shop is required";
+//         } else if (createForm.request_type === "WH_TO_WH") {
+//             if (!createForm.from_warehouse_id) errors.from_warehouse_id = "Source warehouse is required";
+//             if (!createForm.to_warehouse_id) errors.to_warehouse_id = "Destination warehouse is required";
+//             if (createForm.from_warehouse_id === createForm.to_warehouse_id) errors.to_warehouse_id = "Source and destination cannot be the same";
+//         } else if (createForm.request_type === "SHOP_TO_SHOP") {
+//             if (!createForm.from_shop_id) errors.from_shop_id = "Source shop is required";
+//             if (!createForm.to_shop_id) errors.to_shop_id = "Destination shop is required";
+//             if (createForm.from_shop_id === createForm.to_shop_id) errors.to_shop_id = "Source and destination cannot be the same";
+//         }
+//         if (!createForm.variant_id) errors.variant_id = "Product is required";
+//         if (!createForm.quantity || createForm.quantity <= 0) errors.quantity = "Valid quantity is required";
+//         return errors;
+//     };
+
+//     const handleCreateSubmit = async () => {
+//         const errors = validateCreate();
+//         if (Object.keys(errors).length > 0) {
+//             dispatch(setCreateErrors(errors));
+//             toast.error("Please fix the errors");
+//             return;
+//         }
+
+//         setIsSubmitting(true);
+//         dispatch(clearCreateErrors());
+
+//         try {
+//             const payload = {
+//                 request_type: createForm.request_type,
+//                 quantity: parseInt(createForm.quantity),
+//                 variant_id: createForm.variant_id,
+//                 request_remarks: createForm.request_remarks?.trim() || null,
+//             };
+
+//             // ✅ Add priority and expected_delivery for emergency
+//             if (isEmergency) {
+//                 payload.priority = createForm.priority || "HIGH";
+//                 if (createForm.expected_delivery) {
+//                     payload.expected_delivery = new Date(createForm.expected_delivery).toISOString();
+//                 }
+//             }
+
+//             if (createForm.request_type === "WH_TO_SHOP") {
+//                 payload.from_warehouse_id = createForm.from_warehouse_id;
+//                 payload.to_shop_id = createForm.to_shop_id;
+//             } else if (createForm.request_type === "WH_TO_WH") {
+//                 payload.from_warehouse_id = createForm.from_warehouse_id;
+//                 payload.to_warehouse_id = createForm.to_warehouse_id;
+//             } else if (createForm.request_type === "SHOP_TO_SHOP") {
+//                 payload.from_shop_id = createForm.from_shop_id;
+//                 payload.to_shop_id = createForm.to_shop_id;
+//             }
+
+//             const mutation = isEmergency ? createEmergencyRequest : createRequest;
+//             await mutation({ idempotencyKey: generateIdempotencyKey(), ...payload }).unwrap();
+            
+//             toast.success(isEmergency ? "Emergency transfer request created" : "Transfer request created successfully");
+//             dispatch(closeCreateModal());
+//             if (onSuccess) onSuccess();
+//         } catch (err) {
+//             if (err?.data?.errors?.length) {
+//                 const be = {};
+//                 err.data.errors.forEach(({ field, message }) => { be[field] = message; });
+//                 dispatch(setCreateErrors(be));
+//             } else {
+//                 toast.error(err?.data?.message || "Failed to create request");
+//             }
+//         } finally {
+//             setIsSubmitting(false);
+//         }
+//     };
+
+//     // ─────────────────────────────────────────────────────────────
+//     // APPROVE / REJECT / DISPATCH / RECEIVE / CANCEL handlers (same as before)
+//     // ─────────────────────────────────────────────────────────────
+//     const handleApprove = async () => {
+//         setIsSubmitting(true);
+//         try {
+//             await approveRequest({ requestId: selectedRequest.request_id, idempotencyKey: generateIdempotencyKey() }).unwrap();
+//             toast.success("Request approved successfully");
+//             dispatch(closeApproveRejectModal());
+//             if (onSuccess) onSuccess();
+//         } catch (err) {
+//             toast.error(err?.data?.message || "Failed to approve");
+//         } finally {
+//             setIsSubmitting(false);
+//         }
+//     };
+
+//     const handleReject = async () => {
+//         if (!rejectReason?.trim()) {
+//             dispatch(setActionErrors({ reject_reason: "Rejection reason is required" }));
+//             return;
+//         }
+//         setIsSubmitting(true);
+//         try {
+//             await rejectRequest({ requestId: selectedRequest.request_id, rejection_reason: rejectReason, idempotencyKey: generateIdempotencyKey() }).unwrap();
+//             toast.success("Request rejected");
+//             dispatch(closeApproveRejectModal());
+//             if (onSuccess) onSuccess();
+//         } catch (err) {
+//             toast.error(err?.data?.message || "Failed to reject");
+//         } finally {
+//             setIsSubmitting(false);
+//         }
+//     };
+
+//     const handleDispatch = async () => {
+//         setIsSubmitting(true);
+//         try {
+//             await dispatchRequest({
+//                 requestId: selectedRequest.request_id,
+//                 tracking_number: trackingNumber?.trim() || null,
+//                 expected_delivery: expectedDelivery || null,
+//                 idempotencyKey: generateIdempotencyKey(),
+//             }).unwrap();
+//             toast.success("Goods dispatched successfully");
+//             dispatch(closeDispatchModal());
+//             if (onSuccess) onSuccess();
+//         } catch (err) {
+//             toast.error(err?.data?.message || "Failed to dispatch");
+//         } finally {
+//             setIsSubmitting(false);
+//         }
+//     };
+
+//     const handleReceive = async () => {
+//         const qty = parseInt(receivedQuantity);
+//         if (!receivedQuantity || qty <= 0) {
+//             dispatch(setActionErrors({ received_quantity: "Valid quantity is required" }));
+//             return;
+//         }
+//         if (qty > selectedRequest?.quantity) {
+//             dispatch(setActionErrors({ received_quantity: `Cannot receive more than ${selectedRequest.quantity}` }));
+//             return;
+//         }
+//         setIsSubmitting(true);
+//         try {
+//             await receiveRequest({
+//                 requestId: selectedRequest.request_id,
+//                 received_quantity: qty,
+//                 receive_remarks: receiveRemarks?.trim() || null,
+//                 idempotencyKey: generateIdempotencyKey(),
+//             }).unwrap();
+//             toast.success(`Received ${qty} units successfully`);
+//             dispatch(closeReceiveModal());
+//             if (onSuccess) onSuccess();
+//         } catch (err) {
+//             toast.error(err?.data?.message || "Failed to receive");
+//         } finally {
+//             setIsSubmitting(false);
+//         }
+//     };
+
+//     const handleCancel = async () => {
+//         if (!cancelReason?.trim()) {
+//             dispatch(setActionErrors({ cancel_reason: "Cancellation reason is required" }));
+//             return;
+//         }
+//         setIsSubmitting(true);
+//         try {
+//             await cancelRequest({
+//                 requestId: selectedRequest.request_id,
+//                 cancel_reason: cancelReason,
+//                 idempotencyKey: generateIdempotencyKey(),
+//             }).unwrap();
+//             toast.success("Request cancelled");
+//             dispatch(closeCancelModal());
+//             if (onSuccess) onSuccess();
+//         } catch (err) {
+//             toast.error(err?.data?.message || "Failed to cancel");
+//         } finally {
+//             setIsSubmitting(false);
+//         }
+//     };
+
+//     const inputCls = (name, errors) => `w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors?.[name] ? "border-red-400" : "border-gray-300"}`;
+
+//     // ─────────────────────────────────────────────────────────────
+//     // CREATE MODAL RENDER (with Priority + Emergency toggle)
+//     // ─────────────────────────────────────────────────────────────
+//     if (showCreateModal) {
+//         const availableVariants = getAvailableVariants();
+//         const selectedVariant = stocks.find(s => s.variant_id === createForm.variant_id);
+
+//         return (
+//             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+//                 <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto text-gray-700">
+//                     <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex justify-between">
+//                         <div>
+//                             <h3 className="text-base font-semibold text-gray-800">
+//                                 {isEmergency ? "🚨 Emergency Transfer Request" : "New Transfer Request"}
+//                             </h3>
+//                             <p className="text-xs text-gray-400 mt-0.5">
+//                                 {isEmergency ? "High priority — immediate approval required" : "Request stock from another location"}
+//                             </p>
+//                         </div>
+//                         <button onClick={() => dispatch(closeCreateModal())} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+//                     </div>
+//                     <div className="p-6 space-y-4">
+//                         {/* Emergency Toggle */}
+//                         <div className="flex items-center justify-between bg-yellow-50 p-3 rounded-lg">
+//                             <div>
+//                                 <p className="text-sm font-medium text-yellow-800">🚨 Emergency Request</p>
+//                                 <p className="text-xs text-yellow-600">Priority: HIGH, faster approval</p>
+//                             </div>
+//                             <label className="relative inline-flex items-center cursor-pointer">
+//                                 <input
+//                                     type="checkbox"
+//                                     checked={isEmergency}
+//                                     onChange={(e) => setIsEmergency(e.target.checked)}
+//                                     className="sr-only peer"
+//                                 />
+//                                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
+//                             </label>
+//                         </div>
+
+//                         <div>
+//                             <label className="block text-xs font-medium text-gray-700 mb-1">Request Type <span className="text-red-500">*</span></label>
+//                             <select value={createForm.request_type} onChange={(e) => dispatch(updateCreateForm({ request_type: e.target.value, variant_id: "", from_warehouse_id: "", to_shop_id: "", from_shop_id: "", to_warehouse_id: "" }))} className={inputCls("request_type", createErrors)}>
+//                                 {availableRequestTypes.map(type => (
+//                                     <option key={type.value} value={type.value}>{type.label}</option>
+//                                 ))}
+//                             </select>
+//                         </div>
+
+//                         {isEmergency && (
+//                             <>
+//                                 <div>
+//                                     <label className="block text-xs font-medium text-gray-700 mb-1">Priority <span className="text-red-500">*</span></label>
+//                                     <select value={createForm.priority} onChange={(e) => dispatch(updateCreateForm({ priority: e.target.value }))} className={inputCls("priority", createErrors)}>
+//                                         <option value="HIGH">🔴 HIGH — Emergency</option>
+//                                         <option value="NORMAL">🟢 NORMAL — Regular</option>
+//                                     </select>
+//                                 </div>
+//                                 <div>
+//                                     <label className="block text-xs font-medium text-gray-700 mb-1">Expected Delivery Date</label>
+//                                     <input type="datetime-local" value={createForm.expected_delivery} onChange={(e) => dispatch(updateCreateForm({ expected_delivery: e.target.value }))} className={inputCls("expected_delivery", createErrors)} />
+//                                 </div>
+//                             </>
+//                         )}
+
+//                         {createForm.request_type === "WH_TO_SHOP" && (
+//                             <>
+//                                 <div>
+//                                     <label className="block text-xs font-medium text-gray-700 mb-1">Source Warehouse <span className="text-red-500">*</span></label>
+//                                     <select value={createForm.from_warehouse_id} onChange={(e) => dispatch(updateCreateForm({ from_warehouse_id: e.target.value, variant_id: "" }))} className={inputCls("from_warehouse_id", createErrors)}>
+//                                         <option value="">Select warehouse</option>
+//                                         {warehouses.map(w => <option key={w.warehouse_id} value={w.warehouse_id}>{w.warehouse_name} — {w.city}</option>)}
+//                                     </select>
+//                                 </div>
+//                                 <div>
+//                                     <label className="block text-xs font-medium text-gray-700 mb-1">Destination Shop <span className="text-red-500">*</span></label>
+//                                     <select value={createForm.to_shop_id} onChange={(e) => dispatch(updateCreateForm({ to_shop_id: e.target.value }))} className={inputCls("to_shop_id", createErrors)}>
+//                                         <option value="">Select shop</option>
+//                                         {shops.filter(s => !isShopOwner || s.shop_id !== userShopId).map(s => <option key={s.shop_id} value={s.shop_id}>{s.shop_name} — {s.city}</option>)}
+//                                     </select>
+//                                 </div>
+//                             </>
+//                         )}
+
+//                         {createForm.request_type === "WH_TO_WH" && (
+//                             <>
+//                                 <div>
+//                                     <label className="block text-xs font-medium text-gray-700 mb-1">Source Warehouse <span className="text-red-500">*</span></label>
+//                                     <select value={createForm.from_warehouse_id} onChange={(e) => dispatch(updateCreateForm({ from_warehouse_id: e.target.value, variant_id: "" }))} className={inputCls("from_warehouse_id", createErrors)}>
+//                                         <option value="">Select warehouse</option>
+//                                         {warehouses.map(w => <option key={w.warehouse_id} value={w.warehouse_id}>{w.warehouse_name} — {w.city}</option>)}
+//                                     </select>
+//                                 </div>
+//                                 <div>
+//                                     <label className="block text-xs font-medium text-gray-700 mb-1">Destination Warehouse <span className="text-red-500">*</span></label>
+//                                     <select value={createForm.to_warehouse_id} onChange={(e) => dispatch(updateCreateForm({ to_warehouse_id: e.target.value }))} className={inputCls("to_warehouse_id", createErrors)}>
+//                                         <option value="">Select warehouse</option>
+//                                         {warehouses.filter(w => w.warehouse_id !== createForm.from_warehouse_id).map(w => <option key={w.warehouse_id} value={w.warehouse_id}>{w.warehouse_name} — {w.city}</option>)}
+//                                     </select>
+//                                 </div>
+//                             </>
+//                         )}
+
+//                         {createForm.request_type === "SHOP_TO_SHOP" && (
+//                             <>
+//                                 <div>
+//                                     <label className="block text-xs font-medium text-gray-700 mb-1">Source Shop <span className="text-red-500">*</span></label>
+//                                     {isShopOwner ? (
+//                                         <input type="text" value={shops.find(s => s.shop_id === userShopId)?.shop_name || userShopId} readOnly disabled className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-gray-50 text-gray-500" />
+//                                     ) : (
+//                                         <select value={createForm.from_shop_id} onChange={(e) => dispatch(updateCreateForm({ from_shop_id: e.target.value, variant_id: "" }))} className={inputCls("from_shop_id", createErrors)}>
+//                                             <option value="">Select shop</option>
+//                                             {shops.filter(s => isAdmin() || s.shop_id === userShopId).map(s => <option key={s.shop_id} value={s.shop_id}>{s.shop_name} — {s.city}</option>)}
+//                                         </select>
+//                                     )}
+//                                     <input type="hidden" name="from_shop_id_hidden" value={userShopId} />
+//                                 </div>
+//                                 <div>
+//                                     <label className="block text-xs font-medium text-gray-700 mb-1">Destination Shop <span className="text-red-500">*</span></label>
+//                                     <select value={createForm.to_shop_id} onChange={(e) => dispatch(updateCreateForm({ to_shop_id: e.target.value }))} className={inputCls("to_shop_id", createErrors)}>
+//                                         <option value="">Select shop</option>
+//                                         {shops.filter(s => s.shop_id !== createForm.from_shop_id).map(s => <option key={s.shop_id} value={s.shop_id}>{s.shop_name} — {s.city}</option>)}
+//                                     </select>
+//                                 </div>
+//                             </>
+//                         )}
+
+//                         <div>
+//                             <label className="block text-xs font-medium text-gray-700 mb-1">Product <span className="text-red-500">*</span></label>
+//                             <select value={createForm.variant_id} onChange={(e) => dispatch(updateCreateForm({ variant_id: e.target.value }))} className={inputCls("variant_id", createErrors)}>
+//                                 <option value="">Select product</option>
+//                                 {availableVariants.map(v => (
+//                                     <option key={v.variant_id} value={v.variant_id}>
+//                                         {v.variant?.product?.name} ({v.variant?.sku}) - Stock: {v.quantity}
+//                                     </option>
+//                                 ))}
+//                             </select>
+//                             {selectedVariant && <p className="text-xs text-gray-400 mt-1">Available stock: {selectedVariant.quantity} units</p>}
+//                         </div>
+
+//                         <div>
+//                             <label className="block text-xs font-medium text-gray-700 mb-1">Quantity <span className="text-red-500">*</span></label>
+//                             <input type="number" min="1" value={createForm.quantity} onChange={(e) => dispatch(updateCreateForm({ quantity: e.target.value }))} className={inputCls("quantity", createErrors)} />
+//                         </div>
+
+//                         <div>
+//                             <label className="block text-xs font-medium text-gray-700 mb-1">Remarks</label>
+//                             <textarea value={createForm.request_remarks} onChange={(e) => dispatch(updateCreateForm({ request_remarks: e.target.value }))} rows={2} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm resize-none" />
+//                         </div>
+//                     </div>
+//                     <div className="sticky bottom-0 bg-white border-t border-gray-100 px-6 py-4 flex justify-end gap-3">
+//                         <button onClick={() => dispatch(closeCreateModal())} className="px-4 py-2 border rounded-lg text-sm">Cancel</button>
+//                         <button onClick={handleCreateSubmit} disabled={isSubmitting} className={`px-5 py-2 rounded-lg text-sm font-medium text-white ${isEmergency ? "bg-red-600 hover:bg-red-700" : "bg-blue-600 hover:bg-blue-700"} disabled:opacity-60`}>
+//                             {isSubmitting ? "Creating..." : isEmergency ? "Create Emergency Request" : "Create Request"}
+//                         </button>
+//                     </div>
+//                 </div>
+//             </div>
+//         );
+//     }
+
+//     // ─────────────────────────────────────────────────────────────
+//     // APPROVE/REJECT MODAL RENDER
+//     // ─────────────────────────────────────────────────────────────
+//     if (showApproveRejectModal && selectedRequest) {
+//         const [action, setAction] = useState("approve");
+//         const isEmergencyRequest = selectedRequest.priority === "HIGH";
+        
+//         return (
+//             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+//                 <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4">
+//                     <div className="px-6 py-4 border-b border-gray-100 flex justify-between">
+//                         <div>
+//                             <h3 className="text-base font-semibold text-gray-800">
+//                                 {isEmergencyRequest && "🚨 "}Review Request
+//                             </h3>
+//                             <p className="text-xs text-gray-400">{selectedRequest.request_number}</p>
+//                         </div>
+//                         <button onClick={() => dispatch(closeApproveRejectModal())} className="text-gray-400"><X size={20} /></button>
+//                     </div>
+//                     <div className="p-6 space-y-4">
+//                         {isEmergencyRequest && (
+//                             <div className="bg-red-50 border border-red-200 rounded-lg p-2 text-center">
+//                                 <p className="text-xs text-red-600 font-medium">⚠️ EMERGENCY REQUEST — Priority HIGH</p>
+//                             </div>
+//                         )}
+//                         <div className="bg-gray-50 rounded-lg p-3 text-sm">
+//                             <p><strong>Product:</strong> {selectedRequest.variant?.product?.name}</p>
+//                             <p><strong>Quantity:</strong> {selectedRequest.quantity}</p>
+//                             <p><strong>Remarks:</strong> {selectedRequest.request_remarks || "—"}</p>
+//                         </div>
+//                         <div className="flex gap-3">
+//                             <button onClick={() => setAction("approve")} className={`flex-1 py-2 rounded-lg text-sm font-medium ${action === "approve" ? "bg-green-600 text-white" : "bg-gray-100 text-gray-600"}`}>Approve</button>
+//                             <button onClick={() => setAction("reject")} className={`flex-1 py-2 rounded-lg text-sm font-medium ${action === "reject" ? "bg-red-600 text-white" : "bg-gray-100 text-gray-600"}`}>Reject</button>
+//                         </div>
+//                         {action === "reject" && (
+//                             <div>
+//                                 <label className="block text-xs font-medium text-gray-700 mb-1">Rejection Reason <span className="text-red-500">*</span></label>
+//                                 <textarea value={rejectReason} onChange={(e) => dispatch(setRejectReason(e.target.value))} rows={2} className={inputCls("reject_reason", actionErrors)} placeholder="Why is this request being rejected?" />
+//                                 {actionErrors.reject_reason && <p className="text-xs text-red-500 mt-1">{actionErrors.reject_reason}</p>}
+//                             </div>
+//                         )}
+//                     </div>
+//                     <div className="border-t border-gray-100 px-6 py-4 flex justify-end gap-3">
+//                         <button onClick={() => dispatch(closeApproveRejectModal())} className="px-4 py-2 border rounded-lg text-sm">Cancel</button>
+//                         <button onClick={action === "approve" ? handleApprove : handleReject} disabled={isSubmitting} className={`px-5 py-2 rounded-lg text-sm font-medium text-white ${action === "approve" ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"} disabled:opacity-60`}>
+//                             {isSubmitting ? "Processing..." : action === "approve" ? "Approve" : "Reject"}
+//                         </button>
+//                     </div>
+//                 </div>
+//             </div>
+//         );
+//     }
+
+//     // ─────────────────────────────────────────────────────────────
+//     // DISPATCH MODAL RENDER (same as before)
+//     // ─────────────────────────────────────────────────────────────
+//     if (showDispatchModal && selectedRequest) {
+//         return (
+//             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+//                 <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4">
+//                     <div className="px-6 py-4 border-b border-gray-100 flex justify-between">
+//                         <div><h3 className="text-base font-semibold text-gray-800">Dispatch Goods</h3><p className="text-xs text-gray-400">{selectedRequest.request_number}</p></div>
+//                         <button onClick={() => dispatch(closeDispatchModal())} className="text-gray-400"><X size={20} /></button>
+//                     </div>
+//                     <div className="p-6 space-y-4">
+//                         <div className="bg-gray-50 rounded-lg p-3 text-sm">
+//                             <p><strong>Product:</strong> {selectedRequest.variant?.product?.name}</p>
+//                             <p><strong>Quantity:</strong> {selectedRequest.quantity}</p>
+//                         </div>
+//                         <div>
+//                             <label className="block text-xs font-medium text-gray-700 mb-1">Tracking Number</label>
+//                             <input value={trackingNumber} onChange={(e) => dispatch(setTrackingNumber(e.target.value))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="Optional" />
+//                         </div>
+//                         <div>
+//                             <label className="block text-xs font-medium text-gray-700 mb-1">Expected Delivery Date</label>
+//                             <input type="date" value={expectedDelivery} onChange={(e) => dispatch(setExpectedDelivery(e.target.value))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+//                         </div>
+//                         <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex gap-2">
+//                             <AlertTriangle size={16} className="text-amber-500" />
+//                             <p className="text-xs text-amber-700">Stock will be deducted from source and marked as in-transit.</p>
+//                         </div>
+//                     </div>
+//                     <div className="border-t border-gray-100 px-6 py-4 flex justify-end gap-3">
+//                         <button onClick={() => dispatch(closeDispatchModal())} className="px-4 py-2 border rounded-lg text-sm">Cancel</button>
+//                         <button onClick={handleDispatch} disabled={isSubmitting} className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-60">{isSubmitting ? "Processing..." : "Dispatch"}</button>
+//                     </div>
+//                 </div>
+//             </div>
+//         );
+//     }
+
+//     // ─────────────────────────────────────────────────────────────
+//     // RECEIVE MODAL RENDER (same as before)
+//     // ─────────────────────────────────────────────────────────────
+//     if (showReceiveModal && selectedRequest) {
+//         const remaining = selectedRequest.quantity - (selectedRequest.received_quantity || 0);
+//         return (
+//             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+//                 <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4">
+//                     <div className="px-6 py-4 border-b border-gray-100 flex justify-between">
+//                         <div><h3 className="text-base font-semibold text-gray-800">Receive Goods</h3><p className="text-xs text-gray-400">{selectedRequest.request_number}</p></div>
+//                         <button onClick={() => dispatch(closeReceiveModal())} className="text-gray-400"><X size={20} /></button>
+//                     </div>
+//                     <div className="p-6 space-y-4">
+//                         <div className="bg-gray-50 rounded-lg p-3 text-sm">
+//                             <p><strong>Product:</strong> {selectedRequest.variant?.product?.name}</p>
+//                             <p><strong>Total Requested:</strong> {selectedRequest.quantity}</p>
+//                             <p><strong>Already Received:</strong> {selectedRequest.received_quantity || 0}</p>
+//                             <p><strong>Remaining to Receive:</strong> <span className="font-bold text-blue-600">{remaining}</span></p>
+//                         </div>
+//                         <div>
+//                             <label className="block text-xs font-medium text-gray-700 mb-1">Quantity to Receive <span className="text-red-500">*</span></label>
+//                             <input type="number" min="1" max={remaining} value={receivedQuantity} onChange={(e) => dispatch(setReceivedQuantity(e.target.value))} className={inputCls("received_quantity", actionErrors)} placeholder={`Max ${remaining}`} />
+//                             {actionErrors.received_quantity && <p className="text-xs text-red-500 mt-1">{actionErrors.received_quantity}</p>}
+//                         </div>
+//                         <div>
+//                             <label className="block text-xs font-medium text-gray-700 mb-1">Remarks</label>
+//                             <textarea value={receiveRemarks} onChange={(e) => dispatch(setReceiveRemarks(e.target.value))} rows={2} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm resize-none" placeholder="Optional" />
+//                         </div>
+//                     </div>
+//                     <div className="border-t border-gray-100 px-6 py-4 flex justify-end gap-3">
+//                         <button onClick={() => dispatch(closeReceiveModal())} className="px-4 py-2 border rounded-lg text-sm">Cancel</button>
+//                         <button onClick={handleReceive} disabled={isSubmitting} className="px-5 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-60">{isSubmitting ? "Processing..." : "Receive"}</button>
+//                     </div>
+//                 </div>
+//             </div>
+//         );
+//     }
+
+//     // ─────────────────────────────────────────────────────────────
+//     // CANCEL MODAL RENDER (same as before)
+//     // ─────────────────────────────────────────────────────────────
+//     if (showCancelModal && selectedRequest) {
+//         return (
+//             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+//                 <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4">
+//                     <div className="px-6 py-4 border-b border-gray-100 flex justify-between">
+//                         <div><h3 className="text-base font-semibold text-gray-800">Cancel Request</h3><p className="text-xs text-gray-400">{selectedRequest.request_number}</p></div>
+//                         <button onClick={() => dispatch(closeCancelModal())} className="text-gray-400"><X size={20} /></button>
+//                     </div>
+//                     <div className="p-6 space-y-4">
+//                         <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
+//                             <p><strong>Warning:</strong> This action cannot be undone.</p>
+//                             {selectedRequest.status === "DISPATCHED" && <p className="text-xs mt-1">Stock will be reversed to source location.</p>}
+//                         </div>
+//                         <div>
+//                             <label className="block text-xs font-medium text-gray-700 mb-1">Cancellation Reason <span className="text-red-500">*</span></label>
+//                             <textarea value={cancelReason} onChange={(e) => dispatch(setCancelReason(e.target.value))} rows={2} className={inputCls("cancel_reason", actionErrors)} placeholder="Why is this request being cancelled?" />
+//                             {actionErrors.cancel_reason && <p className="text-xs text-red-500 mt-1">{actionErrors.cancel_reason}</p>}
+//                         </div>
+//                     </div>
+//                     <div className="border-t border-gray-100 px-6 py-4 flex justify-end gap-3">
+//                         <button onClick={() => dispatch(closeCancelModal())} className="px-4 py-2 border rounded-lg text-sm">Cancel</button>
+//                         <button onClick={handleCancel} disabled={isSubmitting} className="px-5 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-60">{isSubmitting ? "Processing..." : "Confirm Cancel"}</button>
+//                     </div>
+//                 </div>
+//             </div>
+//         );
+//     }
+
+//     return null;
+// }

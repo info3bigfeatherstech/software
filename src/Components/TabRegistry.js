@@ -10,10 +10,11 @@ import ArchiveTab from "./TABS/INVENTORY/ArchiveTab/ArchiveTab";
 const ContentDashboardTab = lazy(() => import("./ContentDashboard/ContentDashboardTab"));
 const SalesDashboard = lazy(() => import("./TABS/SALES/SalesDashboard"));
 const PurchaseTab = lazy(() => import("./TABS/PURCHASE/PurchaseTab"));
-const InventoryTab = lazy(() => import("./TABS/INVENTORY/InventoryTab"));
+const InventoryDashboard = lazy(() => import("./TABS/INVENTORY/InventoryDashboard"));
 const PartiesTab = lazy(() => import("./TABS/PARTIES/PartiesTab"));
 const ReportsTab = lazy(() => import("./TABS/REPORTS/ReportsTab"));
 const TransfersDashboard = lazy(() => import("./TABS/TRANSFERS/TransfersDashboard"));
+const TransferRequestsTab = lazy(() => import("./TABS/TRANSFERS/TransferRequestsTab/TransferRequestsTab"));
 const WarehousesDashboard = lazy(() => import("./TABS/WAREHOUSES/WarehousesDashboard"));
 const SettingsDashboard = lazy(() => import("./TABS/SETTINGS/SettingsDashboard"));
 const VendorsTab = lazy(() => import("./TABS/VENDOR/VendorsTab"));
@@ -49,7 +50,7 @@ export const TAB_REGISTRY = [
         id: "inventory",
         label: "Inventory",
         icon: "M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10",
-        component: InventoryTab,
+        component: InventoryDashboard,
     },
     {
         id: "archive",
@@ -63,10 +64,30 @@ export const TAB_REGISTRY = [
         icon: "M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4",
         component: TransfersDashboard,
         subItems: [
-            { id: "wh-to-shop", label: "WH → Shop", icon: "M19 14l-7 7m0 0l-7-7m7 7V3" },
-            { id: "shop-to-shop", label: "Shop → Shop", icon: "M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" },
-            { id: "wh-to-wh", label: "WH → WH", icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" },
-            { id: "history", label: "History", icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" },
+            {
+        id: "stock-search",
+        label: "🔍 Stock Search",
+        icon: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z",
+    },
+    {
+        id: "bulk-requests",
+        label: "📦 Bulk Requests",
+        icon: "M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10",
+    },
+    {
+        id: "reorder-suggestions",
+        label: "📊 Reorder Suggestions",
+        icon: "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z",
+
+    },
+
+      {
+        id: "transfer-requests",
+        label: "📋 Transfer Requests",
+        icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2",
+
+    }
+            // { id: "transferrequests", label: "Transfer Requests", icon: "M17 11l4-4m0 0l-4-4m4 4H3m4 6l-4 4m0 0l4 4m-4-4h18", component: TransferRequestsTab }
         ],
     },
     {

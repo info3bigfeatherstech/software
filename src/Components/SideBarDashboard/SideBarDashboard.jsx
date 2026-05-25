@@ -3,7 +3,7 @@ import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { TAB_REGISTRY } from "../TabRegistry";
-import { ROLE_PERMISSIONS, ROLE_LABELS, ROLES,filterSubItemsByRole  } from "../roles";
+import { ROLE_PERMISSIONS, ROLE_LABELS, ROLES, filterSubItemsByRole } from "../roles";
 import { useLogoutMutation } from "../../REDUX_FEATURES/REDUX_SLICES/Login_Api/authApi";
 import {
     clearCredentials,
@@ -139,9 +139,12 @@ const SideBarDashboard = () => {
             setSearchParams({}, { replace: true });
         }
     };
-
+    // That's the only change to SideBarDashboard.jsx. Now any subItem with a component directly on it will render that instead of the parent dashboard.
     const activeTabConfig = allowedTabs.find((t) => t.id === activeTab);
-    const TabComponent = activeTabConfig?.component ?? null;
+    const activeSubItem = activeTabConfig?.subItems?.find((s) => s.id === activeCtab);
+    const TabComponent = (activeCtab && activeSubItem?.component)
+        ? activeSubItem.component
+        : activeTabConfig?.component ?? null;
 
     return (
         <div className="flex min-h-screen bg-gray-50 relative">

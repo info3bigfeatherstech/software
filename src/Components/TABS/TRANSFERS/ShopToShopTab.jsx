@@ -49,14 +49,13 @@ export default function ShopToShopTab() {
         to_date: "",
         page: 1,
         limit: 50,
-        
+
     });
 
     // Then in table, use: transferHistory?.ledger || []
 
     // ── Queries ─────────────────────────────────────────────────────────────
     const { data: shopsData, refetch: refetchShops } = useGetShopsQuery({ page: 1, limit: 100, is_active: "true" });
-    // Note: Shop stocks API not ready yet — using product-stocks as fallback (shows warehouse stock, not shop stock)
     const { data: stocksData } = useGetProductStocksQuery({ page: 1, limit: 50 });
 
     const [shopToShopTransfer] = useShopToShopTransferMutation();
@@ -227,12 +226,6 @@ export default function ShopToShopTab() {
                         errors={formErrors}
                     />
 
-                    {/* Note about shop stocks API */}
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                        <p className="text-xs text-yellow-700">
-                            ⚠️ Shop stock API is under development. Please use warehouse transfer for now.
-                        </p>
-                    </div>
 
                     <TransferCartTable
                         cart={cart}

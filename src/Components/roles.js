@@ -24,6 +24,7 @@ export const SUB_TAB_PERMISSIONS = {
     "warehouses.internal.receive": ["SUPER_ADMIN", "WH_MANAGER"],
     "warehouses.internal.inward": ["SUPER_ADMIN", "WH_MANAGER"],
 
+
     // Sales sidebar dropdown
     "sales.billing": ["SUPER_ADMIN", "BILLING_STAFF", "SHOP_OWNER", "WH_MANAGER"],
     "sales.invoices": ["SUPER_ADMIN", "SHOP_OWNER", "BILLING_STAFF", "WH_MANAGER"],
@@ -42,6 +43,8 @@ export const SUB_TAB_PERMISSIONS = {
     "transfers.shop-to-shop": ["SUPER_ADMIN", "SHOP_OWNER"],
     "transfers.wh-to-wh": ["SUPER_ADMIN", "WH_MANAGER"],
     "transfers.history": ["SUPER_ADMIN", "WH_MANAGER", "WH_STOCK_LISTER", "SHOP_OWNER"],
+    "transfers.internal.wh-to-shop": ["SUPER_ADMIN", "WH_MANAGER", "WH_STOCK_LISTER"],
+    "transfers.internal.wh-to-wh": ["SUPER_ADMIN", "WH_MANAGER"],
 };
 
 /**
@@ -314,74 +317,3 @@ export const filterByLocation = (data, fieldOverride = null) => {
 export const filterLocationList = (list) => getControlledLocations(list);
 export const needsLocationFilter = (role) => role !== ROLES.SUPER_ADMIN;
 export const getLocationFilterField = (role) => (role === ROLES.WH_MANAGER ? 'locationId' : 'shopId');
-
-// bottom code is working but we try to show now particular shop or warehouse detail which is their id 
-
-// // ─────────────────────────────────────────────────────────────────────────────
-// // roles.js — Single source of truth for role-based tab access in BizPro.
-// //
-// // To give a role access to a new tab  → add the tab id to that role's array.
-// // To add a brand new role             → add one key with its allowed tab ids.
-// // Nothing else in the codebase needs to change.
-// // ─────────────────────────────────────────────────────────────────────────────
-
-// export const ROLES = {
-//     OWNER:             "owner",             // Super Admin — full access
-//     ACCOUNTANT:        "accountant",        // Finance: sales, purchase, reports, parties
-//     SALES_MANAGER:     "sales_manager",     // Sales ops: sales, parties, transfers (own shop)
-//     INVENTORY_MANAGER: "inventory_manager", // Stock lister: inventory only
-//     CASHIER:           "cashier",           // Billing staff: sales counter only
-//     WH_MANAGER:        "wh_manager",        // Warehouse manager: warehouses + transfers
-// };
-
-// // Tab IDs must match the `id` field in TabRegistry.js
-// export const ROLE_PERMISSIONS = {
-//     [ROLES.OWNER]: [
-//         "dashboard",
-//         "sales",
-//         "purchase",
-//         "inventory",
-//         "transfers",
-//         "warehouses",
-//         "parties",
-//         "reports",
-//         "settings",
-//     ],
-//     [ROLES.ACCOUNTANT]: [
-//         "dashboard",
-//         "sales",
-//         "purchase",
-//         "parties",
-//         "reports",
-//     ],
-//     [ROLES.SALES_MANAGER]: [
-//         "dashboard",
-//         "sales",
-//         "parties",
-//         "transfers",  // can see transfer history for their shop
-//     ],
-//     [ROLES.INVENTORY_MANAGER]: [
-//         "dashboard",
-//         "inventory",
-//         "transfers",  // can initiate WH→Shop challans
-//     ],
-//     [ROLES.CASHIER]: [
-//         "dashboard",
-//         "sales",      // billing counter only
-//     ],
-//     [ROLES.WH_MANAGER]: [
-//         "dashboard",
-//         "warehouses", // full warehouse management
-//         "transfers",  // all transfer types
-//         "inventory",  // read access
-//     ],
-// };
-
-// export const ROLE_LABELS = {
-//     [ROLES.OWNER]:             "Super Admin / Owner",
-//     [ROLES.ACCOUNTANT]:        "Accountant",
-//     [ROLES.SALES_MANAGER]:     "Sales Manager",
-//     [ROLES.INVENTORY_MANAGER]: "Inventory Manager (Stock Lister)",
-//     [ROLES.CASHIER]:           "Cashier / Billing Staff",
-//     [ROLES.WH_MANAGER]:        "Warehouse Manager",
-// };
