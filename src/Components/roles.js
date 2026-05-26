@@ -45,6 +45,12 @@ export const SUB_TAB_PERMISSIONS = {
     "transfers.history": ["SUPER_ADMIN", "WH_MANAGER", "WH_STOCK_LISTER", "SHOP_OWNER"],
     "transfers.internal.wh-to-shop": ["SUPER_ADMIN", "WH_MANAGER", "WH_STOCK_LISTER"],
     "transfers.internal.wh-to-wh": ["SUPER_ADMIN", "WH_MANAGER"],
+
+
+    // Inventory internal horizontal tabs (from inventoryTabRegistry.js)
+    "inventory.internal.products": ["SUPER_ADMIN", "WH_MANAGER", "WH_STOCK_LISTER",],
+    "inventory.internal.shopstock": ["SUPER_ADMIN", "SHOP_OWNER", "SHOP_STOCK_LISTER"],
+    "inventory.internal.inventorystock": ["SUPER_ADMIN", "WH_MANAGER", "WH_STOCK_LISTER"],
 };
 
 /**

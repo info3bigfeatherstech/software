@@ -1,16 +1,16 @@
 // TABS/TRANSFERS/BulkTransferRequestsTab.jsx
-//
-// Bulk Transfer Requests - create multiple items in one request
-// Flow: REQUESTED → APPROVED → DISPATCHED → RECEIVED → COMPLETED
+// 
+// Complete Bulk Transfer Requests - Create, Approve, Dispatch, Receive
+// FIXED: Fetch details for view, dispatch, receive actions
 
 import React, { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { X, Plus, RefreshCw, Package, Truck, CheckCircle, Ban, Eye } from "lucide-react";
+import { X, Plus, RefreshCw, Package, Truck, CheckCircle, XCircle, Ban, Eye, ClipboardList } from "lucide-react";
 import { toast } from "react-toastify";
 import { useGetWarehousesQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/Warehouse_api/warehouseApi";
 import { useGetShopsQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/Shop_api/shopApi";
 import { useGetProductStocksQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/Stock_api/stockApi";
-import { useGetBulkTransferRequestsQuery, useCreateBulkTransferRequestMutation, generateBulkIdempotencyKey } from "../../../../REDUX_FEATURES/REDUX_SLICES/BulkTransfer_api/bulkTransferApi";
+import { useGetBulkTransferRequestsQuery, useCreateBulkTransferRequestMutation, useLazyGetBulkTransferRequestByIdQuery, generateBulkIdempotencyKey } from "../../../../REDUX_FEATURES/REDUX_SLICES/BulkTransfer_api/bulkTransferApi";
 import {
     setStatusFilter,
     setCurrentPage,
@@ -24,7 +24,13 @@ import {
     updateBulkItem,
     clearBulkItems,
     setCreateErrors,
+    openApproveModal,
+    openDispatchModal,
+    openReceiveModal,
+    openCancelModal,
+    openViewModal,
 } from "../../../../REDUX_FEATURES/REDUX_SLICES/BulkTransfer_api/bulkTransferSlice";
+import BulkActionModals from "./BulkActionModals";
 import { CURRENT_USER } from "../../../roles";
 
 const STATUS_BADGE = {
@@ -50,6 +56,7 @@ export default function BulkTransferRequestsTab() {
     
     const userShopId = user?.shop_id || "";
     const userWarehouseId = user?.warehouse_id || "";
+    const userRole = user?.role || "";
     
     const { data: warehousesData } = useGetWarehousesQuery({ page: 1, limit: 50, is_active: "true" });
     const { data: shopsData } = useGetShopsQuery({ page: 1, limit: 50, is_active: "true" });
@@ -62,6 +69,7 @@ export default function BulkTransferRequestsTab() {
     });
     
     const [createBulkRequest] = useCreateBulkTransferRequestMutation();
+    const [fetchBulkRequestDetail] = useLazyGetBulkTransferRequestByIdQuery();
     
     const warehouses = warehousesData?.warehouses || [];
     const shops = shopsData?.shops || [];
@@ -78,6 +86,78 @@ export default function BulkTransferRequestsTab() {
         p.variant?.sku?.toLowerCase().includes(searchTerm.toLowerCase())
     );
     
+    // Get available actions based on user role and request status
+    const getAvailableActions = (request) => {
+        const actions = [];
+        const status = request.status;
+        
+        const requestFromWarehouseId = request.from_warehouse?.warehouse_id || request.from_warehouse_id;
+        const requestToShopId = request.to_shop?.shop_id || request.to_shop_id;
+        
+        const isSourceWH = userWarehouseId && (requestFromWarehouseId === userWarehouseId);
+        const isDestShop = userShopId && (requestToShopId === userShopId);
+        const isSuperAdmin = userRole === "SUPER_ADMIN";
+        
+        // View details - always available
+        actions.push({ type: "view", label: "View Details", icon: <Eye size={14} />, color: "text-gray-500" });
+        
+        if (status === "REQUESTED") {
+            if (isSourceWH || isSuperAdmin) {
+                actions.push({ type: "approve", label: "Approve", icon: <CheckCircle size={14} />, color: "text-green-600" });
+                actions.push({ type: "reject", label: "Reject", icon: <XCircle size={14} />, color: "text-red-600" });
+            }
+            if (isDestShop || isSuperAdmin) {
+                actions.push({ type: "cancel", label: "Cancel", icon: <Ban size={14} />, color: "text-gray-600" });
+            }
+        }
+        
+        if (status === "APPROVED") {
+            if (isSourceWH || isSuperAdmin) {
+                actions.push({ type: "dispatch", label: "Dispatch", icon: <Truck size={14} />, color: "text-blue-600" });
+            }
+            if (isDestShop || isSuperAdmin) {
+                actions.push({ type: "cancel", label: "Cancel", icon: <Ban size={14} />, color: "text-gray-600" });
+            }
+        }
+        
+        if (status === "DISPATCHED" || status === "PARTIALLY_RECEIVED") {
+            if (isDestShop || isSuperAdmin) {
+                actions.push({ type: "receive", label: "Receive", icon: <Package size={14} />, color: "text-green-600" });
+            }
+        }
+        
+        return actions;
+    };
+    
+    // FIXED: Handle all actions that need full details
+    const handleAction = async (request, actionType) => {
+        // Actions that need full details from detail API
+        const needsDetail = ["view", "dispatch", "receive", "approve", "reject"].includes(actionType);
+        
+        if (needsDetail) {
+            try {
+                const fullRequest = await fetchBulkRequestDetail(request.bulk_request_id).unwrap();
+                
+                if (actionType === "view") {
+                    dispatch(openViewModal(fullRequest));
+                } else if (actionType === "approve") {
+                    dispatch(openApproveModal(fullRequest));
+                } else if (actionType === "reject") {
+                    dispatch(openApproveModal(fullRequest));
+                } else if (actionType === "dispatch") {
+                    dispatch(openDispatchModal(fullRequest));
+                } else if (actionType === "receive") {
+                    dispatch(openReceiveModal(fullRequest));
+                }
+            } catch (err) {
+                toast.error("Failed to load request details");
+            }
+        } else if (actionType === "cancel") {
+            // Cancel doesn't need items, list data is enough
+            dispatch(openCancelModal(request));
+        }
+    };
+    
     const validateCreate = () => {
         const errors = {};
         if (!createForm.from_warehouse_id) errors.from_warehouse_id = "Source warehouse is required";
@@ -91,6 +171,12 @@ export default function BulkTransferRequestsTab() {
         if (Object.keys(errors).length > 0) {
             dispatch(setCreateErrors(errors));
             toast.error("Please fix the errors");
+            return;
+        }
+        
+        const invalidItems = createForm.items.filter(item => !item.quantity || parseInt(item.quantity) <= 0);
+        if (invalidItems.length > 0) {
+            toast.error("Please enter valid quantity for all items");
             return;
         }
         
@@ -145,9 +231,12 @@ export default function BulkTransferRequestsTab() {
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-gray-100">
                 <div>
-                    <h2 className="text-xl font-bold text-gray-900 tracking-tight">📦 Bulk Transfer Requests</h2>
+                    <h2 className="text-xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
+                        <ClipboardList size={22} className="text-indigo-600" />
+                        Bulk Transfer Requests
+                    </h2>
                     <p className="text-sm text-gray-500 mt-1">
-                        Create bulk requests with multiple items — ideal for monthly restocking
+                        Create bulk requests with multiple items — Full workflow: Request → Approve → Dispatch → Receive → Complete
                     </p>
                 </div>
                 <div className="flex items-center gap-2.5">
@@ -164,7 +253,7 @@ export default function BulkTransferRequestsTab() {
             </div>
             
             {/* Stats */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-4 gap-4">
                 <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-4 text-white shadow-md">
                     <p className="text-xs opacity-75">Total Requests</p>
                     <p className="text-3xl font-bold">{meta.total}</p>
@@ -172,6 +261,10 @@ export default function BulkTransferRequestsTab() {
                 <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl p-4 text-white shadow-md">
                     <p className="text-xs opacity-75">Pending (REQUESTED)</p>
                     <p className="text-3xl font-bold">{requests.filter(r => r.status === "REQUESTED").length}</p>
+                </div>
+                <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-4 text-white shadow-md">
+                    <p className="text-xs opacity-75">Dispatched</p>
+                    <p className="text-3xl font-bold">{requests.filter(r => r.status === "DISPATCHED" || r.status === "PARTIALLY_RECEIVED").length}</p>
                 </div>
                 <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-4 text-white shadow-md">
                     <p className="text-xs opacity-75">Completed</p>
@@ -226,20 +319,35 @@ export default function BulkTransferRequestsTab() {
                             </tr>
                         )}
                         {!isLoading && requests.map((req) => {
-                            const totalQty = req.items?.reduce((sum, i) => sum + (i.quantity || 0), 0) || 0;
+                            const totalQty = req.total_quantity || 0;
+                            const actions = getAvailableActions(req);
+                            
                             return (
                                 <tr key={req.bulk_request_id} className="hover:bg-gray-50">
                                     <td className="px-4 py-3 font-mono text-xs text-gray-500">{req.bulk_request_number}</td>
                                     <td className="px-4 py-3 text-xs text-gray-600">{req.from_warehouse?.warehouse_name || req.from_warehouse_id}</td>
                                     <td className="px-4 py-3 text-xs text-gray-600">{req.to_shop?.shop_name || req.to_shop_id}</td>
-                                    <td className="px-4 py-3 text-center text-gray-500">{req.items?.length || 0}</td>
+                                    <td className="px-4 py-3 text-center text-gray-500">{req.items_count || 0}</td>
                                     <td className="px-4 py-3 text-right font-semibold text-gray-700">{totalQty}</td>
-                                    <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_BADGE[req.status]}`}>{req.status?.replace(/_/g, " ")}</span></td>
-                                    <td className="px-4 py-3 text-xs text-gray-400">{fmtDate(req.created_at)}</td>
+                                    <td className="px-4 py-3">
+                                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_BADGE[req.status]}`}>
+                                            {req.status?.replace(/_/g, " ")}
+                                        </span>
+                                    </td>
+                                    <td className="px-4 py-3 text-xs text-gray-400">{fmtDate(req.requested_at || req.created_at)}</td>
                                     <td className="px-4 py-3 text-center">
-                                        <button className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg" title="View Details">
-                                            <Eye size={14} />
-                                        </button>
+                                        <div className="flex items-center justify-center gap-1 flex-wrap">
+                                            {actions.map((action) => (
+                                                <button
+                                                    key={action.type}
+                                                    onClick={() => handleAction(req, action.type)}
+                                                    className={`p-1.5 ${action.color} hover:bg-gray-100 rounded-lg transition-colors`}
+                                                    title={action.label}
+                                                >
+                                                    {action.icon}
+                                                </button>
+                                            ))}
+                                        </div>
                                     </td>
                                 </tr>
                             );
@@ -248,26 +356,49 @@ export default function BulkTransferRequestsTab() {
                 </table>
             </div>
             
-            {/* Create Bulk Request Modal */}
+            {/* Pagination */}
+            {meta.totalPages > 1 && (
+                <div className="flex justify-between items-center bg-white rounded-xl border border-gray-200 px-4 py-3">
+                    <p className="text-sm text-gray-500">Showing {((currentPage - 1) * pageSize) + 1}–{Math.min(currentPage * pageSize, meta.total)} of {meta.total}</p>
+                    <div className="flex gap-2">
+                        <button onClick={() => dispatch(setCurrentPage(currentPage - 1))} disabled={currentPage === 1} className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-40 hover:bg-gray-50">Previous</button>
+                        <span className="px-3 py-1 text-sm text-gray-600">{currentPage} / {meta.totalPages}</span>
+                        <button onClick={() => dispatch(setCurrentPage(currentPage + 1))} disabled={currentPage === meta.totalPages} className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-40 hover:bg-gray-50">Next</button>
+                    </div>
+                </div>
+            )}
+            
+            {/* Create Bulk Request Modal - Keep existing */}
             {showCreateModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
                     <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto text-gray-700">
                         <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex justify-between">
-                            <div><h3 className="text-base font-semibold text-gray-800">Create Bulk Transfer Request</h3><p className="text-xs text-gray-400">Add multiple products to a single request</p></div>
+                            <div>
+                                <h3 className="text-base font-semibold text-gray-800">Create Bulk Transfer Request</h3>
+                                <p className="text-xs text-gray-400">Add multiple products to a single request</p>
+                            </div>
                             <button onClick={() => dispatch(closeCreateModal())} className="text-gray-400"><X size={20} /></button>
                         </div>
                         <div className="p-6 space-y-4">
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-xs font-medium text-gray-700 mb-1">Source Warehouse <span className="text-red-500">*</span></label>
-                                    <select value={createForm.from_warehouse_id} onChange={(e) => dispatch(updateCreateForm({ from_warehouse_id: e.target.value, items: [] }))} className={inputCls("from_warehouse_id", createErrors)}>
+                                    <select 
+                                        value={createForm.from_warehouse_id} 
+                                        onChange={(e) => dispatch(updateCreateForm({ from_warehouse_id: e.target.value, items: [] }))} 
+                                        className={inputCls("from_warehouse_id", createErrors)}
+                                    >
                                         <option value="">Select warehouse</option>
                                         {warehouses.map(w => <option key={w.warehouse_id} value={w.warehouse_id}>{w.warehouse_name} — {w.city}</option>)}
                                     </select>
                                 </div>
                                 <div>
                                     <label className="block text-xs font-medium text-gray-700 mb-1">Destination Shop <span className="text-red-500">*</span></label>
-                                    <select value={createForm.to_shop_id} onChange={(e) => dispatch(updateCreateForm({ to_shop_id: e.target.value }))} className={inputCls("to_shop_id", createErrors)}>
+                                    <select 
+                                        value={createForm.to_shop_id} 
+                                        onChange={(e) => dispatch(updateCreateForm({ to_shop_id: e.target.value }))} 
+                                        className={inputCls("to_shop_id", createErrors)}
+                                    >
                                         <option value="">Select shop</option>
                                         {shops.map(s => <option key={s.shop_id} value={s.shop_id}>{s.shop_name} — {s.city}</option>)}
                                     </select>
@@ -278,14 +409,24 @@ export default function BulkTransferRequestsTab() {
                                 <div>
                                     <label className="block text-xs font-medium text-gray-700 mb-2">Add Products</label>
                                     <div className="relative mb-3">
-                                        <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Search by product name or SKU..." className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                                        <input 
+                                            type="text" 
+                                            value={searchTerm} 
+                                            onChange={(e) => setSearchTerm(e.target.value)} 
+                                            placeholder="Search by product name or SKU..." 
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" 
+                                        />
                                     </div>
                                     <div className="grid grid-cols-3 gap-2 max-h-36 overflow-y-auto border border-gray-100 rounded-lg p-2 bg-gray-50">
                                         {filteredProducts.length === 0 ? (
                                             <p className="col-span-3 text-center text-xs text-gray-400 py-2">No products available</p>
                                         ) : (
                                             filteredProducts.map(p => (
-                                                <button key={p.stock_id} onClick={() => handleAddToCart(p)} className="text-left p-2 bg-white hover:bg-blue-50 border rounded-lg text-xs">
+                                                <button 
+                                                    key={p.stock_id} 
+                                                    onClick={() => handleAddToCart(p)} 
+                                                    className="text-left p-2 bg-white hover:bg-blue-50 border rounded-lg text-xs transition-colors"
+                                                >
                                                     <p className="font-medium truncate">{p.variant?.product?.name}</p>
                                                     <p className="text-gray-400 text-xs">{p.variant?.sku}</p>
                                                     <p className="text-green-600">Stock: {p.quantity}</p>
@@ -299,7 +440,7 @@ export default function BulkTransferRequestsTab() {
                             {createForm.items.length > 0 && (
                                 <div>
                                     <p className="text-sm font-medium text-gray-700 mb-2">Items ({createForm.items.length})</p>
-                                    <div className="space-y-2">
+                                    <div className="space-y-2 max-h-60 overflow-y-auto">
                                         {createForm.items.map((item, idx) => (
                                             <div key={idx} className="flex items-center gap-3 p-2 border rounded-lg">
                                                 <div className="flex-1">
@@ -307,9 +448,17 @@ export default function BulkTransferRequestsTab() {
                                                     <p className="text-xs text-gray-400">{item.sku}</p>
                                                 </div>
                                                 <div className="w-24">
-                                                    <input type="number" min="1" max={item.available_stock} value={item.quantity} onChange={(e) => dispatch(updateBulkItem({ index: idx, quantity: e.target.value }))} placeholder="Qty" className="w-full px-2 py-1 border rounded text-sm" />
+                                                    <input 
+                                                        type="number" 
+                                                        min="1" 
+                                                        max={item.available_stock} 
+                                                        value={item.quantity} 
+                                                        onChange={(e) => dispatch(updateBulkItem({ index: idx, quantity: e.target.value }))} 
+                                                        placeholder="Qty" 
+                                                        className="w-full px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" 
+                                                    />
                                                 </div>
-                                                <button onClick={() => dispatch(removeBulkItem(idx))} className="text-red-500 text-xs">Remove</button>
+                                                <button onClick={() => dispatch(removeBulkItem(idx))} className="text-red-500 text-xs hover:text-red-700">Remove</button>
                                             </div>
                                         ))}
                                     </div>
@@ -319,17 +468,31 @@ export default function BulkTransferRequestsTab() {
                             
                             <div>
                                 <label className="block text-xs font-medium text-gray-700 mb-1">Remarks</label>
-                                <textarea value={createForm.request_remarks} onChange={(e) => dispatch(updateCreateForm({ request_remarks: e.target.value }))} rows={2} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm resize-none" placeholder="Monthly restock notes" />
+                                <textarea 
+                                    value={createForm.request_remarks} 
+                                    onChange={(e) => dispatch(updateCreateForm({ request_remarks: e.target.value }))} 
+                                    rows={2} 
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm resize-none" 
+                                    placeholder="Monthly restock notes" 
+                                />
                             </div>
                         </div>
                         <div className="sticky bottom-0 bg-white border-t border-gray-100 px-6 py-4 flex justify-end gap-3">
-                            <button onClick={() => dispatch(closeCreateModal())} className="px-4 py-2 border rounded-lg text-sm">Cancel</button>
-                            <button onClick={handleCreateSubmit} className="px-5 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700">Create Bulk Request</button>
+                            <button onClick={() => dispatch(closeCreateModal())} className="px-4 py-2 border rounded-lg text-sm hover:bg-gray-50">Cancel</button>
+                            <button 
+                                onClick={handleCreateSubmit} 
+                                disabled={createForm.items.length === 0} 
+                                className="px-5 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-60"
+                            >
+                                Create Bulk Request
+                            </button>
                         </div>
                     </div>
                 </div>
             )}
             
+            {/* Action Modals */}
+            <BulkActionModals onSuccess={() => refetch()} />
         </div>
     );
 }

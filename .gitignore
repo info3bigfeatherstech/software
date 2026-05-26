@@ -22,3 +22,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+
+
+# Graphify
+graphify-out/
+.graphify/
+*.graph.json
+GRAPH_REPORT.md

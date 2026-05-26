@@ -144,4 +144,5 @@ export const {
     useDispatchBulkTransferRequestMutation,
     useReceiveBulkTransferRequestMutation,
     useCancelBulkTransferRequestMutation,
+    useLazyGetBulkTransferRequestByIdQuery,
 } = bulkTransferApi;

@@ -473,7 +473,7 @@ export default function RequestActionModals({ onSuccess }) {
         const isEmergencyRequest = selectedRequest.priority === "HIGH";
         
         return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 text-gray-700">
                 <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4">
                     <div className="px-6 py-4 border-b border-gray-100 flex justify-between">
                         <div>
@@ -549,7 +549,7 @@ export default function RequestActionModals({ onSuccess }) {
     // ─────────────────────────────────────────────────────────────
     if (showDispatchModal && selectedRequest) {
         return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 text-gray-700">
                 <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4">
                     <div className="px-6 py-4 border-b border-gray-100 flex justify-between">
                         <div><h3 className="text-base font-semibold text-gray-800">Dispatch Goods</h3><p className="text-xs text-gray-400">{selectedRequest.request_number}</p></div>
@@ -588,7 +588,7 @@ export default function RequestActionModals({ onSuccess }) {
     if (showReceiveModal && selectedRequest) {
         const remaining = selectedRequest.quantity - (selectedRequest.received_quantity || 0);
         return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 text-gray-700">
                 <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4">
                     <div className="px-6 py-4 border-b border-gray-100 flex justify-between">
                         <div><h3 className="text-base font-semibold text-gray-800">Receive Goods</h3><p className="text-xs text-gray-400">{selectedRequest.request_number}</p></div>

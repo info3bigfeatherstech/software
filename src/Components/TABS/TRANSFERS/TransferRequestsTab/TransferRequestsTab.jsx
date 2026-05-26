@@ -1,14 +1,13 @@
-
 // TABS/TRANSFERS/TransferRequestsTab.jsx
 // 
 // Main view for Transfer Requests with Integrated Stock Search
-// Flow: Search → Select Source → Pre-filled Modal → Create Request
+// FIXED: Added View Details (Eye) icon, Emergency badge, Rejection reason display
 
 import React, { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { X, Plus, Eye, RefreshCw, CheckCircle, XCircle, Truck, Package, Ban, Search, MapPin, Warehouse, Store } from "lucide-react";
+import { X, Plus, Eye, RefreshCw, CheckCircle, XCircle, Truck, Package, Ban, Search, MapPin, Warehouse, Store, Info } from "lucide-react";
 import { toast } from "react-toastify";
-import { useGetTransferRequestsQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/TransferRequest_api/transferRequestApi";
+import { useGetTransferRequestsQuery, useLazyGetTransferRequestByIdQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/TransferRequest_api/transferRequestApi";
 import { useLazySearchStockQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/StockSearch_api/stockSearchApi";
 import {
     setStatusFilter,
@@ -24,10 +23,13 @@ import {
     openCancelModal,
     openCreateFromSearchModal,
     setPrefilledRequestData,
+    openViewRequestModal,
+    setViewRequestData,
 } from "../../../../REDUX_FEATURES/REDUX_SLICES/TransferRequest_api/transferRequestSlice";
 import { CURRENT_USER, isAdmin } from "../../../roles";
 import RequestActionModals from "./TransferRequestShared/RequestActionModals";
 import CreateFromSearchModal from "./TransferRequestShared/CreateFromSearchModal";
+import ViewRequestModal from "./ViewRequestModal";
 
 const STATUS_BADGE = {
     REQUESTED: "bg-yellow-100 text-yellow-700",
@@ -80,6 +82,7 @@ export default function TransferRequestsTab() {
     const [isSearching, setIsSearching] = useState(false);
     const [searchError, setSearchError] = useState(null);
     const [triggerSearch] = useLazySearchStockQuery();
+    const [fetchRequestDetail] = useLazyGetTransferRequestByIdQuery();
 
     const userRole = user?.role || "";
     const userWarehouseId = user?.warehouse_id || "";
@@ -129,20 +132,17 @@ export default function TransferRequestsTab() {
         }
     };
 
-    const handleRequestClick = (location, product, variant) => {
-        // Determine request type based on user role and location type
+    const handleRequestClick = (location, product, variant, isEmergencyRequest = false) => {
         let requestType = "";
         const isWarehouse = location.warehouse_id;
         
         if (isWarehouse) {
-            // Source is warehouse
             if (userShopId) {
                 requestType = "WH_TO_SHOP";
             } else if (userWarehouseId) {
                 requestType = "WH_TO_WH";
             }
         } else {
-            // Source is shop
             requestType = "SHOP_TO_SHOP";
         }
 
@@ -160,18 +160,83 @@ export default function TransferRequestsTab() {
             max_quantity: location.stock_quantity,
             destination_id: userShopId || userWarehouseId,
             destination_type: userShopId ? "shop" : "warehouse",
+            is_emergency: isEmergencyRequest,
         };
 
         dispatch(setPrefilledRequestData(prefilledData));
         dispatch(openCreateFromSearchModal());
     };
 
-    const handleAction = (request, actionType) => {
-        if (actionType === "approve") dispatch(openApproveRejectModal(request));
-        if (actionType === "reject") dispatch(openApproveRejectModal(request));
-        if (actionType === "dispatch") dispatch(openDispatchModal(request));
-        if (actionType === "receive") dispatch(openReceiveModal(request));
-        if (actionType === "cancel") dispatch(openCancelModal(request));
+    const handleAction = async (request, actionType) => {
+        if (actionType === "view") {
+            try {
+                const fullRequest = await fetchRequestDetail(request.request_id).unwrap();
+                dispatch(setViewRequestData(fullRequest));
+                dispatch(openViewRequestModal());
+            } catch (err) {
+                toast.error("Failed to load request details");
+            }
+        } else if (actionType === "approve") {
+            dispatch(openApproveRejectModal(request));
+        } else if (actionType === "reject") {
+            dispatch(openApproveRejectModal(request));
+        } else if (actionType === "dispatch") {
+            dispatch(openDispatchModal(request));
+        } else if (actionType === "receive") {
+            dispatch(openReceiveModal(request));
+        } else if (actionType === "cancel") {
+            dispatch(openCancelModal(request));
+        }
+    };
+
+    // Get available actions including View Details
+    const getAvailableActions = (request, userRole, userWarehouseId, userShopId) => {
+        const actions = [];
+        const status = request.status;
+        const isSourceWH = userWarehouseId && (request.from_warehouse_id === userWarehouseId);
+        const isDestWH = userWarehouseId && (request.to_warehouse_id === userWarehouseId);
+        const isSourceShop = userShopId && (request.from_shop_id === userShopId);
+        const isDestShop = userShopId && (request.to_shop_id === userShopId);
+        const isSuperAdmin = userRole === "SUPER_ADMIN";
+
+        // View details - ALWAYS available for everyone
+        actions.push({ type: "view", label: "View Details", icon: <Eye size={14} />, color: "text-gray-500" });
+
+        if (status === "REQUESTED") {
+            if (isSourceWH || isSourceShop || isSuperAdmin) {
+                actions.push({ type: "approve", label: "Approve", icon: <CheckCircle size={14} />, color: "text-green-600" });
+                actions.push({ type: "reject", label: "Reject", icon: <XCircle size={14} />, color: "text-red-600" });
+            }
+            if (isDestWH || isDestShop || isSuperAdmin) {
+                actions.push({ type: "cancel", label: "Cancel", icon: <Ban size={14} />, color: "text-gray-600" });
+            }
+        }
+
+        if (status === "APPROVED") {
+            if (isSourceWH || isSourceShop || isSuperAdmin) {
+                actions.push({ type: "dispatch", label: "Dispatch", icon: <Truck size={14} />, color: "text-blue-600" });
+            }
+            if (isDestWH || isDestShop || isSuperAdmin) {
+                actions.push({ type: "cancel", label: "Cancel", icon: <Ban size={14} />, color: "text-gray-600" });
+            }
+        }
+
+        if (status === "DISPATCHED" || status === "PARTIALLY_RECEIVED") {
+            if (isDestWH || isDestShop || isSuperAdmin) {
+                actions.push({ type: "receive", label: "Receive", icon: <Package size={14} />, color: "text-green-600" });
+                actions.push({ type: "cancel", label: "Cancel", icon: <Ban size={14} />, color: "text-gray-600" });
+            }
+        }
+
+        if (status !== "COMPLETED" && status !== "REJECTED" && status !== "CANCELLED") {
+            if (isDestWH || isDestShop || isSourceWH || isSourceShop || isSuperAdmin) {
+                if (!actions.find(a => a.type === "cancel")) {
+                    actions.push({ type: "cancel", label: "Cancel", icon: <Ban size={14} />, color: "text-gray-600" });
+                }
+            }
+        }
+
+        return actions;
     };
 
     const product = searchResults?.product;
@@ -191,12 +256,6 @@ export default function TransferRequestsTab() {
                     </p>
                 </div>
                 <div className="flex items-center gap-2.5">
-                    <button
-                        onClick={() => dispatch(openCreateModal())}
-                        className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm cursor-pointer"
-                    >
-                        <Plus size={16} /> New Request
-                    </button>
                     <button onClick={() => refetch()} className="px-3 py-2 text-sm text-gray-600 border rounded-lg hover:bg-gray-50 flex items-center gap-1">
                         <RefreshCw size={14} /> Refresh
                     </button>
@@ -224,10 +283,10 @@ export default function TransferRequestsTab() {
             </div>
 
             {/* Stock Search Section */}
-            <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
+            <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4 text-gray-700">
                 <div className="flex items-center gap-2 mb-2">
                     <Search size={18} className="text-blue-500" />
-                    <h3 className="font-semibold text-gray-800">🔍 Emergency Stock Search</h3>
+                    <h3 className="font-semibold text-gray-800">Stock Search</h3>
                 </div>
                 
                 <div className="flex gap-3 flex-wrap">
@@ -298,7 +357,6 @@ export default function TransferRequestsTab() {
             {/* Search Results */}
             {searchResults && (
                 <div className="space-y-4">
-                    {/* Product Info */}
                     <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
                         <div className="flex items-center justify-between flex-wrap gap-2">
                             <div>
@@ -309,17 +367,9 @@ export default function TransferRequestsTab() {
                                     {variant?.system_barcode && <span className="font-mono">Barcode: {variant?.system_barcode}</span>}
                                 </div>
                             </div>
-                            {variant?.attributes && (
-                                <div className="flex gap-2">
-                                    {Object.entries(variant.attributes).map(([k, v]) => (
-                                        <span key={k} className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs">{k}: {v}</span>
-                                    ))}
-                                </div>
-                            )}
                         </div>
                     </div>
 
-                    {/* Warehouses Section */}
                     {warehouses.length > 0 && (
                         <div>
                             <h4 className="font-semibold text-gray-700 mb-2 flex items-center gap-2"><Warehouse size={16} /> Warehouses</h4>
@@ -334,23 +384,22 @@ export default function TransferRequestsTab() {
                                                     <div className="flex gap-3 mt-0.5 text-xs text-gray-500">
                                                         <span className="flex items-center gap-1"><MapPin size={10} /> {wh.city}</span>
                                                         <span>Stock: <span className="font-semibold text-gray-700">{wh.stock_quantity} units</span></span>
-                                                        <span>Updated: {fmtDate(wh.last_updated)}</span>
                                                     </div>
                                                 </div>
                                             </div>
                                             <div className="flex gap-2">
                                                 <button
-                                                    onClick={() => handleRequestClick(wh, product, variant)}
+                                                    onClick={() => handleRequestClick(wh, product, variant, false)}
                                                     className="px-3 py-1.5 text-sm font-medium text-blue-600 border border-blue-300 rounded-lg hover:bg-blue-50"
                                                 >
-                                                    📦 Request
+                                                    Create Request
                                                 </button>
-                                                <button
-                                                    onClick={() => handleRequestClick(wh, product, variant)}
+                                                {/* <button
+                                                    onClick={() => handleRequestClick(wh, product, variant, true)}
                                                     className="px-3 py-1.5 text-sm font-medium text-red-600 border border-red-300 rounded-lg hover:bg-red-50"
                                                 >
                                                     🚨 Emergency
-                                                </button>
+                                                </button> */}
                                             </div>
                                         </div>
                                     </div>
@@ -359,7 +408,6 @@ export default function TransferRequestsTab() {
                         </div>
                     )}
 
-                    {/* Shops Section */}
                     {shops.length > 0 && (
                         <div>
                             <h4 className="font-semibold text-gray-700 mb-2 flex items-center gap-2"><Store size={16} /> Shops</h4>
@@ -374,23 +422,22 @@ export default function TransferRequestsTab() {
                                                     <div className="flex gap-3 mt-0.5 text-xs text-gray-500">
                                                         <span className="flex items-center gap-1"><MapPin size={10} /> {shop.city}</span>
                                                         <span>Stock: <span className="font-semibold text-gray-700">{shop.stock_quantity} units</span></span>
-                                                        <span>Updated: {fmtDate(shop.last_updated)}</span>
                                                     </div>
                                                 </div>
                                             </div>
                                             <div className="flex gap-2">
                                                 <button
-                                                    onClick={() => handleRequestClick(shop, product, variant)}
+                                                    onClick={() => handleRequestClick(shop, product, variant, false)}
                                                     className="px-3 py-1.5 text-sm font-medium text-blue-600 border border-blue-300 rounded-lg hover:bg-blue-50"
                                                 >
-                                                    📦 Request
+                                                    Create Request
                                                 </button>
-                                                <button
-                                                    onClick={() => handleRequestClick(shop, product, variant)}
+                                                {/* <button
+                                                    onClick={() => handleRequestClick(shop, product, variant, true)}
                                                     className="px-3 py-1.5 text-sm font-medium text-red-600 border border-red-300 rounded-lg hover:bg-red-50"
                                                 >
                                                     🚨 Emergency
-                                                </button>
+                                                </button> */}
                                             </div>
                                         </div>
                                     </div>
@@ -405,7 +452,7 @@ export default function TransferRequestsTab() {
                 </div>
             )}
 
-            {/* Filters for existing requests */}
+            {/* Filters */}
             <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3 text-gray-700">
                 <div className="flex gap-3">
                     <input
@@ -473,70 +520,40 @@ export default function TransferRequestsTab() {
                             </tr>
                         )}
                         {!isLoading && requests.map((req) => {
-                            const getAvailableActions = (request, userRole, userWarehouseId, userShopId) => {
-                                const actions = [];
-                                const status = request.status;
-                                const requestType = request.request_type;
-                                const isSourceWH = userWarehouseId && (request.from_warehouse_id === userWarehouseId);
-                                const isDestWH = userWarehouseId && (request.to_warehouse_id === userWarehouseId);
-                                const isSourceShop = userShopId && (request.from_shop_id === userShopId);
-                                const isDestShop = userShopId && (request.to_shop_id === userShopId);
-                                const isSuperAdmin = userRole === "SUPER_ADMIN";
-
-                                if (status === "REQUESTED") {
-                                    if (isSourceWH || isSourceShop || isSuperAdmin) {
-                                        actions.push({ type: "approve", label: "Approve", icon: <CheckCircle size={14} />, color: "text-green-600" });
-                                        actions.push({ type: "reject", label: "Reject", icon: <XCircle size={14} />, color: "text-red-600" });
-                                    }
-                                    if (isDestWH || isDestShop || isSuperAdmin) {
-                                        actions.push({ type: "cancel", label: "Cancel", icon: <Ban size={14} />, color: "text-gray-600" });
-                                    }
-                                }
-
-                                if (status === "APPROVED") {
-                                    if (isSourceWH || isSourceShop || isSuperAdmin) {
-                                        actions.push({ type: "dispatch", label: "Dispatch", icon: <Truck size={14} />, color: "text-blue-600" });
-                                    }
-                                    if (isDestWH || isDestShop || isSuperAdmin) {
-                                        actions.push({ type: "cancel", label: "Cancel", icon: <Ban size={14} />, color: "text-gray-600" });
-                                    }
-                                }
-
-                                if (status === "DISPATCHED" || status === "PARTIALLY_RECEIVED") {
-                                    if (isDestWH || isDestShop || isSuperAdmin) {
-                                        actions.push({ type: "receive", label: "Receive", icon: <Package size={14} />, color: "text-green-600" });
-                                        actions.push({ type: "cancel", label: "Cancel", icon: <Ban size={14} />, color: "text-gray-600" });
-                                    }
-                                }
-
-                                if (status !== "COMPLETED" && status !== "REJECTED" && status !== "CANCELLED") {
-                                    if (isDestWH || isDestShop || isSourceWH || isSourceShop || isSuperAdmin) {
-                                        if (!actions.find(a => a.type === "cancel")) {
-                                            actions.push({ type: "cancel", label: "Cancel", icon: <Ban size={14} />, color: "text-gray-600" });
-                                        }
-                                    }
-                                }
-
-                                return actions;
-                            };
-
                             const actions = getAvailableActions(req, userRole, userWarehouseId, userShopId);
                             const productName = req.variant?.product?.name || "—";
                             const fromName = req.from_warehouse?.warehouse_name || req.from_shop?.shop_name || req.from_warehouse_id || req.from_shop_id || "—";
                             const toName = req.to_warehouse?.warehouse_name || req.to_shop?.shop_name || req.to_warehouse_id || req.to_shop_id || "—";
+                            const isEmergency = req.priority === "HIGH";
+                            const isRejected = req.status === "REJECTED";
+                            const rejectionReason = req.rejection_reason;
 
                             return (
                                 <tr key={req.request_id} className="hover:bg-gray-50 transition-colors">
                                     <td className="px-4 py-3 font-mono text-xs text-gray-500">{req.request_number}</td>
                                     <td className="px-4 py-3"><span className="text-xs text-gray-600">{REQUEST_TYPE_LABEL[req.request_type]}</span></td>
                                     <td className="px-4 py-3">
-                                        <p className="font-medium text-gray-800 text-sm">{productName}</p>
+                                        <div className="flex items-center gap-2">
+                                            <p className="font-medium text-gray-800 text-sm">{productName}</p>
+                                            {isEmergency && (
+                                                <span className="px-1.5 py-0.5 bg-red-100 text-red-700 rounded text-[10px] font-medium">🚨 EMERGENCY</span>
+                                            )}
+                                        </div>
                                         <p className="text-xs text-gray-400 font-mono">{req.variant?.sku || req.variant_id?.slice(-8)}</p>
+                                        {isRejected && rejectionReason && (
+                                            <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
+                                                <XCircle size={10} /> Rejected: {rejectionReason?.slice(0, 30)}...
+                                            </p>
+                                        )}
                                     </td>
                                     <td className="px-4 py-3 text-right font-semibold text-gray-800">{req.quantity}</td>
                                     <td className="px-4 py-3 text-xs text-gray-600">{fromName}</td>
                                     <td className="px-4 py-3 text-xs text-gray-600">{toName}</td>
-                                    <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_BADGE[req.status]}`}>{req.status?.replace(/_/g, " ")}</span></td>
+                                    <td className="px-4 py-3">
+                                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_BADGE[req.status]}`}>
+                                            {req.status?.replace(/_/g, " ")}
+                                        </span>
+                                    </td>
                                     <td className="px-4 py-3 text-xs text-gray-400">{fmtDate(req.created_at)}</td>
                                     <td className="px-4 py-3 text-center">
                                         <div className="flex items-center justify-center gap-1 flex-wrap">
@@ -576,8 +593,8 @@ export default function TransferRequestsTab() {
             <CreateFromSearchModal onSuccess={() => {
                 refetch();
                 setSearchResults(null);
-            }} />
-
+            }} initialIsEmergency={false} />
+            <ViewRequestModal onSuccess={() => refetch()} />
         </div>
     );
 }

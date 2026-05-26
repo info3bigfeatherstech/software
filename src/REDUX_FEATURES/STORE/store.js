@@ -35,6 +35,12 @@ import shopLevelsReducer from "../REDUX_SLICES/ShopLevels_api/shopLevelsSlice";
 import { bulkTransferApi } from "../REDUX_SLICES/BulkTransfer_api/bulkTransferApi";
 import bulkTransferReducer from "../REDUX_SLICES/BulkTransfer_api/bulkTransferSlice";
 
+
+import { customerApi } from "../REDUX_SLICES/Customer_api/customerApi";
+import customerReducer from "../REDUX_SLICES/Customer_api/customerSlice";
+import { billingApi } from "../REDUX_SLICES/Billing_api/billingApi";
+import billingReducer from "../REDUX_SLICES/Billing_api/billingSlice";
+
 export const store = configureStore({
   reducer: {
     auth: authReducer,
@@ -72,6 +78,12 @@ export const store = configureStore({
     [shopLevelsApi.reducerPath]: shopLevelsApi.reducer,
     bulkTransfer: bulkTransferReducer,
     [bulkTransferApi.reducerPath]: bulkTransferApi.reducer,
+
+    customer: customerReducer,
+    [customerApi.reducerPath]: customerApi.reducer,
+    billing: billingReducer,
+    [billingApi.reducerPath]: billingApi.reducer,
+
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(
@@ -91,6 +103,8 @@ export const store = configureStore({
       stockSearchApi.middleware,
       shopLevelsApi.middleware,
       bulkTransferApi.middleware,
-       transferApi.middleware,
+      transferApi.middleware,
+      customerApi.middleware,
+      billingApi.middleware,
     ),
 });

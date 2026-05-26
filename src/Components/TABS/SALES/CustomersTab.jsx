@@ -1,404 +1,332 @@
-// src/Components/TABS/SALES/CustomersTab.jsx
-import React, { useState, useEffect } from 'react';
-import { INITIAL_CUSTOMERS, INITIAL_BILLS } from '../../demoData';
+// TABS/SALES/CustomersTab.jsx
+//
+// Customer Management Tab - Full CRUD operations
+// Separate from billing - for managing customer database
 
-const STORAGE_KEYS = {
-    CUSTOMERS: 'vyapar_customers',
-    BILLS: 'vyapar_bills',
-    SHOPS: 'vyapar_shops'
+import React, { useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { Plus, RefreshCw, Eye, Edit2, Trash2, X, User, Phone, Mail, MapPin, Building } from "lucide-react";
+import { toast } from "react-toastify";
+import {
+    useGetCustomersQuery,
+    useDeleteCustomerMutation,
+} from "../../../REDUX_FEATURES/REDUX_SLICES/Customer_api/customerApi";
+import {
+    setSearch,
+    setLoyaltyFilter,
+    setCurrentPage,
+    setPageSize,
+    resetFilters,
+    openAddModal,
+    openEditModal,
+    openViewModal,
+    setFormErrors,
+    clearFormErrors,
+} from "../../../REDUX_FEATURES/REDUX_SLICES/Customer_api/customerSlice";
+import CreateCustomerModal from "./BillingTab_Compo/CreateCustomerModal";
+
+const toNumber = (value, defaultValue = 0) => {
+    const num = Number(value);
+    return isNaN(num) ? defaultValue : num;
 };
 
-const getData = (key, initialData) => {
-    const stored = localStorage.getItem(key);
-    if (stored) return JSON.parse(stored);
-    localStorage.setItem(key, JSON.stringify(initialData));
-    return initialData;
+const getLoyaltyBadge = (tier) => {
+    switch (tier) {
+        case "BRONZE":
+            return "bg-amber-100 text-amber-700";
+        case "SILVER":
+            return "bg-gray-200 text-gray-700";
+        case "GOLD":
+            return "bg-yellow-100 text-yellow-700";
+        default:
+            return "bg-gray-100 text-gray-600";
+    }
 };
 
-const CustomersTab = () => {
-    const [customers, setCustomers] = useState([]);
-    const [bills, setBills] = useState([]);
-    const [shops, setShops] = useState([]);
-    const [selectedCustomer, setSelectedCustomer] = useState(null);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [selectedShop, setSelectedShop] = useState('all');
+const fmtDate = (iso) => {
+    if (!iso) return "—";
+    return new Date(iso).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+};
 
-    useEffect(() => {
-        const allCustomers = getData(STORAGE_KEYS.CUSTOMERS, INITIAL_CUSTOMERS);
-        const allBills = getData(STORAGE_KEYS.BILLS, INITIAL_BILLS);
-        const allShops = getData(STORAGE_KEYS.SHOPS, []);
-        
-        // Ensure all customers have required fields with defaults
-        const safeCustomers = allCustomers.map(c => ({
-            ...c,
-            totalPurchases: c.totalPurchases || 0,
-            lastPurchase: c.lastPurchase || 'No purchases',
-            name: c.name || 'Unknown',
-            mobile: c.mobile || 'N/A'
-        }));
-        
-        setCustomers(safeCustomers);
-        setBills(allBills);
-        setShops(allShops);
-    }, []);
+export default function CustomersTab() {
+    const dispatch = useDispatch();
+    const { search, loyaltyFilter, currentPage, pageSize, showAddModal, showEditModal, showViewModal, selectedCustomer } = useSelector((state) => state.customer);
+    
+    const [deleteCustomer] = useDeleteCustomerMutation();
 
-    // Filter customers based on search and shop
-    const filteredCustomers = customers.filter(c => {
-        const matchesSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                             c.mobile.includes(searchTerm);
-        return matchesSearch;
+    const { data, isLoading, refetch } = useGetCustomersQuery({
+        page: currentPage,
+        limit: pageSize,
+        loyalty_tier: loyaltyFilter,
     });
 
-    // Get customer bills
-    const getCustomerBills = (mobile) => {
-        if (!mobile) return [];
-        let filtered = bills.filter(b => b.customerMobile === mobile);
-        
-        // Apply shop filter
-        if (selectedShop !== 'all') {
-            filtered = filtered.filter(b => b.shopId === selectedShop);
+    const customers = data?.customers || [];
+    const meta = data?.meta || { total: 0, page: 1, limit: 20, totalPages: 1 };
+
+    // Filter customers client-side by search
+    const filteredCustomers = customers.filter(c => {
+        if (!search) return true;
+        const term = search.toLowerCase();
+        return c.name?.toLowerCase().includes(term) || c.mobile?.includes(term);
+    });
+
+    const handleDelete = async (customer) => {
+        if (window.confirm(`Delete customer ${customer.name}? This will also delete all their bills.`)) {
+            try {
+                await deleteCustomer(customer.customer_id).unwrap();
+                toast.success("Customer deleted successfully");
+                refetch();
+            } catch (err) {
+                toast.error(err?.data?.message || "Failed to delete customer");
+            }
         }
-        
-        // Sort by date (newest first)
-        return filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
     };
 
-    // Calculate customer total spent across all shops
-    const getTotalSpent = (mobile) => {
-        const customerBills = bills.filter(b => b.customerMobile === mobile);
-        return customerBills.reduce((sum, b) => sum + (b.total || 0), 0);
+    const handleRefresh = () => {
+        refetch();
+        dispatch(resetFilters());
     };
-
-    // Get shop name by ID
-    const getShopName = (shopId) => {
-        const shop = shops.find(s => s.id === shopId);
-        return shop?.name || shopId || 'Unknown Shop';
-    };
-
-    // Format currency safely
-    const formatCurrency = (amount) => {
-        if (amount === undefined || amount === null) return '₹0';
-        return `₹${amount.toLocaleString()}`;
-    };
-
-    // Get customer stats
-    const getCustomerStats = () => {
-        const totalCustomers = customers.length;
-        const activeCustomers = customers.filter(c => {
-            const lastPurchase = c.lastPurchase;
-            if (!lastPurchase || lastPurchase === 'No purchases') return false;
-            const daysSinceLast = (new Date() - new Date(lastPurchase)) / (1000 * 3600 * 24);
-            return daysSinceLast <= 30;
-        }).length;
-        const totalRevenue = customers.reduce((sum, c) => sum + (c.totalPurchases || 0), 0);
-        
-        return { totalCustomers, activeCustomers, totalRevenue };
-    };
-
-    const stats = getCustomerStats();
 
     return (
-        <div className="space-y-6">
-            {/* Stats Cards */}
+        <div className="space-y-5">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-gray-100">
+                <div>
+                    <h2 className="text-xl font-bold text-gray-900 tracking-tight">Customers</h2>
+                    <p className="text-sm text-gray-500 mt-1">
+                        Manage customer database — view, edit, and track purchase history
+                    </p>
+                </div>
+                <div className="flex items-center gap-2.5">
+                    <button
+                        onClick={() => dispatch(openAddModal())}
+                        className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm cursor-pointer"
+                    >
+                        <Plus size={16} /> Add Customer
+                    </button>
+                    <button onClick={handleRefresh} className="px-3 py-2 text-sm text-gray-600 border rounded-lg hover:bg-gray-50 flex items-center gap-1">
+                        <RefreshCw size={14} /> Refresh
+                    </button>
+                </div>
+            </div>
+
+            {/* Stats */}
             <div className="grid grid-cols-3 gap-4">
-                <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-4 text-white shadow-lg">
-                    <p className="text-xs opacity-80 uppercase tracking-wide">Total Customers</p>
-                    <p className="text-2xl font-bold">{stats.totalCustomers}</p>
+                <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-4 text-white shadow-md">
+                    <p className="text-xs opacity-75">Total Customers</p>
+                    <p className="text-3xl font-bold">{meta.total}</p>
                 </div>
-                <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-4 text-white shadow-lg">
-                    <p className="text-xs opacity-80 uppercase tracking-wide">Active (Last 30 Days)</p>
-                    <p className="text-2xl font-bold">{stats.activeCustomers}</p>
+                <div className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl p-4 text-white shadow-md">
+                    <p className="text-xs opacity-75">Active</p>
+                    <p className="text-3xl font-bold">{customers.length}</p>
                 </div>
-                <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl p-4 text-white shadow-lg">
-                    <p className="text-xs opacity-80 uppercase tracking-wide">Total Revenue</p>
-                    <p className="text-2xl font-bold">{formatCurrency(stats.totalRevenue)}</p>
+                <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-4 text-white shadow-md">
+                    <p className="text-xs opacity-75">Loyalty Gold</p>
+                    <p className="text-3xl font-bold">{customers.filter(c => c.loyalty_tier === "GOLD").length}</p>
                 </div>
             </div>
 
-            {/* Search and Filter */}
-            <div className="flex gap-4">
-                <div className="flex-1 relative">
-                    <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
+            {/* Filters */}
+            <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+                <div className="flex gap-3">
                     <input
-                        type="text"
-                        placeholder="🔍 Search by name or mobile number..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                        value={search}
+                        onChange={(e) => dispatch(setSearch(e.target.value))}
+                        placeholder="Search by name or mobile..."
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm"
                     />
+                    <select
+                        value={loyaltyFilter}
+                        onChange={(e) => dispatch(setLoyaltyFilter(e.target.value))}
+                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    >
+                        <option value="">All Tiers</option>
+                        <option value="BRONZE">Bronze</option>
+                        <option value="SILVER">Silver</option>
+                        <option value="GOLD">Gold</option>
+                    </select>
+                    <select
+                        value={pageSize}
+                        onChange={(e) => dispatch(setPageSize(Number(e.target.value)))}
+                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm ml-auto"
+                    >
+                        {[10, 20, 50].map(s => <option key={s} value={s}>{s} per page</option>)}
+                    </select>
                 </div>
-                <select 
-                    value={selectedShop} 
-                    onChange={(e) => setSelectedShop(e.target.value)}
-                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm bg-white"
-                >
-                    <option value="all">All Shops</option>
-                    {shops.map(shop => (
-                        <option key={shop.id} value={shop.id}>{shop.name}</option>
-                    ))}
-                </select>
             </div>
 
-            {/* Customer Grid */}
-            <div className="grid grid-cols-3 gap-6">
-                {/* Left: Customer List */}
-                <div className="col-span-2 bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                    <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
-                        <h3 className="font-semibold text-gray-700">Customer Directory</h3>
-                    </div>
-                    <div className="max-h-[500px] overflow-y-auto">
-                        {filteredCustomers.length === 0 ? (
-                            <div className="text-center text-gray-400 py-12">
-                                <p className="text-4xl mb-2">👥</p>
-                                <p>No customers found</p>
-                                <p className="text-xs mt-1">Add customers by creating bills</p>
-                            </div>
-                        ) : (
-                            <div className="divide-y divide-gray-100">
-                                {filteredCustomers.map(c => {
-                                    const isSelected = selectedCustomer?.mobile === c.mobile;
-                                    const totalSpent = getTotalSpent(c.mobile);
-                                    return (
-                                        <div 
-                                            key={c.id || c.mobile}
-                                            onClick={() => setSelectedCustomer(c)}
-                                            className={`p-4 cursor-pointer transition-all hover:bg-gray-50 ${
-                                                isSelected ? 'bg-blue-50 border-l-4 border-blue-500' : ''
-                                            }`}
-                                        >
-                                            <div className="flex justify-between items-start">
-                                                <div className="flex-1">
-                                                    <div className="flex items-center gap-2">
-                                                        <p className="font-semibold text-gray-800">{c.name}</p>
-                                                        <span className="text-xs text-gray-400">ID: {c.id?.slice(-6) || 'NEW'}</span>
-                                                    </div>
-                                                    <p className="text-sm text-gray-500 mt-0.5">📱 {c.mobile}</p>
-                                                </div>
-                                                <div className="text-right">
-                                                    <p className="font-bold text-blue-600">{formatCurrency(totalSpent)}</p>
-                                                    <p className="text-xs text-gray-400 mt-1">Total Spent</p>
-                                                </div>
-                                            </div>
-                                            <div className="flex gap-4 mt-2 text-xs text-gray-400">
-                                                <span>📅 Last: {c.lastPurchase || 'No purchases'}</span>
-                                                <span>🛍️ {getCustomerBills(c.mobile).length} orders</span>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
+            {/* Customers Table */}
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-x-auto">
+                <table className="w-full text-sm">
+                    <thead className="bg-gray-50">
+                        <tr>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">Customer</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">Contact</th>
+                            <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500">Tier</th>
+                            <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500">Total Spent</th>
+                            <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500">Orders</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">Last Purchase</th>
+                            <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                        {isLoading && (
+                            <tr>
+                                <td colSpan={7} className="px-4 py-10 text-center">
+                                    <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto" />
+                                </td>
+                            </tr>
                         )}
-                    </div>
-                </div>
-
-                {/* Right: Purchase History */}
-                <div className="bg-white border border-gray-200 rounded-xl overflow-hidden text-gray-700 shadow-sm">
-                    <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
-                        <h3 className="font-semibold text-gray-700">Purchase History</h3>
-                        {selectedCustomer && (
-                            <p className="text-xs text-gray-500 mt-1">
-                                {selectedCustomer.name} • {selectedCustomer.mobile}
-                            </p>
+                        {!isLoading && filteredCustomers.length === 0 && (
+                            <tr>
+                                <td colSpan={7} className="px-4 py-10 text-center text-gray-400">No customers found</td>
+                            </tr>
                         )}
-                    </div>
-                    <div className="max-h-[500px] overflow-y-auto p-4">
-                        {!selectedCustomer ? (
-                            <div className="text-center text-gray-400 py-12">
-                                <p className="text-4xl mb-2">👈</p>
-                                <p className="text-sm">Select a customer</p>
-                                <p className="text-xs mt-1">to view purchase history</p>
-                            </div>
-                        ) : (
-                            (() => {
-                                const customerBills = getCustomerBills(selectedCustomer.mobile);
-                                if (customerBills.length === 0) {
-                                    return (
-                                        <div className="text-center text-gray-400 py-12">
-                                            <p className="text-4xl mb-2">🛒</p>
-                                            <p className="text-sm">No purchases yet</p>
-                                            <p className="text-xs mt-1">Bills will appear here</p>
+                        {!isLoading && filteredCustomers.map((customer) => (
+                            <tr key={customer.customer_id} className="hover:bg-gray-50">
+                                <td className="px-4 py-3">
+                                    <div className="flex items-center gap-2">
+                                        <User size={16} className="text-gray-400" />
+                                        <div>
+                                            <p className="font-medium text-gray-800">{customer.name}</p>
+                                            {customer.email && <p className="text-xs text-gray-400">{customer.email}</p>}
                                         </div>
-                                    );
-                                }
-                                return (
-                                    <div className="space-y-3">
-                                        {customerBills.map(bill => (
-                                            <div key={bill.id} className="p-3 border border-gray-100 rounded-lg hover:shadow-sm transition">
-                                                <div className="flex justify-between items-start">
-                                                    <div>
-                                                        <p className="font-mono text-xs text-gray-500">{bill.billNumber}</p>
-                                                        <p className="text-xs text-gray-400 mt-0.5">{bill.date}</p>
-                                                    </div>
-                                                    <p className="font-bold text-blue-600">{formatCurrency(bill.total)}</p>
-                                                </div>
-                                                <div className="mt-2">
-                                                    <p className="text-xs text-gray-500">Items ({bill.items?.length || 0})</p>
-                                                    <div className="flex flex-wrap gap-1 mt-1">
-                                                        {bill.items?.slice(0, 3).map((item, idx) => (
-                                                            <span key={idx} className="text-xs bg-gray-100 px-2 py-0.5 rounded">
-                                                                {item.name} x{item.qty}
-                                                            </span>
-                                                        ))}
-                                                        {bill.items?.length > 3 && (
-                                                            <span className="text-xs text-gray-400">+{bill.items.length - 3} more</span>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                                <div className="mt-2 pt-2 border-t border-gray-50">
-                                                    <span className="text-xs text-gray-400">🏪 {getShopName(bill.shopId)}</span>
-                                                    <span className="text-xs text-gray-400 ml-3">💳 {bill.paymentMethod?.toUpperCase() || 'CASH'}</span>
-                                                </div>
-                                            </div>
-                                        ))}
                                     </div>
-                                );
-                            })()
-                        )}
-                    </div>
-                </div>
+                                </td>
+                                <td className="px-4 py-3">
+                                    <p className="text-sm text-gray-700">{customer.mobile}</p>
+                                    {customer.city && <p className="text-xs text-gray-400">{customer.city}</p>}
+                                </td>
+                                <td className="px-4 py-3 text-center">
+                                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getLoyaltyBadge(customer.loyalty_tier)}`}>
+                                        {customer.loyalty_tier || "BRONZE"}
+                                    </span>
+                                </td>
+                                <td className="px-4 py-3 text-right font-semibold text-gray-800">
+                                    ₹{toNumber(customer.total_spent).toFixed(0)}
+                                </td>
+                                <td className="px-4 py-3 text-center text-gray-600">
+                                    {customer.total_orders || 0}
+                                </td>
+                                <td className="px-4 py-3 text-xs text-gray-400">
+                                    {fmtDate(customer.last_purchase)}
+                                </td>
+                                <td className="px-4 py-3 text-center">
+                                    <div className="flex items-center justify-center gap-1">
+                                        <button
+                                            onClick={() => dispatch(openViewModal(customer))}
+                                            className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg"
+                                            title="View Details"
+                                        >
+                                            <Eye size={14} />
+                                        </button>
+                                        <button
+                                            onClick={() => dispatch(openEditModal(customer))}
+                                            className="p-1.5 text-green-500 hover:bg-green-50 rounded-lg"
+                                            title="Edit"
+                                        >
+                                            <Edit2 size={14} />
+                                        </button>
+                                        <button
+                                            onClick={() => handleDelete(customer)}
+                                            className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg"
+                                            title="Delete"
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
             </div>
 
-            {/* Quick Stats Footer */}
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-3">
-                <p className="text-xs text-blue-700 text-center">
-                    💡 <strong>Note:</strong> Total customer count: {customers.length} | 
-                    Total bills in system: {bills.length} | 
-                    Filter by shop to see specific location purchases
-                </p>
-            </div>
+            {/* Pagination */}
+            {meta.totalPages > 1 && (
+                <div className="flex justify-between items-center bg-white rounded-xl border border-gray-200 px-4 py-3">
+                    <p className="text-sm text-gray-500">Showing {((currentPage - 1) * pageSize) + 1}–{Math.min(currentPage * pageSize, meta.total)} of {meta.total}</p>
+                    <div className="flex gap-2">
+                        <button onClick={() => dispatch(setCurrentPage(currentPage - 1))} disabled={currentPage === 1} className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-40 hover:bg-gray-50">Previous</button>
+                        <span className="px-3 py-1 text-sm text-gray-600">{currentPage} / {meta.totalPages}</span>
+                        <button onClick={() => dispatch(setCurrentPage(currentPage + 1))} disabled={currentPage === meta.totalPages} className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-40 hover:bg-gray-50">Next</button>
+                    </div>
+                </div>
+            )}
+
+            {/* Create/Edit Customer Modal (reuse same component) */}
+            {showAddModal && <CreateCustomerModal onSuccess={() => { refetch(); dispatch(closeAddModal()); }} />}
+            
+            {/* View Customer Modal */}
+            {showViewModal && selectedCustomer && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+                        <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex justify-between">
+                            <div>
+                                <h3 className="text-base font-semibold text-gray-800">Customer Details</h3>
+                                <p className="text-xs text-gray-400">View customer information</p>
+                            </div>
+                            <button onClick={() => dispatch(closeViewModal())} className="text-gray-400 hover:text-gray-600">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <div className="flex items-center gap-3 pb-3 border-b">
+                                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-xl">
+                                    {selectedCustomer.name?.charAt(0) || "U"}
+                                </div>
+                                <div>
+                                    <p className="font-bold text-gray-800">{selectedCustomer.name}</p>
+                                    <span className={`text-xs px-2 py-0.5 rounded-full ${getLoyaltyBadge(selectedCustomer.loyalty_tier)}`}>
+                                        {selectedCustomer.loyalty_tier || "BRONZE"}
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <div className="flex items-center gap-2 text-sm">
+                                    <Phone size={14} className="text-gray-400" />
+                                    <span className="text-gray-700">{selectedCustomer.mobile}</span>
+                                </div>
+                                {selectedCustomer.email && (
+                                    <div className="flex items-center gap-2 text-sm">
+                                        <Mail size={14} className="text-gray-400" />
+                                        <span className="text-gray-700">{selectedCustomer.email}</span>
+                                    </div>
+                                )}
+                                {selectedCustomer.gst_number && (
+                                    <div className="flex items-center gap-2 text-sm">
+                                        <Building size={14} className="text-gray-400" />
+                                        <span className="text-gray-700">GST: {selectedCustomer.gst_number}</span>
+                                    </div>
+                                )}
+                                {(selectedCustomer.address || selectedCustomer.city) && (
+                                    <div className="flex items-center gap-2 text-sm">
+                                        <MapPin size={14} className="text-gray-400" />
+                                        <span className="text-gray-700">{selectedCustomer.address}, {selectedCustomer.city}</span>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="bg-gray-50 rounded-lg p-3 mt-2">
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-gray-500">Total Spend:</span>
+                                    <span className="font-bold">₹{toNumber(selectedCustomer.total_spent).toFixed(2)}</span>
+                                </div>
+                                <div className="flex justify-between text-sm mt-1">
+                                    <span className="text-gray-500">Total Orders:</span>
+                                    <span className="font-bold">{selectedCustomer.total_orders || 0}</span>
+                                </div>
+                                <div className="flex justify-between text-sm mt-1">
+                                    <span className="text-gray-500">Last Purchase:</span>
+                                    <span className="text-gray-700">{fmtDate(selectedCustomer.last_purchase)}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="border-t border-gray-100 px-6 py-4 flex justify-end">
+                            <button onClick={() => dispatch(closeViewModal())} className="px-4 py-2 bg-gray-100 rounded-lg text-sm hover:bg-gray-200">Close</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
-};
-
-export default CustomersTab;
-// // TABS/SALES/CustomersTab.jsx
-// import React, { useState } from "react";
-// import { CUSTOMERS } from "../../demoData";
-
-// const statusColors = {
-//     active: "bg-green-100 text-green-700",
-//     inactive: "bg-gray-100 text-gray-500",
-// };
-
-// const CustomersTab = () => {
-//     const [search, setSearch] = useState("");
-//     const [filter, setFilter] = useState("all");
-//     const [selected, setSelected] = useState(null);
-
-//     const filtered = CUSTOMERS.filter(c => {
-//         const matchSearch = c.name.toLowerCase().includes(search.toLowerCase()) ||
-//             c.phone.includes(search) ||
-//             c.city.toLowerCase().includes(search.toLowerCase());
-//         const matchFilter = filter === "all" ? true : c.status === filter;
-//         return matchSearch && matchFilter;
-//     });
-
-//     return (
-//         <div>
-//             {/* Stats row */}
-//             <div className="grid grid-cols-4 gap-4 mb-6">
-//                 {[
-//                     { label: "Total Customers", value: CUSTOMERS.length, color: "text-blue-600" },
-//                     { label: "Active", value: CUSTOMERS.filter(c => c.status === "active").length, color: "text-green-600" },
-//                     { label: "Total Business", value: "₹" + (CUSTOMERS.reduce((s, c) => s + c.totalBusiness, 0) / 100000).toFixed(1) + "L", color: "text-purple-600" },
-//                     { label: "Outstanding", value: "₹" + (CUSTOMERS.reduce((s, c) => s + c.outstanding, 0) / 1000).toFixed(0) + "K", color: "text-red-500" },
-//                 ].map(s => (
-//                     <div key={s.label} className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
-//                         <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">{s.label}</p>
-//                         <p className={`text-2xl font-semibold ${s.color}`}>{s.value}</p>
-//                     </div>
-//                 ))}
-//             </div>
-
-//             {/* Filters */}
-//             <div className="flex items-center gap-3 mb-4">
-//                 <input
-//                     type="text"
-//                     placeholder="Search by name, phone, city..."
-//                     value={search}
-//                     onChange={e => setSearch(e.target.value)}
-//                     className="flex-1 px-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100"
-//                 />
-//                 <select
-//                     value={filter}
-//                     onChange={e => setFilter(e.target.value)}
-//                     className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none"
-//                 >
-//                     <option value="all">All status</option>
-//                     <option value="active">Active</option>
-//                     <option value="inactive">Inactive</option>
-//                 </select>
-//                 <button className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors cursor-pointer">
-//                     + Add Customer
-//                 </button>
-//             </div>
-
-//             {/* Table */}
-//             <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-//                 <table className="w-full text-sm">
-//                     <thead className="bg-gray-50 border-b border-gray-100">
-//                         <tr>
-//                             {["Customer", "Phone", "City", "Total Business", "Outstanding", "Last Purchase", "Status"].map(h => (
-//                                 <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
-//                             ))}
-//                         </tr>
-//                     </thead>
-//                     <tbody className="divide-y divide-gray-50">
-//                         {filtered.map(c => (
-//                             <tr
-//                                 key={c.id}
-//                                 onClick={() => setSelected(selected?.id === c.id ? null : c)}
-//                                 className="hover:bg-blue-50/40 cursor-pointer transition-colors"
-//                             >
-//                                 <td className="px-4 py-3">
-//                                     <div className="font-medium text-gray-800">{c.name}</div>
-//                                     <div className="text-xs text-gray-400">{c.id}</div>
-//                                 </td>
-//                                 <td className="px-4 py-3 text-gray-600">{c.phone}</td>
-//                                 <td className="px-4 py-3 text-gray-600">{c.city}</td>
-//                                 <td className="px-4 py-3 font-medium text-gray-700">₹{c.totalBusiness.toLocaleString()}</td>
-//                                 <td className="px-4 py-3">
-//                                     {c.outstanding > 0
-//                                         ? <span className="text-red-500 font-medium">₹{c.outstanding.toLocaleString()}</span>
-//                                         : <span className="text-green-500 text-xs font-medium">Cleared</span>
-//                                     }
-//                                 </td>
-//                                 <td className="px-4 py-3 text-gray-500 text-xs">{c.lastPurchase}</td>
-//                                 <td className="px-4 py-3">
-//                                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[c.status]}`}>
-//                                         {c.status}
-//                                     </span>
-//                                 </td>
-//                             </tr>
-//                         ))}
-//                     </tbody>
-//                 </table>
-//                 {filtered.length === 0 && (
-//                     <div className="py-12 text-center text-gray-400 text-sm">No customers found</div>
-//                 )}
-//             </div>
-
-//             {/* Detail panel */}
-//             {selected && (
-//                 <div className="mt-4 bg-white rounded-xl border border-blue-100 p-5 shadow-sm">
-//                     <div className="flex items-center justify-between mb-3">
-//                         <h3 className="font-semibold text-gray-800">{selected.name}</h3>
-//                         <button onClick={() => setSelected(null)} className="text-gray-400 hover:text-gray-600 cursor-pointer text-xs">✕ Close</button>
-//                     </div>
-//                     <div className="grid grid-cols-3 gap-4 text-sm">
-//                         <div><span className="text-gray-400">Phone:</span> <span className="ml-1 text-gray-700">{selected.phone}</span></div>
-//                         <div><span className="text-gray-400">Email:</span> <span className="ml-1 text-gray-700">{selected.email}</span></div>
-//                         <div><span className="text-gray-400">City:</span> <span className="ml-1 text-gray-700">{selected.city}</span></div>
-//                         <div><span className="text-gray-400">GSTIN:</span> <span className="ml-1 text-gray-700">{selected.gstin || "—"}</span></div>
-//                         <div><span className="text-gray-400">Total Business:</span> <span className="ml-1 font-medium text-gray-700">₹{selected.totalBusiness.toLocaleString()}</span></div>
-//                         <div><span className="text-gray-400">Outstanding:</span> <span className={`ml-1 font-medium ${selected.outstanding > 0 ? "text-red-500" : "text-green-500"}`}>{selected.outstanding > 0 ? "₹" + selected.outstanding.toLocaleString() : "Cleared"}</span></div>
-//                     </div>
-//                 </div>
-//             )}
-//         </div>
-//     );
-// };
-
-// export default CustomersTab;
+}

@@ -226,6 +226,20 @@ export const productApi = createApi({
       }),
     }),
 
+
+
+       // GET /products/by-barcode/:barcode — for billing scan
+        getProductByBarcode: builder.query({
+            query: (barcode) => ({
+                url: `/products/by-barcode/${barcode}`,
+                method: "GET",
+            }),
+            providesTags: (result, error, barcode) => [
+                { type: "Product", id: `barcode-${barcode}` }
+            ],
+            transformResponse: (response) => response.data,
+        }),
+
   }),
 });
 
@@ -245,4 +259,7 @@ export const {
   useBulkRestoreProductsMutation,
   useHardDeleteProductsByDateMutation,
   useGetInactiveProductsQuery,
+
+   useGetProductByBarcodeQuery,
+    useLazyGetProductByBarcodeQuery,
 } = productApi;

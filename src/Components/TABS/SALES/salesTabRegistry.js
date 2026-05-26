@@ -16,22 +16,10 @@ export const SALES_TAB_REGISTRY = [
         component: BillingTab,
     },
     {
-        id: "invoices",
-        label: "Invoices",
-        icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z",
-        component: InvoicesTab,
-    },
-    {
-        id: "customers",
+        id: "customer",
         label: "Customers",
-        icon: "M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2m8-10a4 4 0 100-8 4 4 0 000 8zm7-3a3 3 0 010 6M21 21v-2a4 4 0 00-3-3.87",
+        icon: "M12 4.354a4 4 0 110 5.292V17a1 1 0 11-2 0V9.646a4 4 0 018 0V17a1 1 0 11-2 0V9.646a4 4 0 01-4-4zM3.343 5.657a1 1 0 00-1.414 1.414l3.586 3.586a1 1 0 001.414-1.414L3.343 5.657z",
         component: CustomersTab,
-    },
-    {
-        id: "wholesale",
-        label: "Wholesale",
-        icon: "M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10",
-        component: WholesaleTab,
     },
     {
         id: "returns",

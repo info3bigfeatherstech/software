@@ -2,6 +2,7 @@
 //
 // UI State for Shop Stock Management
 // Manages: filters, pagination, modals, bulk selection
+// NEW: Bulk Restock Request Modal & Min-Max Levels Modal
 
 import { createSlice } from "@reduxjs/toolkit";
 
@@ -12,10 +13,18 @@ const EMPTY_QUANTITY_FORM = {
     product_name: "",
     current_quantity: 0,
     new_quantity: "",
-    operation: "set", // 'set', 'increment', 'decrement'
+    operation: "set",
     reason: "",
     low_stock_threshold: 10,
     remarks: "",
+};
+
+const EMPTY_MINMAX_FORM = {
+    variant_id: "",
+    product_name: "",
+    min_level: 10,
+    max_level: 100,
+    reorder_qty: "",
 };
 
 // ── Initial State ────────────────────────────────────────────────────
@@ -30,6 +39,8 @@ const initialState = {
     // ── Modal States ─────────────────────────────────────────────────
     showQuantityModal: false,
     showBulkModal: false,
+    showBulkRestockModal: false,
+    showMinMaxModal: false,  // NEW
     selectedStock: null,
 
     // ── Bulk Selection ───────────────────────────────────────────────
@@ -38,11 +49,14 @@ const initialState = {
 
     // ── Form States ──────────────────────────────────────────────────
     quantityForm: { ...EMPTY_QUANTITY_FORM },
+    minMaxForm: { ...EMPTY_MINMAX_FORM },  // NEW
     bulkItems: [],
+    bulkRestockData: null,
 
     // ── Validation Errors ────────────────────────────────────────────
     quantityErrors: {},
     bulkErrors: {},
+    minMaxErrors: {},  // NEW
 
     // ── UI State ─────────────────────────────────────────────────────
     isLoading: false,
@@ -112,7 +126,41 @@ const shopStockSlice = createSlice({
             state.quantityErrors = action.payload;
         },
 
-        // ── Bulk Modal ─────────────────────────────────────────────────
+        // ── Min-Max Levels Modal (NEW) ──────────────────────────────────
+        openMinMaxModal: (state, action) => {
+            const stock = action.payload;
+            state.showMinMaxModal = true;
+            state.selectedStock = stock;
+            state.minMaxForm = {
+                variant_id: stock.variant_id,
+                product_name: stock.variant?.product?.name || "Unknown Product",
+                min_level: stock.min_level || 10,
+                max_level: stock.max_level || 100,
+                reorder_qty: stock.reorder_qty || "",
+            };
+            state.minMaxErrors = {};
+        },
+        closeMinMaxModal: (state) => {
+            state.showMinMaxModal = false;
+            state.selectedStock = null;
+            state.minMaxForm = { ...EMPTY_MINMAX_FORM };
+            state.minMaxErrors = {};
+        },
+        updateMinMaxForm: (state, action) => {
+            const payload = action.payload;
+            if (payload && typeof payload === "object") {
+                state.minMaxForm = { ...state.minMaxForm, ...payload };
+                const field = Object.keys(payload)[0];
+                if (field && state.minMaxErrors[field]) {
+                    delete state.minMaxErrors[field];
+                }
+            }
+        },
+        setMinMaxErrors: (state, action) => {
+            state.minMaxErrors = action.payload;
+        },
+
+        // ── Bulk Modal (Existing - for quantity update) ─────────────────
         openBulkModal: (state) => {
             state.showBulkModal = true;
             state.bulkItems = [];
@@ -149,6 +197,19 @@ const shopStockSlice = createSlice({
         },
         setBulkErrors: (state, action) => {
             state.bulkErrors = action.payload;
+        },
+
+        // ── Bulk Restock Modal ──────────────────────────────────────────
+        openBulkRestockModal: (state) => {
+            state.showBulkRestockModal = true;
+            state.bulkRestockData = null;
+        },
+        closeBulkRestockModal: (state) => {
+            state.showBulkRestockModal = false;
+            state.bulkRestockData = null;
+        },
+        setBulkRestockData: (state, action) => {
+            state.bulkRestockData = action.payload;
         },
 
         // ── Bulk Selection ────────────────────────────────────────────
@@ -194,7 +255,12 @@ export const {
     closeQuantityModal,
     updateQuantityForm,
     setQuantityErrors,
-    // Bulk Modal
+    // Min-Max Modal (NEW)
+    openMinMaxModal,
+    closeMinMaxModal,
+    updateMinMaxForm,
+    setMinMaxErrors,
+    // Bulk Modal (existing)
     openBulkModal,
     closeBulkModal,
     addBulkItem,
@@ -202,6 +268,10 @@ export const {
     updateBulkItem,
     clearBulkItems,
     setBulkErrors,
+    // Bulk Restock Modal
+    openBulkRestockModal,
+    closeBulkRestockModal,
+    setBulkRestockData,
     // Bulk Selection
     toggleSelectStock,
     selectAllStocks,

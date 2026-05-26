@@ -2,6 +2,8 @@
 //
 // Shop Stock Management APIs
 // Endpoints: GET /shop-stocks, GET /shop-stocks/low-stock, PATCH /shop-stocks/:variantId, PATCH /shop-stocks/bulk
+// NEW: GET /shop-reorder-suggestions - for bulk restock requests
+// NEW: POST /shop-product-levels - for setting min-max levels
 
 import { createApi } from "@reduxjs/toolkit/query/react";
 import AxiosInstance from "../../../SERVICES/AxiosInstance";
@@ -23,7 +25,7 @@ const axiosBaseQuery = () => async ({ url, method, data, params }) => {
 export const shopStockApi = createApi({
     reducerPath: "shopStockApi",
     baseQuery: axiosBaseQuery(),
-    tagTypes: ["ShopStock", "LowStockAlerts"],
+    tagTypes: ["ShopStock", "LowStockAlerts", "ReorderSuggestions", "ProductLevels"],
 
     endpoints: (builder) => ({
 
@@ -40,12 +42,14 @@ export const shopStockApi = createApi({
                 variant_id = "",
                 min_quantity = "",
                 low_stock_only = false,
+                search = "",
             }) => {
                 const params = { page, limit };
                 if (shop_id) params.shop_id = shop_id;
                 if (variant_id) params.variant_id = variant_id;
                 if (min_quantity) params.min_quantity = min_quantity;
                 if (low_stock_only) params.low_stock_only = true;
+                if (search) params.search = search;
                 return { url: "/shop-stocks", method: "GET", params };
             },
             providesTags: (result) => {
@@ -82,6 +86,38 @@ export const shopStockApi = createApi({
                 return { url: `/shop-stocks/${variantId}`, method: "GET", params };
             },
             providesTags: (result, error, { variantId }) => [{ type: "ShopStock", id: variantId }],
+            transformResponse: (response) => response.data,
+        }),
+
+        // ─────────────────────────────────────────────────────────────
+        // REORDER SUGGESTIONS API
+        // ─────────────────────────────────────────────────────────────
+
+        // GET /shop-reorder-suggestions — get reorder suggestions for shop
+        getReorderSuggestions: builder.query({
+            query: ({ shop_id = "", warehouse_id = "", variant_ids = [] }) => {
+                const params = {};
+                if (shop_id) params.shop_id = shop_id;
+                if (warehouse_id) params.warehouse_id = warehouse_id;
+                if (variant_ids.length > 0) params.variant_ids = variant_ids.join(',');
+                return { url: "/shop-reorder-suggestions", method: "GET", params };
+            },
+            providesTags: ["ReorderSuggestions"],
+            transformResponse: (response) => response.data,
+        }),
+
+        // ─────────────────────────────────────────────────────────────
+        // PRODUCT LEVELS (MIN-MAX) API - NEW
+        // ─────────────────────────────────────────────────────────────
+
+        // POST /shop-product-levels — set min-max levels for products
+        setProductLevels: builder.mutation({
+            query: ({ shop_id, items }) => ({
+                url: "/shop-product-levels",
+                method: "POST",
+                data: { shop_id, items },
+            }),
+            invalidatesTags: ["ReorderSuggestions", "ShopStock"],
             transformResponse: (response) => response.data,
         }),
 
@@ -123,7 +159,9 @@ export const {
     useGetShopStocksQuery,
     useGetLowStockAlertsQuery,
     useGetShopStockByVariantQuery,
+    useGetReorderSuggestionsQuery,
     // Mutations
     useUpdateShopStockMutation,
     useBulkUpdateShopStocksMutation,
+    useSetProductLevelsMutation, 
 } = shopStockApi;

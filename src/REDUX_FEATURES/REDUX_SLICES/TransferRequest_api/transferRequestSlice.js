@@ -13,8 +13,12 @@ const initialState = {
     currentPage: 1,
     pageSize: 20,
 
-     showCreateFromSearchModal: false,
+    showCreateFromSearchModal: false,
     prefilledRequestData: null,
+
+
+    showViewRequestModal: false,
+    viewRequestData: null,
 
     // Modals
     showCreateModal: false,
@@ -213,7 +217,7 @@ const transferRequestSlice = createSlice({
 
 
 
-         openCreateFromSearchModal: (state) => {
+        openCreateFromSearchModal: (state) => {
             state.showCreateFromSearchModal = true;
         },
         closeCreateFromSearchModal: (state) => {
@@ -226,6 +230,18 @@ const transferRequestSlice = createSlice({
         clearPrefilledRequestData: (state) => {
             state.prefilledRequestData = null;
         },
+
+        // Add these reducers
+openViewRequestModal: (state) => {
+    state.showViewRequestModal = true;
+},
+closeViewRequestModal: (state) => {
+    state.showViewRequestModal = false;
+    state.viewRequestData = null;
+},
+setViewRequestData: (state, action) => {
+    state.viewRequestData = action.payload;
+},
     },
 });
 
@@ -261,10 +277,15 @@ export const {
     setLoading,
 
 
-     openCreateFromSearchModal,
+    openCreateFromSearchModal,
     closeCreateFromSearchModal,
     setPrefilledRequestData,
     clearPrefilledRequestData,
+
+
+    openViewRequestModal,
+closeViewRequestModal,
+setViewRequestData,
 } = transferRequestSlice.actions;
 
 export default transferRequestSlice.reducer;

@@ -204,4 +204,5 @@ export const {
     useGetTransferRequestsQuery,
     useGetMyTransferRequestsQuery,
     useGetTransferRequestByIdQuery,
+    useLazyGetTransferRequestByIdQuery
 } = transferRequestApi;

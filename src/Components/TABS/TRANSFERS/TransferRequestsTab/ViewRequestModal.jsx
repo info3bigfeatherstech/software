@@ -1,0 +1,191 @@
+// TABS/TRANSFERS/TransferRequestShared/ViewRequestModal.jsx
+//
+// Modal for viewing transfer request details
+// Shows all details including rejection reason if rejected
+
+import React from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { X, CheckCircle, XCircle, Truck, Package, Ban, Calendar, MapPin, User, FileText } from "lucide-react";
+import { closeViewRequestModal } from "../../../../REDUX_FEATURES/REDUX_SLICES/TransferRequest_api/transferRequestSlice";
+
+const STATUS_BADGE = {
+    REQUESTED: "bg-yellow-100 text-yellow-700",
+    APPROVED: "bg-blue-100 text-blue-700",
+    REJECTED: "bg-red-100 text-red-600",
+    DISPATCHED: "bg-purple-100 text-purple-700",
+    PARTIALLY_RECEIVED: "bg-orange-100 text-orange-700",
+    COMPLETED: "bg-green-100 text-green-700",
+    CANCELLED: "bg-gray-100 text-gray-500",
+};
+
+const fmtDateTime = (iso) => {
+    if (!iso) return "—";
+    return new Date(iso).toLocaleString("en-IN", { 
+        day: "2-digit", 
+        month: "short", 
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+    });
+};
+
+export default function ViewRequestModal({ onSuccess }) {
+    const dispatch = useDispatch();
+    const { showViewRequestModal, viewRequestData } = useSelector((state) => state.transferRequest);
+
+    if (!showViewRequestModal || !viewRequestData) return null;
+
+    const request = viewRequestData;
+    const isEmergency = request.priority === "HIGH";
+    const isRejected = request.status === "REJECTED";
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 text-gray-700">
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+                {/* Header */}
+                <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex justify-between">
+                    <div>
+                        <h3 className="text-base font-semibold text-gray-800 flex items-center gap-2">
+                            Request Details
+                            {isEmergency && (
+                                <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded-full text-xs font-medium">🚨 EMERGENCY</span>
+                            )}
+                        </h3>
+                        <p className="text-xs text-gray-400 font-mono">{request.request_number}</p>
+                    </div>
+                    <button onClick={() => dispatch(closeViewRequestModal())} className="text-gray-400 hover:text-gray-600">
+                        <X size={20} />
+                    </button>
+                </div>
+
+                {/* Body */}
+                <div className="p-6 space-y-5">
+                    {/* Status Banner */}
+                    <div className="flex items-center justify-between">
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${STATUS_BADGE[request.status]}`}>
+                            {request.status?.replace(/_/g, " ")}
+                        </span>
+                        <span className="text-xs text-gray-400">Created: {fmtDateTime(request.created_at)}</span>
+                    </div>
+
+                    {/* Rejection Reason (if rejected) */}
+                    {isRejected && request.rejection_reason && (
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                            <div className="flex items-start gap-2">
+                                <XCircle size={18} className="text-red-600 mt-0.5 shrink-0" />
+                                <div>
+                                    <p className="text-sm font-medium text-red-800">Rejection Reason</p>
+                                    <p className="text-sm text-red-700 mt-1">{request.rejection_reason}</p>
+                                    {request.approved_by && (
+                                        <p className="text-xs text-red-600 mt-2">Rejected by: {request.approver?.name || request.approved_by}</p>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Product Info */}
+                    <div className="bg-gray-50 rounded-lg p-4">
+                        <p className="text-xs font-medium text-gray-500 mb-2">Product Details</p>
+                        <p className="font-semibold text-gray-800">{request.variant?.product?.name || "—"}</p>
+                        <div className="flex gap-4 mt-1 text-xs text-gray-500">
+                            <span>SKU: {request.variant?.sku || "—"}</span>
+                            <span>Variant ID: {request.variant_id}</span>
+                        </div>
+                        <div className="mt-2 pt-2 border-t border-gray-200">
+                            <p className="text-sm"><strong>Quantity:</strong> {request.quantity} units</p>
+                        </div>
+                    </div>
+
+                    {/* Location Info */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-blue-50 rounded-lg p-3">
+                            <p className="text-xs font-medium text-blue-800 mb-2 flex items-center gap-1">
+                                <MapPin size={12} /> Source
+                            </p>
+                            <p className="font-medium text-gray-800">
+                                {request.from_warehouse?.warehouse_name || request.from_shop?.shop_name || "—"}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                                {request.from_warehouse?.city || request.from_shop?.city || "—"}
+                            </p>
+                        </div>
+                        <div className="bg-green-50 rounded-lg p-3">
+                            <p className="text-xs font-medium text-green-800 mb-2 flex items-center gap-1">
+                                <MapPin size={12} /> Destination
+                            </p>
+                            <p className="font-medium text-gray-800">
+                                {request.to_warehouse?.warehouse_name || request.to_shop?.shop_name || "—"}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                                {request.to_warehouse?.city || request.to_shop?.city || "—"}
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Remarks */}
+                    {request.request_remarks && (
+                        <div className="bg-gray-50 rounded-lg p-3">
+                            <p className="text-xs font-medium text-gray-500 mb-1 flex items-center gap-1">
+                                <FileText size={12} /> Remarks
+                            </p>
+                            <p className="text-sm text-gray-700">{request.request_remarks}</p>
+                        </div>
+                    )}
+
+                    {/* Timeline */}
+                    <div className="border-t border-gray-100 pt-4">
+                        <p className="text-xs font-medium text-gray-500 mb-3">Timeline</p>
+                        <div className="space-y-2 text-sm">
+                            {request.requested_by && (
+                                <div className="flex justify-between">
+                                    <span className="text-gray-500">Requested:</span>
+                                    <span className="text-gray-700">{fmtDateTime(request.requested_at)} by {request.requester?.name}</span>
+                                </div>
+                            )}
+                            {request.approved_by && (
+                                <div className="flex justify-between">
+                                    <span className="text-gray-500">Approved:</span>
+                                    <span className="text-gray-700">{fmtDateTime(request.approved_at)} by {request.approver?.name}</span>
+                                </div>
+                            )}
+                            {request.dispatched_by && (
+                                <div className="flex justify-between">
+                                    <span className="text-gray-500">Dispatched:</span>
+                                    <span className="text-gray-700">{fmtDateTime(request.dispatched_at)} by {request.dispatcher?.name}</span>
+                                </div>
+                            )}
+                            {request.received_by && (
+                                <div className="flex justify-between">
+                                    <span className="text-gray-500">Received:</span>
+                                    <span className="text-gray-700">{fmtDateTime(request.received_at)} by {request.receiver?.name}</span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Tracking Info (if dispatched) */}
+                    {request.tracking_number && (
+                        <div className="bg-purple-50 rounded-lg p-3">
+                            <p className="text-xs font-medium text-purple-800 mb-1">Tracking Information</p>
+                            <p className="text-sm font-semibold">Tracking #: {request.tracking_number}</p>
+                            {request.expected_delivery && (
+                                <p className="text-xs text-gray-600 mt-1">Expected: {fmtDateTime(request.expected_delivery)}</p>
+                            )}
+                        </div>
+                    )}
+                </div>
+
+                {/* Footer */}
+                <div className="sticky bottom-0 bg-white border-t border-gray-100 px-6 py-4 flex justify-end">
+                    <button 
+                        onClick={() => dispatch(closeViewRequestModal())} 
+                        className="px-4 py-2 bg-gray-100 rounded-lg text-sm hover:bg-gray-200"
+                    >
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
