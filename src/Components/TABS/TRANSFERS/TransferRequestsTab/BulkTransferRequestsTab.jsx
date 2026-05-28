@@ -273,9 +273,9 @@ export default function BulkTransferRequestsTab() {
             </div>
             
             {/* Filters */}
-            <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+            <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3 text-gray-700">
                 <div className="flex gap-3">
-                    <select value={statusFilter} onChange={(e) => dispatch(setStatusFilter(e.target.value))} className="px-3 py-2 border border-gray-300 rounded-lg text-sm w-48">
+                    <select value={statusFilter} onChange={(e) => dispatch(setStatusFilter(e.target.value))} className="px-3 py-2 border border-gray-300 rounded-lg text-sm w-48 cursor-pointer">
                         <option value="">All Status</option>
                         <option value="REQUESTED">REQUESTED</option>
                         <option value="APPROVED">APPROVED</option>

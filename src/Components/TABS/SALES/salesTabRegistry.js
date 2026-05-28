@@ -5,8 +5,7 @@ import { lazy } from "react";
 const BillingTab    = lazy(() => import("./BillingTab"));
 const InvoicesTab   = lazy(() => import("./InvoicesTab"));
 const CustomersTab  = lazy(() => import("./CustomersTab"));
-const WholesaleTab  = lazy(() => import("./WholesaleTab"));
-const ReturnsTab    = lazy(() => import("./ReturnsTab"));
+const CreditNotesTab = lazy(() => import("./CreditNotesTab"));
 
 export const SALES_TAB_REGISTRY = [
     {
@@ -16,15 +15,15 @@ export const SALES_TAB_REGISTRY = [
         component: BillingTab,
     },
     {
-        id: "customer",
+        id: "customers",
         label: "Customers",
-        icon: "M12 4.354a4 4 0 110 5.292V17a1 1 0 11-2 0V9.646a4 4 0 018 0V17a1 1 0 11-2 0V9.646a4 4 0 01-4-4zM3.343 5.657a1 1 0 00-1.414 1.414l3.586 3.586a1 1 0 001.414-1.414L3.343 5.657z",
+        icon: "M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2m8-10a4 4 0 100-8 4 4 0 000 8zm7-3a3 3 0 010 6M21 21v-2a4 4 0 00-3-3.87",
         component: CustomersTab,
     },
     {
-        id: "returns",
+        id: "creditnote",
         label: "Returns / Credit Notes",
         icon: "M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6",
-        component: ReturnsTab,
+        component: CreditNotesTab,
     },
 ];

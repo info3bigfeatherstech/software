@@ -36,6 +36,7 @@ const LoginPage = () => {
       dispatch(setCredentials(payload));
       navigate("/dashboard", { replace: true });
     } catch (_err) {
+      console.error("Login failed:>", _err);
       // Error is already available via RTK Query state.
     }
   };

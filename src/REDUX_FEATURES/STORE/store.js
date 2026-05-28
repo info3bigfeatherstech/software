@@ -41,6 +41,9 @@ import customerReducer from "../REDUX_SLICES/Customer_api/customerSlice";
 import { billingApi } from "../REDUX_SLICES/Billing_api/billingApi";
 import billingReducer from "../REDUX_SLICES/Billing_api/billingSlice";
 
+import { creditNoteApi } from "../REDUX_SLICES/CreditNote_api/creditNoteApi";
+import creditNoteReducer from "../REDUX_SLICES/CreditNote_api/creditNoteSlice";
+
 export const store = configureStore({
   reducer: {
     auth: authReducer,
@@ -84,6 +87,9 @@ export const store = configureStore({
     billing: billingReducer,
     [billingApi.reducerPath]: billingApi.reducer,
 
+    creditNote: creditNoteReducer,
+[creditNoteApi.reducerPath]: creditNoteApi.reducer,
+
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(
@@ -106,5 +112,6 @@ export const store = configureStore({
       transferApi.middleware,
       customerApi.middleware,
       billingApi.middleware,
+      creditNoteApi.middleware,
     ),
 });

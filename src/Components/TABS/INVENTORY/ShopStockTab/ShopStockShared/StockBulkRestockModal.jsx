@@ -3,7 +3,7 @@
 // Bulk Restock Request Modal - Create bulk transfer request from selected products
 // FIXED: Only shows selected products, refetches when warehouse changes
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { X, AlertTriangle, Truck, Warehouse, Package, RefreshCw, Edit2, CheckCircle } from "lucide-react";
 import { toast } from "react-toastify";
@@ -22,9 +22,17 @@ export default function StockBulkRestockModal({ onSuccess, stocks, selectedStock
     const [isSubmitting, setIsSubmitting] = useState(false);
     
     // Get selected stock objects (ONLY the ones user selected)
-    const selectedStocks = stocks.filter(s => selectedStockIds?.includes(s.shop_stock_id));
-    const selectedVariants = selectedStocks.map(s => s.variant_id);
-    
+    // useMemo so the reference is stable between renders — prevents useEffect infinite loops
+    const selectedStocks = useMemo(
+        () => stocks.filter(s => selectedStockIds?.includes(s.shop_stock_id)),
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [stocks, selectedStockIds]
+    );
+    const selectedVariants = useMemo(
+        () => selectedStocks.map(s => s.variant_id),
+        [selectedStocks]
+    );
+
     // Fetch reorder suggestions - with warehouse filter when warehouse selected
     const { data: suggestionsData, isLoading: isLoadingSuggestions, refetch } = useGetReorderSuggestionsQuery({
         shop_id: user?.shop_id,
@@ -33,12 +41,15 @@ export default function StockBulkRestockModal({ onSuccess, stocks, selectedStock
     }, {
         skip: selectedVariants.length === 0,
     });
-    
+
     const [createBulkRequest] = useCreateBulkTransferRequestMutation();
-    
-    // Create a map of selected variants for quick lookup
-    const selectedVariantsMap = new Set(selectedVariants);
-    
+
+    // Create a map of selected variants for quick lookup — also stable
+    const selectedVariantsMap = useMemo(
+        () => new Set(selectedVariants),
+        [selectedVariants]
+    );
+
     // Initialize items when suggestions data loads - ONLY for selected variants
     useEffect(() => {
         if (suggestionsData?.items && suggestionsData.items.length > 0) {
@@ -61,13 +72,14 @@ export default function StockBulkRestockModal({ onSuccess, stocks, selectedStock
                     };
                 });
             setItems(filteredItems);
-            
+
             // Set default warehouse from API response if not already set
             if (suggestionsData.source_warehouse_id && !selectedWarehouseId) {
                 setSelectedWarehouseId(suggestionsData.source_warehouse_id);
             }
-        } else if (suggestionsData?.items === undefined && selectedVariants.length > 0) {
-            // If no suggestions data but we have selected variants, create items without suggestions
+        } else if (suggestionsData?.items === undefined && selectedVariants.length > 0 && items.length === 0) {
+            // Only create fallback items when items state is genuinely empty —
+            // guards against re-running while the user is editing quantities
             const fallbackItems = selectedStocks.map(stock => ({
                 variant_id: stock.variant_id,
                 product_name: stock.variant?.product?.name || "Unknown",
@@ -81,7 +93,9 @@ export default function StockBulkRestockModal({ onSuccess, stocks, selectedStock
             }));
             setItems(fallbackItems);
         }
-    }, [suggestionsData, selectedVariants, selectedStocks]);
+    // suggestionsData, selectedVariants, selectedStocks, selectedVariantsMap are all now
+    // stable references thanks to useMemo — safe to include without looping
+    }, [suggestionsData, selectedVariants, selectedStocks, selectedVariantsMap]);
     
     // Refetch when warehouse changes
     useEffect(() => {
@@ -93,6 +107,7 @@ export default function StockBulkRestockModal({ onSuccess, stocks, selectedStock
     const warehouses = suggestionsData?.warehouses || [];
     
     const handleQuantityChange = (variantId, newQuantity) => {
+        // console.log("Changing quantity for:", variantId, "to:", newQuantity); 
         const qty = parseInt(newQuantity) || 0;
         setItems(prev => prev.map(item => 
             item.variant_id === variantId 
@@ -100,6 +115,8 @@ export default function StockBulkRestockModal({ onSuccess, stocks, selectedStock
                 : item
         ));
     };
+
+    
     
     const handleSubmit = async () => {
         const validItems = items.filter(item => item.quantity > 0);

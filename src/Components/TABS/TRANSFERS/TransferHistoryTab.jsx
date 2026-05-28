@@ -2,6 +2,8 @@
 //
 // Complete audit trail of all stock movements
 // FIXED: Modal shows only selected variant's history
+// // Complete audit trail of all stock movements
+// // Uses REAL API: GET /stock/ledger
 
 import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";

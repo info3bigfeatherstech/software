@@ -1,6 +1,6 @@
 // REDUX_SLICES/Transfer_api/transferApi.js
 //
-// Stock Transfer APIs + Stock Ledger APIs
+// Stock Ledger APIs
 // All endpoints from backend docs
 
 import { createApi } from "@reduxjs/toolkit/query/react";
@@ -36,7 +36,7 @@ export const transferApi = createApi({
 
 
 
-        // POST /stock-transfer/reconcile (SUPER_ADMIN only)
+        // POST /stock/transfer/reconcile (SUPER_ADMIN only)
         reconcileStock: builder.mutation({
             query: ({ idempotencyKey, ...data }) => ({
                 url: "/stock/transfer/reconcile",
@@ -54,7 +54,7 @@ export const transferApi = createApi({
         // STOCK LEDGER QUERIES (read-only audit trail)
         // ─────────────────────────────────────────────────────────────
 
-        // GET /stock-ledger — list all ledger entries
+        // GET /stock/ledger — list all ledger entries
         getStockLedger: builder.query({
             query: ({
                 page = 1,
@@ -90,7 +90,7 @@ export const transferApi = createApi({
             }),
         }),
 
-        // GET /stock-ledger/variant/:variantId
+        // GET /stock/ledger/variant/:variantId
         getVariantLedger: builder.query({
             query: ({ variantId, page = 1, limit = 20, from_date = "", to_date = "" }) => {
                 const params = { page, limit };
@@ -107,7 +107,7 @@ export const transferApi = createApi({
             }),
         }),
 
-        // GET /stock-ledger/warehouse/:warehouseId
+        // GET /stock/ledger/warehouse/:warehouseId
         getWarehouseLedger: builder.query({
             query: ({ warehouseId, page = 1, limit = 20, from_date = "", to_date = "" }) => {
                 const params = { page, limit };
@@ -124,7 +124,7 @@ export const transferApi = createApi({
             }),
         }),
 
-        // GET /stock-ledger/shop/:shopId
+        // GET /stock/ledger/shop/:shopId
         getShopLedger: builder.query({
             query: ({ shopId, page = 1, limit = 20, from_date = "", to_date = "" }) => {
                 const params = { page, limit };
