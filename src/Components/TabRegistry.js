@@ -10,7 +10,7 @@ import ArchiveTab from "./TABS/INVENTORY/ArchiveTab/ArchiveTab";
 const ContentDashboardTab = lazy(() => import("./ContentDashboard/ContentDashboardTab"));
 const SalesDashboard = lazy(() => import("./TABS/SALES/SalesDashboard"));
 const PurchaseTab = lazy(() => import("./TABS/PURCHASE/PurchaseTab"));
-const InventoryTab = lazy(() => import("./TABS/INVENTORY/InventoryTab"));
+const InventoryDashboard = lazy(() => import("./TABS/INVENTORY/InventoryDashboard"));
 const PartiesTab = lazy(() => import("./TABS/PARTIES/PartiesTab"));
 const ReportsTab = lazy(() => import("./TABS/REPORTS/ReportsTab"));
 const TransfersDashboard = lazy(() => import("./TABS/TRANSFERS/TransfersDashboard"));
@@ -39,23 +39,88 @@ export const TAB_REGISTRY = [
             { id: "credit-notes", label: "Credit Notes", icon: "M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" },
         ],
     },
-    {
-        id: "purchase",
-        label: "Purchase",
-        icon: "M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z",
-        component: PurchaseTab,
+   {
+    id: "purchase",
+    label: "Purchase",
+    icon: "M20 13V7a2 2 0 00-2-2h-3V3H9v2H6a2 2 0 00-2 2v6m16 0v6a2 2 0 01-2 2H6a2 2 0 01-2-2v-6m16 0H4",
+    component: PurchaseTab,
+    subItems: [
+        {
+            id: "purchase-bills",
+            label: "Purchase Bills",
+            icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+        },
+        {
+            id: "payment-out",
+            label: "Payment Out",
+            icon: "M17 9V7a4 4 0 00-8 0v2M5 9h14l1 10H4L5 9z"
+        },
+        {
+            id: "expenses",
+            label: "Expenses",
+            icon: "M12 8c-1.657 0-3 1.343-3 3s1.343 3 3 3 3-1.343 3-3-1.343-3-3-3zm0-6v2m0 16v2m8-10h2M2 12h2"
+        },
+        {
+            id: "purchase-performance",
+            label: "Purchase Performance",
+            icon: "M11 3v18m0 0l-4-4m4 4l4-4M5 12h14"
+        },
+        {
+            id: "purchase-returns",
+            label: "Purchase Return",
+            icon: "M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"
+        },
+        {
+            id: "dr-notes",
+            label: "Dr. Notes",
+            icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+        },
+    ],
+},
+  {
+    id: "inventory",
+    label: "Inventory",
+    icon: "M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10",
+    component: InventoryDashboard,
+
+    subItems: [
+        {
+            id: "product-details",
+            label: "Product Details",
+            icon: "M20 13V7a2 2 0 00-2-2h-3V3H9v2H6a2 2 0 00-2 2v6m16 0v6a2 2 0 01-2 2H6a2 2 0 01-2-2v-6m16 0H4",
+        },
+         {
+            id: "barcode-generator",
+            label: "Barcode Generator",
+            icon: "M4 7v10M7 7v10M10 7v10M14 7v10M17 7v10M20 7v10",
+        },
+
+    ],
+},
+     {
+        id: "warehouses",
+        label: "Warehouses",
+        icon: "M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4",
+        component: WarehousesDashboard,
+        subItems: [
+            { id: "overview", label: "Overview", icon: "M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" },
+            // { id: "stock", label: "Stock View", icon: "M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10" },
+            { id: "receive", label: "Receive Goods", icon: "M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" },
+        ],
     },
-    {
-        id: "inventory",
-        label: "Inventory",
-        icon: "M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10",
-        component: InventoryTab,
+      {
+        id: "parties",
+        label: "Parties",
+        icon: "M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z",
+        component: PartiesTab,
     },
-    {
-        id: "archive",
-        label: "Archive",
-        icon: "M21 8v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8M23 3H1v5h22zM10 12h4",
-        component: ArchiveTab,
+     {
+        id: "reports",
+        label: "Reports",
+        icon: "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z",
+        component: ReportsTab,
+   
+   
     },
     {
         id: "transfers",
@@ -68,35 +133,21 @@ export const TAB_REGISTRY = [
             { id: "wh-to-wh", label: "WH → WH", icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" },
             { id: "history", label: "History", icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" },
         ],
-    },
-    {
-        id: "warehouses",
-        label: "Warehouses",
-        icon: "M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4",
-        component: WarehousesDashboard,
-        subItems: [
-            { id: "overview", label: "Overview", icon: "M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" },
-            // { id: "stock", label: "Stock View", icon: "M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10" },
-            { id: "receive", label: "Receive Goods", icon: "M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" },
-        ],
-    },
-    {
-        id: "parties",
-        label: "Parties",
-        icon: "M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z",
-        component: PartiesTab,
-    },
-    {
-        id: "reports",
-        label: "Reports",
-        icon: "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z",
-        component: ReportsTab,
+    
+    
     },
     {
         id: "vendors",
         label: "Vendors",
         icon: "M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2",
         component: VendorsTab,
+    },
+
+    {
+        id: "archive",
+        label: "Archive",
+        icon: "M21 8v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8M23 3H1v5h22zM10 12h4",
+        component: ArchiveTab,
     },
     {
         id: "settings",

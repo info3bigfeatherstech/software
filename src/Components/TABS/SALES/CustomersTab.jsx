@@ -1,6 +1,7 @@
 // src/Components/TABS/SALES/CustomersTab.jsx
 import React, { useState, useEffect } from 'react';
 import { INITIAL_CUSTOMERS, INITIAL_BILLS } from '../../demoData';
+import { Users, Activity, TrendingUp, Search, Receipt } from 'lucide-react';
 
 const STORAGE_KEYS = {
     CUSTOMERS: 'vyapar_customers',
@@ -97,179 +98,902 @@ const CustomersTab = () => {
 
     const stats = getCustomerStats();
 
-    return (
-        <div className="space-y-6">
-            {/* Stats Cards */}
-            <div className="grid grid-cols-3 gap-4">
-                <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-4 text-white shadow-lg">
-                    <p className="text-xs opacity-80 uppercase tracking-wide">Total Customers</p>
-                    <p className="text-2xl font-bold">{stats.totalCustomers}</p>
-                </div>
-                <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-4 text-white shadow-lg">
-                    <p className="text-xs opacity-80 uppercase tracking-wide">Active (Last 30 Days)</p>
-                    <p className="text-2xl font-bold">{stats.activeCustomers}</p>
-                </div>
-                <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl p-4 text-white shadow-lg">
-                    <p className="text-xs opacity-80 uppercase tracking-wide">Total Revenue</p>
-                    <p className="text-2xl font-bold">{formatCurrency(stats.totalRevenue)}</p>
-                </div>
-            </div>
+   return (
+  <div className="space-y-5 font-['Satoshi']">
 
-            {/* Search and Filter */}
-            <div className="flex gap-4">
-                <div className="flex-1 relative">
-                    <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                    <input
-                        type="text"
-                        placeholder="🔍 Search by name or mobile number..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                    />
-                </div>
-                <select 
-                    value={selectedShop} 
-                    onChange={(e) => setSelectedShop(e.target.value)}
-                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm bg-white"
-                >
-                    <option value="all">All Shops</option>
-                    {shops.map(shop => (
-                        <option key={shop.id} value={shop.id}>{shop.name}</option>
-                    ))}
-                </select>
-            </div>
+    {/* ====================================================== */}
+    {/* TOP STATS */}
+    {/* ====================================================== */}
 
-            {/* Customer Grid */}
-            <div className="grid grid-cols-3 gap-6">
-                {/* Left: Customer List */}
-                <div className="col-span-2 bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                    <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
-                        <h3 className="font-semibold text-gray-700">Customer Directory</h3>
-                    </div>
-                    <div className="max-h-[500px] overflow-y-auto">
-                        {filteredCustomers.length === 0 ? (
-                            <div className="text-center text-gray-400 py-12">
-                                <p className="text-4xl mb-2">👥</p>
-                                <p>No customers found</p>
-                                <p className="text-xs mt-1">Add customers by creating bills</p>
-                            </div>
-                        ) : (
-                            <div className="divide-y divide-gray-100">
-                                {filteredCustomers.map(c => {
-                                    const isSelected = selectedCustomer?.mobile === c.mobile;
-                                    const totalSpent = getTotalSpent(c.mobile);
-                                    return (
-                                        <div 
-                                            key={c.id || c.mobile}
-                                            onClick={() => setSelectedCustomer(c)}
-                                            className={`p-4 cursor-pointer transition-all hover:bg-gray-50 ${
-                                                isSelected ? 'bg-blue-50 border-l-4 border-blue-500' : ''
-                                            }`}
-                                        >
-                                            <div className="flex justify-between items-start">
-                                                <div className="flex-1">
-                                                    <div className="flex items-center gap-2">
-                                                        <p className="font-semibold text-gray-800">{c.name}</p>
-                                                        <span className="text-xs text-gray-400">ID: {c.id?.slice(-6) || 'NEW'}</span>
-                                                    </div>
-                                                    <p className="text-sm text-gray-500 mt-0.5">📱 {c.mobile}</p>
-                                                </div>
-                                                <div className="text-right">
-                                                    <p className="font-bold text-blue-600">{formatCurrency(totalSpent)}</p>
-                                                    <p className="text-xs text-gray-400 mt-1">Total Spent</p>
-                                                </div>
-                                            </div>
-                                            <div className="flex gap-4 mt-2 text-xs text-gray-400">
-                                                <span>📅 Last: {c.lastPurchase || 'No purchases'}</span>
-                                                <span>🛍️ {getCustomerBills(c.mobile).length} orders</span>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        )}
-                    </div>
-                </div>
+    <div className="
+      grid
+      grid-cols-3
+      gap-5
+    ">
 
-                {/* Right: Purchase History */}
-                <div className="bg-white border border-gray-200 rounded-xl overflow-hidden text-gray-700 shadow-sm">
-                    <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
-                        <h3 className="font-semibold text-gray-700">Purchase History</h3>
-                        {selectedCustomer && (
-                            <p className="text-xs text-gray-500 mt-1">
-                                {selectedCustomer.name} • {selectedCustomer.mobile}
-                            </p>
-                        )}
-                    </div>
-                    <div className="max-h-[500px] overflow-y-auto p-4">
-                        {!selectedCustomer ? (
-                            <div className="text-center text-gray-400 py-12">
-                                <p className="text-4xl mb-2">👈</p>
-                                <p className="text-sm">Select a customer</p>
-                                <p className="text-xs mt-1">to view purchase history</p>
-                            </div>
-                        ) : (
-                            (() => {
-                                const customerBills = getCustomerBills(selectedCustomer.mobile);
-                                if (customerBills.length === 0) {
-                                    return (
-                                        <div className="text-center text-gray-400 py-12">
-                                            <p className="text-4xl mb-2">🛒</p>
-                                            <p className="text-sm">No purchases yet</p>
-                                            <p className="text-xs mt-1">Bills will appear here</p>
-                                        </div>
-                                    );
-                                }
-                                return (
-                                    <div className="space-y-3">
-                                        {customerBills.map(bill => (
-                                            <div key={bill.id} className="p-3 border border-gray-100 rounded-lg hover:shadow-sm transition">
-                                                <div className="flex justify-between items-start">
-                                                    <div>
-                                                        <p className="font-mono text-xs text-gray-500">{bill.billNumber}</p>
-                                                        <p className="text-xs text-gray-400 mt-0.5">{bill.date}</p>
-                                                    </div>
-                                                    <p className="font-bold text-blue-600">{formatCurrency(bill.total)}</p>
-                                                </div>
-                                                <div className="mt-2">
-                                                    <p className="text-xs text-gray-500">Items ({bill.items?.length || 0})</p>
-                                                    <div className="flex flex-wrap gap-1 mt-1">
-                                                        {bill.items?.slice(0, 3).map((item, idx) => (
-                                                            <span key={idx} className="text-xs bg-gray-100 px-2 py-0.5 rounded">
-                                                                {item.name} x{item.qty}
-                                                            </span>
-                                                        ))}
-                                                        {bill.items?.length > 3 && (
-                                                            <span className="text-xs text-gray-400">+{bill.items.length - 3} more</span>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                                <div className="mt-2 pt-2 border-t border-gray-50">
-                                                    <span className="text-xs text-gray-400">🏪 {getShopName(bill.shopId)}</span>
-                                                    <span className="text-xs text-gray-400 ml-3">💳 {bill.paymentMethod?.toUpperCase() || 'CASH'}</span>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                );
-                            })()
-                        )}
-                    </div>
-                </div>
-            </div>
+      {/* TOTAL CUSTOMERS */}
 
-            {/* Quick Stats Footer */}
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-3">
-                <p className="text-xs text-blue-700 text-center">
-                    💡 <strong>Note:</strong> Total customer count: {customers.length} | 
-                    Total bills in system: {bills.length} | 
-                    Filter by shop to see specific location purchases
-                </p>
-            </div>
+      <div className="
+        bg-white
+        border
+        border-slate-200
+        p-5
+        shadow-[0_10px_30px_rgba(15,23,42,0.04)]
+        relative
+        overflow-hidden
+      ">
+
+        <div className="
+          absolute
+          top-0
+          right-0
+          w-40
+          h-40
+          bg-blue-50
+          blur-3xl
+          rounded-full
+        " />
+
+        <div className="relative">
+
+          <div className="
+            w-12
+            h-12
+            rounded-2xl
+            bg-blue-50
+            border
+            border-blue-100
+            flex
+            items-center
+            justify-center
+          ">
+            <Users
+              size={22}
+              className="text-blue-500"
+            />
+          </div>
+
+          <p className="
+            mt-5
+            text-[11px]
+            uppercase
+            tracking-[0.14em]
+            text-slate-400
+            font-[700]
+          ">
+            Total Customers
+          </p>
+
+          <h2 className="
+            mt-2
+            text-[34px]
+            leading-none
+            font-[900]
+            tracking-tight
+            text-[#111827]
+          ">
+            {stats.totalCustomers}
+          </h2>
+
+          <p className="
+            mt-2
+            text-sm
+            text-slate-500
+          ">
+            Registered customer profiles
+          </p>
         </div>
-    );
+      </div>
+
+      {/* ACTIVE */}
+
+      <div className="
+        bg-white
+        border
+        border-slate-200
+        p-5
+        shadow-[0_10px_30px_rgba(15,23,42,0.04)]
+        relative
+        overflow-hidden
+      ">
+
+        <div className="
+          absolute
+          top-0
+          right-0
+          w-40
+          h-40
+          bg-emerald-50
+          blur-3xl
+          rounded-full
+        " />
+
+        <div className="relative">
+
+          <div className="
+            w-12
+            h-12
+            rounded-2xl
+            bg-[#17C4BB] text-[#17C4BB] bg-opacity-20
+            border
+            border-[#17C4BB] border-opacity-30
+            flex
+            items-center
+            justify-center
+          ">
+            <Activity
+              size={22}
+              className="text-emerald-500"
+            />
+          </div>
+
+          <p className="
+            mt-5
+            text-[11px]
+            uppercase
+            tracking-[0.14em]
+            text-slate-400
+            font-[700]
+          ">
+            Active Customers
+          </p>
+
+          <h2 className="
+            mt-2
+            text-[34px]
+            leading-none
+            font-[900]
+            tracking-tight
+            text-[#111827]
+          ">
+            {stats.activeCustomers}
+          </h2>
+
+          <p className="
+            mt-2
+            text-sm
+            text-slate-500
+          ">
+            Active in last 30 days
+          </p>
+        </div>
+      </div>
+
+      {/* REVENUE */}
+
+      <div className="
+        p-5
+        relative
+        border border-slate-200
+         bg-white
+        overflow-hidden
+      ">
+
+        <div className="
+          absolute
+          top-0
+          right-0
+          w-52
+          h-52
+          blur-3xl
+          rounded-full
+        " />
+
+        <div className="relative">
+
+          <div className="
+            w-12
+            h-12
+            rounded-2xl
+            bg-white/10
+            border
+            border-zinc-200
+            flex
+            items-center
+            justify-center
+          ">
+            <TrendingUp
+              size={22}
+              className="text-red-400"
+            />
+          </div>
+
+          <p className="
+            mt-5
+            text-[11px]
+            uppercase
+            tracking-[0.14em]
+            text-slate-500
+            font-[700]
+          ">
+            Total Revenue
+          </p>
+
+          <h2 className="
+            mt-2
+            text-[34px]
+            leading-none
+            font-[900]
+            tracking-tight
+            text-zinc-900
+          ">
+            {formatCurrency(stats.totalRevenue)}
+          </h2>
+
+          <p className="
+            mt-2
+            text-sm
+            text-slate-800
+          ">
+            Customer generated revenue
+          </p>
+        </div>
+      </div>
+    </div>
+
+    {/* ====================================================== */}
+    {/* SEARCH + FILTER */}
+    {/* ====================================================== */}
+
+    <div className="
+      bg-white
+      border
+      border-slate-200
+      p-5
+      shadow-[0_10px_30px_rgba(15,23,42,0.04)]
+    ">
+
+      <div className="
+        flex
+        items-center
+        gap-4
+      ">
+
+        {/* SEARCH */}
+
+        <div className="
+          flex-1
+          relative
+        ">
+
+          <Search
+            size={18}
+            className="
+              absolute
+              left-4
+              top-1/2
+              -translate-y-1/2
+              text-slate-400
+            "
+          />
+
+          <input
+            type="text"
+            placeholder="Search customers by name or mobile..."
+            value={searchTerm}
+            onChange={(e) =>
+              setSearchTerm(e.target.value)
+            }
+            className="
+              w-full
+              h-12
+              rounded-2xl
+              border
+              border-slate-200
+              bg-[#fbfbfc]
+              pl-12
+              pr-4
+              text-sm
+              text-[#111827]
+              placeholder:text-slate-400
+              outline-none
+              focus:border-red-300
+              focus:bg-white
+              transition-all
+            "
+          />
+        </div>
+
+        {/* FILTER */}
+
+        <select
+          value={selectedShop}
+          onChange={(e) =>
+            setSelectedShop(
+              e.target.value
+            )
+          }
+          className="
+            h-12
+            min-w-[180px]
+            rounded-2xl
+            border
+            border-slate-200
+            bg-[#fbfbfc]
+            px-4
+            text-sm
+            font-[600]
+            text-slate-700
+            outline-none
+            focus:border-red-300
+          "
+        >
+
+          <option value="all">
+            All Shops
+          </option>
+
+          {shops.map(shop => (
+
+            <option
+              key={shop.id}
+              value={shop.id}
+            >
+              {shop.name}
+            </option>
+          ))}
+        </select>
+      </div>
+    </div>
+
+    {/* ====================================================== */}
+    {/* MAIN GRID */}
+    {/* ====================================================== */}
+
+    <div className="
+      grid
+      grid-cols-12
+      gap-5
+    ">
+
+      {/* ====================================================== */}
+      {/* CUSTOMER LIST */}
+      {/* ====================================================== */}
+
+      <div className="
+        col-span-7
+        bg-white
+        border
+        border-slate-200
+        overflow-hidden
+        shadow-[0_10px_30px_rgba(15,23,42,0.04)]
+      ">
+
+        {/* HEADER */}
+
+        <div className="
+          px-6
+          py-5
+          border-b
+          border-slate-200
+          flex
+          items-center
+          justify-between
+        ">
+
+          <div>
+
+            <h3 className="
+              text-[20px]
+              font-[800]
+              tracking-tight
+              text-[#111827]
+            ">
+              Customer Directory
+            </h3>
+
+            <p className="
+              mt-1
+              text-sm
+              text-slate-500
+            ">
+              Manage customer profiles & activity
+            </p>
+          </div>
+
+          <div className="
+            px-3
+            py-2
+            rounded-2xl
+            bg-red-50
+            border
+            border-red-100
+            text-sm
+            font-[700]
+            text-red-500
+          ">
+            {filteredCustomers.length} Customers
+          </div>
+        </div>
+
+        {/* LIST */}
+
+        <div className="
+          max-h-[650px]
+          overflow-y-auto
+        ">
+
+          {filteredCustomers.length === 0 ? (
+
+            <div className="
+              py-24
+              text-center
+            ">
+
+              <Users
+                size={42}
+                className="
+                  mx-auto
+                  text-slate-300
+                "
+              />
+
+              <p className="
+                mt-4
+                text-sm
+                text-slate-500
+              ">
+                No customers found
+              </p>
+            </div>
+
+          ) : (
+
+            <div className="
+              divide-y
+              divide-slate-100
+            ">
+
+              {filteredCustomers.map(c => {
+
+                const isSelected =
+                  selectedCustomer?.mobile === c.mobile;
+
+                const totalSpent =
+                  getTotalSpent(c.mobile);
+
+                return (
+
+                  <div
+                    key={c.id || c.mobile}
+                    onClick={() =>
+                      setSelectedCustomer(c)
+                    }
+                    className={`
+                      px-6
+                      py-5
+                      cursor-pointer
+                      transition-all
+                      hover:bg-[#fcfcfd]
+
+                      ${
+                        isSelected
+
+                          ? `
+                            bg-red-50/50
+                            border-l-[3px]
+                            border-red-500
+                          `
+
+                          : ''
+                      }
+                    `}
+                  >
+
+                    <div className="
+                      flex
+                      items-start
+                      justify-between
+                      gap-4
+                    ">
+
+                      {/* LEFT */}
+
+                      <div className="flex-1">
+
+                        <div className="
+                          flex
+                          items-center
+                          gap-3
+                        ">
+
+                          {/* AVATAR */}
+
+                          <div className="
+                            w-12
+                            h-12
+                            bg-[#111827]
+                            text-white
+                            flex
+                            items-center
+                            justify-center
+                            text-sm
+                            font-[800]
+                            shrink-0
+                          ">
+                            {c.name?.charAt(0)}
+                          </div>
+
+                          <div>
+
+                            <p className="
+                              text-sm
+                              font-[800]
+                              text-[#111827]
+                            ">
+                              {c.name}
+                            </p>
+
+                            <p className="
+                              mt-1
+                              text-sm
+                              text-slate-500
+                            ">
+                              {c.mobile}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* BOTTOM */}
+
+                        <div className="
+                          flex
+                          items-center
+                          gap-3
+                          mt-4
+                        ">
+
+                          <div className="
+                            px-3
+                            py-1.5
+                            rounded-xl
+                            bg-slate-100
+                            text-[11px]
+                            font-[700]
+                            text-slate-600
+                          ">
+                            {getCustomerBills(c.mobile).length} Orders
+                          </div>
+
+                          <div className="
+                            px-3
+                            py-1.5
+                            rounded-xl
+                            bg-blue-50
+                            text-[11px]
+                            font-[700]
+                            text-blue-600
+                          ">
+                            Last: {c.lastPurchase}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* RIGHT */}
+
+                      <div className="text-right">
+
+                        <p className="
+                          text-[22px]
+                          font-[900]
+                          tracking-tight
+                          text-[#111827]
+                        ">
+                          {formatCurrency(totalSpent)}
+                        </p>
+
+                        <p className="
+                          mt-1
+                          text-xs
+                          text-slate-400
+                        ">
+                          Total Spent
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ====================================================== */}
+      {/* HISTORY */}
+      {/* ====================================================== */}
+
+      <div className="
+        col-span-5
+        bg-white
+        border
+        border-slate-200
+        overflow-hidden
+        shadow-[0_10px_30px_rgba(15,23,42,0.04)]
+      ">
+
+        {/* HEADER */}
+
+        <div className="
+          px-6
+          py-5
+          border-b
+          border-slate-200
+        ">
+
+          <h3 className="
+            text-[20px]
+            font-[800]
+            tracking-tight
+            text-[#111827]
+          ">
+            Purchase History
+          </h3>
+
+          {selectedCustomer ? (
+
+            <p className="
+              mt-1
+              text-sm
+              text-slate-500
+            ">
+              {selectedCustomer.name}
+              {" • "}
+              {selectedCustomer.mobile}
+            </p>
+
+          ) : (
+
+            <p className="
+              mt-1
+              text-sm
+              text-slate-500
+            ">
+              Select customer to view purchases
+            </p>
+          )}
+        </div>
+
+        {/* CONTENT */}
+
+        <div className="
+          max-h-[650px]
+          overflow-y-auto
+          p-5
+        ">
+
+          {!selectedCustomer ? (
+
+            <div className="
+              h-[500px]
+              flex
+              flex-col
+              items-center
+              justify-center
+              text-center
+            ">
+
+              <Receipt
+                size={44}
+                className="text-slate-300"
+              />
+
+              <p className="
+                mt-4
+                text-sm
+                text-slate-500
+              ">
+                Select a customer to view invoices
+              </p>
+            </div>
+
+          ) : (() => {
+
+            const customerBills =
+              getCustomerBills(
+                selectedCustomer.mobile
+              );
+
+            if (customerBills.length === 0) {
+
+              return (
+
+                <div className="
+                  h-[500px]
+                  flex
+                  items-center
+                  justify-center
+                ">
+
+                  <p className="
+                    text-sm
+                    text-slate-500
+                  ">
+                    No purchases yet
+                  </p>
+                </div>
+              );
+            }
+
+            return (
+
+              <div className="space-y-4">
+
+                {customerBills.map(bill => (
+
+                  <div
+                    key={bill.id}
+                    className="
+                      rounded-[24px]
+                      border
+                      border-slate-200
+                      bg-white
+                      p-5
+                      transition-all
+                      hover:shadow-md
+                    "
+                  >
+
+                    {/* TOP */}
+
+                    <div className="
+                      flex
+                      items-start
+                      justify-between
+                    ">
+
+                      <div>
+
+                        <div className="
+                          inline-flex
+                          items-center
+                          rounded-xl
+                          bg-[#111827]
+                          px-3
+                          py-2
+                          text-[11px]
+                          font-[700]
+                          tracking-wide
+                          text-white
+                        ">
+                          {bill.billNumber}
+                        </div>
+
+                        <p className="
+                          mt-3
+                          text-sm
+                          text-slate-500
+                        ">
+                          {bill.date}
+                        </p>
+                      </div>
+
+                      <div className="text-right">
+
+                        <p className="
+                          text-[24px]
+                          font-[900]
+                          tracking-tight
+                          text-[#111827]
+                        ">
+                          {formatCurrency(bill.total)}
+                        </p>
+
+                        <p className="
+                          mt-1
+                          text-xs
+                          text-slate-400
+                        ">
+                          Total Amount
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* ITEMS */}
+
+                    <div className="
+                      mt-5
+                      flex
+                      flex-wrap
+                      gap-2
+                    ">
+
+                      {bill.items?.slice(0, 3).map((item, idx) => (
+
+                        <div
+                          key={idx}
+                          className="
+                            px-3
+                            py-1.5
+                            rounded-xl
+                            bg-slate-100
+                            text-xs
+                            font-[600]
+                            text-slate-600
+                          "
+                        >
+                          {item.name} × {item.qty}
+                        </div>
+                      ))}
+
+                      {bill.items?.length > 3 && (
+
+                        <div className="
+                          px-3
+                          py-1.5
+                          rounded-xl
+                          bg-red-50
+                          text-xs
+                          font-[700]
+                          text-red-500
+                        ">
+                          +{bill.items.length - 3} more
+                        </div>
+                      )}
+                    </div>
+
+                    {/* FOOTER */}
+
+                    <div className="
+                      mt-5
+                      pt-4
+                      border-t
+                      border-slate-100
+                      flex
+                      items-center
+                      justify-between
+                    ">
+
+                      <p className="
+                        text-xs
+                        text-slate-400
+                      ">
+                        {getShopName(bill.shopId)}
+                      </p>
+
+                      <div
+                        className={`
+                          px-3
+                          py-1.5
+                          rounded-full
+                          text-[11px]
+                          font-[700]
+
+                          ${
+                            bill.paymentMethod === 'cash'
+
+                              ? `
+                                bg-slate-100
+                                text-slate-700
+                              `
+
+                              : bill.paymentMethod === 'upi'
+
+                              ? `
+                                bg-blue-50
+                                text-blue-600
+                              `
+
+                              : `
+                                bg-purple-50
+                                text-purple-600
+                              `
+                          }
+                        `}
+                      >
+                        {bill.paymentMethod?.toUpperCase()}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+        </div>
+      </div>
+    </div>
+  </div>
+);
 };
 
 export default CustomersTab;

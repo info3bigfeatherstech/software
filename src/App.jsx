@@ -5,6 +5,8 @@ import SideBarDashboard from "./Components/SideBarDashboard/SideBarDashboard";
 import LoginPage from "./LOGIN_SEGMENT/LoginPage";
 import ProtectedRoute from "./LOGIN_SEGMENT/ProtectedRoute";
 import { useRefreshTokenMutation } from "./REDUX_FEATURES/REDUX_SLICES/Login_Api/authApi";
+import Companies from "./Components/Companies-popup";
+import CompanyDetails from "./Components/CompanyDetails";
 import {
   clearCredentials,
   setAuthChecked,
@@ -95,6 +97,8 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route path="/companies-popup" element={<Companies />} />
+        <Route path="/company-details" element={<CompanyDetails />} />
         <Route
           path="*"
           element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />}

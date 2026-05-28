@@ -1,4 +1,5 @@
 // src/Components/TABS/SALES/WholesaleTab.jsx
+import { BadgeIndianRupee, Users, Wallet } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 
 const STORAGE_KEYS = {
@@ -46,8 +47,8 @@ const WholesaleTab = () => {
     const [showOrderSummary, setShowOrderSummary] = useState(false);
     const [orders, setOrders] = useState([]);
     const [activeTab, setActiveTab] = useState('new_order'); // new_order, customers, orders
-    const [searchTerm, setSearchTerm] = useState('');
-    
+const [customerSearch, setCustomerSearch] = useState('');
+const [productSearch, setProductSearch] = useState('');
     // Customer form data
     const [customerForm, setCustomerForm] = useState({
         name: '',
@@ -63,7 +64,7 @@ const WholesaleTab = () => {
         const allShops = getData(STORAGE_KEYS.SHOPS, []);
         const allWholesaleCustomers = getData(STORAGE_KEYS.CUSTOMERS, INITIAL_WHOLESALE_CUSTOMERS);
         const allOrders = getData(STORAGE_KEYS.WHOLESALE_ORDERS, []);
-        
+
         setProducts(allProducts.filter(p => p.shopId === selectedShop));
         setShops(allShops);
         setWholesaleCustomers(allWholesaleCustomers.filter(c => c.id?.startsWith('WH-')));
@@ -74,10 +75,10 @@ const WholesaleTab = () => {
     const addToCart = (product) => {
         const existing = cart.find(c => c.productId === product.id);
         const wholesalePrice = product.wholesale || product.retail * 0.85;
-        
+
         if (existing) {
-            setCart(cart.map(c => 
-                c.productId === product.id 
+            setCart(cart.map(c =>
+                c.productId === product.id
                     ? { ...c, quantity: c.quantity + 1, total: (c.quantity + 1) * wholesalePrice }
                     : c
             ));
@@ -101,8 +102,8 @@ const WholesaleTab = () => {
             removeFromCart(productId);
             return;
         }
-        setCart(cart.map(c => 
-            c.productId === productId 
+        setCart(cart.map(c =>
+            c.productId === productId
                 ? { ...c, quantity: parseInt(newQuantity), total: parseInt(newQuantity) * c.price }
                 : c
         ));
@@ -148,8 +149,8 @@ const WholesaleTab = () => {
 
         // Update customer outstanding
         const orderTotal = calculateTotal();
-        const updatedCustomers = allCustomers.map(c => 
-            c.id === selectedCustomer.id 
+        const updatedCustomers = allCustomers.map(c =>
+            c.id === selectedCustomer.id
                 ? { ...c, outstanding: (c.outstanding || 0) + orderTotal }
                 : c
         );
@@ -177,16 +178,16 @@ const WholesaleTab = () => {
             status: 'pending',
             paymentStatus: 'unpaid'
         };
-        
+
         saveData(STORAGE_KEYS.WHOLESALE_ORDERS, [...allOrders, newOrder]);
-        
+
         // Reset
         setCart([]);
         setSelectedCustomer(null);
         setShowOrderSummary(false);
         setProducts(updatedProducts.filter(p => p.shopId === selectedShop));
         setOrders([...allOrders, newOrder]);
-        
+
         alert(`✅ Wholesale Order Created!\n\nOrder #: ${newOrder.orderNumber}\nCustomer: ${selectedCustomer.name}\nTotal: ₹${orderTotal.toLocaleString()}\n\nStock updated. Order saved.`);
     };
 
@@ -196,7 +197,7 @@ const WholesaleTab = () => {
             alert('❌ Please fill customer name and mobile');
             return;
         }
-        
+
         const allCustomers = getData(STORAGE_KEYS.CUSTOMERS, INITIAL_WHOLESALE_CUSTOMERS);
         const newCustomer = {
             id: `WH-${Date.now()}`,
@@ -205,7 +206,7 @@ const WholesaleTab = () => {
             creditLimit: parseInt(customerForm.creditLimit) || 0,
             createdAt: new Date().toISOString()
         };
-        
+
         saveData(STORAGE_KEYS.CUSTOMERS, [...allCustomers, newCustomer]);
         setWholesaleCustomers([...wholesaleCustomers, newCustomer]);
         setCustomerForm({ name: '', mobile: '', gst: '', address: '', creditLimit: '', outstanding: '0' });
@@ -216,48 +217,52 @@ const WholesaleTab = () => {
     // Update payment status
     const updatePaymentStatus = (orderId, status) => {
         const allOrders = getData(STORAGE_KEYS.WHOLESALE_ORDERS, []);
-        const updatedOrders = allOrders.map(o => 
+        const updatedOrders = allOrders.map(o =>
             o.id === orderId ? { ...o, paymentStatus: status, paidAt: status === 'paid' ? new Date().toISOString() : null } : o
         );
         saveData(STORAGE_KEYS.WHOLESALE_ORDERS, updatedOrders);
         setOrders(updatedOrders);
-        
+
         // Update customer outstanding
         const order = updatedOrders.find(o => o.id === orderId);
         if (status === 'paid') {
             const allCustomers = getData(STORAGE_KEYS.CUSTOMERS, INITIAL_WHOLESALE_CUSTOMERS);
-            const updatedCustomers = allCustomers.map(c => 
-                c.id === order.customerId 
+            const updatedCustomers = allCustomers.map(c =>
+                c.id === order.customerId
                     ? { ...c, outstanding: Math.max(0, (c.outstanding || 0) - order.total) }
                     : c
             );
             saveData(STORAGE_KEYS.CUSTOMERS, updatedCustomers);
             setWholesaleCustomers(updatedCustomers.filter(c => c.id?.startsWith('WH-')));
         }
-        
+
         alert(`✅ Payment status updated to ${status.toUpperCase()}`);
     };
 
     // Filter products
-    const filteredProducts = products.filter(p => 
-        p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        p.barcode.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+   const filteredProducts = products.filter(product =>
+    product.name
+        .toLowerCase()
+        .includes(productSearch.toLowerCase())
+);
 
     // Filter customers
-    const filteredCustomers = wholesaleCustomers.filter(c => 
-        c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        c.mobile.includes(searchTerm)
-    );
+  const filteredCustomers = wholesaleCustomers.filter(customer =>
+    customer.name
+        .toLowerCase()
+        .includes(customerSearch.toLowerCase()) ||
+
+    customer.mobile.includes(customerSearch)
+);
 
     return (
         <div className="space-y-6">
             {/* Header */}
             <div className="flex justify-between items-center">
                 <div className="flex items-center gap-4">
-                    <h2 className="text-xl font-bold text-gray-800">� wholesale Wholesale Management</h2>
-                    <select 
-                        value={selectedShop} 
+                    <h2 className="text-xl font-bold text-gray-800">Wholesale Management</h2>
+                    <select
+                        value={selectedShop}
                         onChange={(e) => setSelectedShop(e.target.value)}
                         className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white text-gray-700"
                     >
@@ -270,23 +275,23 @@ const WholesaleTab = () => {
 
             {/* Tab Bar */}
             <div className="flex gap-1 border-b border-gray-200">
-                <button 
+                <button
                     onClick={() => { setActiveTab('new_order'); setCart([]); setSelectedCustomer(null); }}
-                    className={`px-6 py-2.5 text-sm font-medium transition-all ${activeTab === 'new_order' ? 'text-green-600 border-b-2 border-green-600' : 'text-gray-500 hover:text-gray-700'}`}
+                    className={`px-6 py-2.5 text-sm font-medium transition-all ${activeTab === 'new_order' ? 'text-[#17C4BB] border-b-2 border-[#17C4BB]' : 'text-gray-500 hover:text-gray-700'}`}
                 >
-                    🆕 New Wholesale Order
+                    New Wholesale Order
                 </button>
-                <button 
+                <button
                     onClick={() => setActiveTab('customers')}
-                    className={`px-6 py-2.5 text-sm font-medium transition-all ${activeTab === 'customers' ? 'text-green-600 border-b-2 border-green-600' : 'text-gray-500 hover:text-gray-700'}`}
+                    className={`px-6 py-2.5 text-sm font-medium transition-all ${activeTab === 'customers' ? 'text-[#17C4BB] border-b-2 border-[#17C4BB]' : 'text-gray-500 hover:text-gray-700'}`}
                 >
-                    👥 Wholesale Customers
+                    Wholesale Customers
                 </button>
-                <button 
+                <button
                     onClick={() => setActiveTab('orders')}
-                    className={`px-6 py-2.5 text-sm font-medium transition-all ${activeTab === 'orders' ? 'text-green-600 border-b-2 border-green-600' : 'text-gray-500 hover:text-gray-700'}`}
+                    className={`px-6 py-2.5 text-sm font-medium transition-all ${activeTab === 'orders' ? 'text-[#17C4BB] border-b-2 border-[#17C4BB]' : 'text-gray-500 hover:text-gray-700'}`}
                 >
-                    📦 Order History
+                    Order History
                 </button>
             </div>
 
@@ -296,37 +301,36 @@ const WholesaleTab = () => {
                     {/* Left: Customer Selection + Products */}
                     <div className="space-y-4">
                         {/* Customer Selection */}
-                        <div className="bg-white border border-gray-200 rounded-xl p-4">
+                        <div className="bg-white border border-gray-200 p-4">
                             <div className="flex justify-between items-center mb-3">
                                 <h3 className="font-semibold text-gray-800 flex items-center gap-2">
-                                    <span className="text-green-600">🏢</span> Select Wholesale Customer
+                                    <span className="text-[#17C4BB]"></span> Select Wholesale Customer
                                 </h3>
-                                <button 
+                                <button
                                     onClick={() => setShowCustomerForm(true)}
-                                    className="text-sm text-green-600 hover:text-green-700 font-medium"
+                                    className="text-sm text-[#17C4BB] hover:text-green-700 font-medium"
                                 >
                                     + New Customer
                                 </button>
                             </div>
-                            
+
                             <div className="relative">
-                                <input 
-                                    type="text" 
-                                    placeholder="Search customer by name or mobile..." 
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-3"
+                                <input
+                                    type="text"
+                                    placeholder="Search customer by name or mobile..."
+                                    value={customerSearch}
+                                    onChange={(e) => setCustomerSearch(e.target.value)}
+                                    className="w-full px-3 py-2 outline-none border border-gray-300 rounded-lg text-sm text-gray-700 mb-3"
                                 />
                                 <div className="max-h-48 overflow-y-auto space-y-2">
                                     {filteredCustomers.map(customer => (
-                                        <div 
+                                        <div
                                             key={customer.id}
                                             onClick={() => setSelectedCustomer(customer)}
-                                            className={`p-3 border rounded-lg cursor-pointer transition-all ${
-                                                selectedCustomer?.id === customer.id 
-                                                    ? 'bg-green-50 border-green-300 shadow-sm' 
+                                            className={`p-3 border rounded-lg cursor-pointer transition-all ${selectedCustomer?.id === customer.id
+                                                    ? 'bg-green-50 border-green-300 shadow-sm'
                                                     : 'hover:bg-gray-50'
-                                            }`}
+                                                }`}
                                         >
                                             <div className="flex justify-between">
                                                 <p className="font-medium text-gray-800">{customer.name}</p>
@@ -348,13 +352,13 @@ const WholesaleTab = () => {
                         {/* Products */}
                         <div className="bg-white border border-gray-200 rounded-xl p-4">
                             <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                                <span className="text-blue-600">📦</span> Products (Wholesale Price)
+                                <span className="text-blue-600"></span> Products (Wholesale Price)
                             </h3>
-                            <input 
-                                type="text" 
-                                placeholder="🔍 Search products..." 
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
+                            <input
+                                type="text"
+                                placeholder="Search products..."
+                                value={productSearch}
+                                onChange={(e) => setProductSearch(e.target.value)}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-3"
                             />
                             <div className="grid grid-cols-2 gap-2 max-h-96 overflow-y-auto">
@@ -363,15 +367,14 @@ const WholesaleTab = () => {
                                         key={product.id}
                                         onClick={() => addToCart(product)}
                                         disabled={product.stock === 0}
-                                        className={`text-left p-3 rounded-lg border transition-all ${
-                                            product.stock === 0 
-                                                ? 'opacity-50 bg-gray-100 cursor-not-allowed' 
+                                        className={`text-left p-3 rounded-lg border transition-all ${product.stock === 0
+                                                ? 'opacity-50 bg-gray-100 cursor-not-allowed'
                                                 : 'hover:bg-green-50 hover:border-green-300 cursor-pointer'
-                                        }`}
+                                            }`}
                                     >
                                         <p className="font-medium text-sm text-gray-800">{product.name}</p>
                                         <p className="text-xs text-gray-500 mt-1">MRP: <span className="line-through text-red-400">₹{product.mrp}</span></p>
-                                        <p className="text-sm font-bold text-green-600">Wholesale: ₹{product.wholesale || (product.retail * 0.85).toFixed(2)}</p>
+                                        <p className="text-sm font-bold text-[#17C4BB]">Wholesale: ₹{product.wholesale || (product.retail * 0.85).toFixed(2)}</p>
                                         <p className={`text-xs mt-1 ${product.stock <= product.lowStockAlert ? 'text-red-500' : 'text-gray-500'}`}>
                                             Stock: {product.stock} {product.unit}
                                         </p>
@@ -382,15 +385,15 @@ const WholesaleTab = () => {
                     </div>
 
                     {/* Right: Order Cart */}
-                    <div className="bg-white text-gray-700 border border-gray-200 rounded-xl p-4 shadow-sm">
+                    <div className="bg-white text-gray-700 border border-gray-200 p-4 shadow-sm">
                         <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                            <span className="text-green-600">🛒</span> Wholesale Order Cart
+                            <span className="text-[#17C4BB]"></span> Wholesale Order Cart
                         </h3>
 
                         {selectedCustomer && (
                             <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
                                 <p className="text-sm font-medium text-green-800">Selling to: {selectedCustomer.name}</p>
-                                <p className="text-xs text-green-600">Credit Available: ₹{((selectedCustomer.creditLimit || 0) - (selectedCustomer.outstanding || 0)).toLocaleString()}</p>
+                                <p className="text-xs text-[#17C4BB]">Credit Available: ₹{((selectedCustomer.creditLimit || 0) - (selectedCustomer.outstanding || 0)).toLocaleString()}</p>
                             </div>
                         )}
 
@@ -398,7 +401,7 @@ const WholesaleTab = () => {
                         <div className="max-h-96 overflow-y-auto mb-4">
                             {cart.length === 0 ? (
                                 <div className="text-center text-gray-400 py-12">
-                                    <p className="text-4xl mb-2">🛒</p>
+                                    <p className="text-4xl mb-2"></p>
                                     <p className="text-sm">No items in order</p>
                                     <p className="text-xs">Select products from the left panel</p>
                                 </div>
@@ -422,12 +425,12 @@ const WholesaleTab = () => {
                                                 </td>
                                                 <td className="px-3 py-2">
                                                     <div className="flex items-center justify-center gap-1">
-                                                        <button 
+                                                        <button
                                                             onClick={() => updateQuantity(item.productId, item.quantity - 1)}
                                                             className="w-6 h-6 bg-gray-100 rounded hover:bg-gray-200"
                                                         >-</button>
                                                         <span className="w-8 text-center text-sm">{item.quantity}</span>
-                                                        <button 
+                                                        <button
                                                             onClick={() => updateQuantity(item.productId, item.quantity + 1)}
                                                             className="w-6 h-6 bg-gray-100 rounded hover:bg-gray-200"
                                                         >+</button>
@@ -459,14 +462,14 @@ const WholesaleTab = () => {
                                     </div>
                                     <div className="flex justify-between font-bold text-lg pt-2 border-t">
                                         <span>ORDER TOTAL:</span>
-                                        <span className="text-green-600">₹{calculateTotal().toLocaleString()}</span>
+                                        <span className="text-[#17C4BB]">₹{calculateTotal().toLocaleString()}</span>
                                     </div>
                                 </div>
 
                                 <div className="mt-4">
-                                    <button 
+                                    <button
                                         onClick={saveWholesaleOrder}
-                                        className="w-full py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition"
+                                        className="w-full py-3 bg-[#17C4BB] text-white rounded-lg font-semibold hover:bg-green-700 transition"
                                     >
                                         💾 Create Wholesale Order & Deduct Stock
                                     </button>
@@ -481,25 +484,281 @@ const WholesaleTab = () => {
             {activeTab === 'customers' && (
                 <div className="space-y-4">
                     {/* Customer Stats */}
-                    <div className="grid grid-cols-3 gap-4">
-                        <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-4 text-white">
-                            <p className="text-xs opacity-80">Total Wholesale Customers</p>
-                            <p className="text-2xl font-bold">{wholesaleCustomers.length}</p>
+                    <div className="
+  grid
+  grid-cols-3
+  gap-5
+">
+
+                        {/* ====================================================== */}
+                        {/* TOTAL CUSTOMERS */}
+                        {/* ====================================================== */}
+
+                        <div className="
+    bg-white
+    border
+    border-slate-200
+    p-5
+    shadow-[0_10px_30px_rgba(15,23,42,0.04)]
+    relative
+    overflow-hidden
+  ">
+
+                            {/* GLOW */}
+
+                            <div className="
+      absolute
+      top-0
+      right-0
+      w-40
+      h-40
+      bg-emerald-50
+      blur-3xl
+      rounded-full
+    " />
+
+                            <div className="relative">
+
+                                {/* ICON */}
+
+                                <div className="
+        w-12
+        h-12
+        rounded-2xl
+        bg-emerald-50
+        border
+        border-emerald-100
+        flex
+        items-center
+        justify-center
+      ">
+
+                                    <Users
+                                        size={22}
+                                        className="text-emerald-500"
+                                    />
+                                </div>
+
+                                {/* CONTENT */}
+
+                                <p className="
+        mt-5
+        text-[11px]
+        uppercase
+        tracking-[0.14em]
+        text-slate-400
+        font-[700]
+      ">
+                                    Wholesale Customers
+                                </p>
+
+                                <h2 className="
+        mt-2
+        text-[34px]
+        leading-none
+        font-[900]
+        tracking-tight
+        text-[#111827]
+      ">
+                                    {wholesaleCustomers.length}
+                                </h2>
+
+                                <p className="
+        mt-2
+        text-sm
+        text-slate-500
+      ">
+                                    Registered wholesale accounts
+                                </p>
+                            </div>
                         </div>
-                        <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl p-4 text-white">
-                            <p className="text-xs opacity-80">Total Outstanding</p>
-                            <p className="text-2xl font-bold">₹{wholesaleCustomers.reduce((s, c) => s + (c.outstanding || 0), 0).toLocaleString()}</p>
+
+                        {/* ====================================================== */}
+                        {/* OUTSTANDING */}
+                        {/* ====================================================== */}
+
+                        <div className="
+    bg-white
+    border
+    border-slate-200
+    p-5
+    shadow-[0_10px_30px_rgba(15,23,42,0.04)]
+    relative
+    overflow-hidden
+  ">
+
+                            {/* GLOW */}
+
+                            <div className="
+      absolute
+      top-0
+      right-0
+      w-40
+      h-40
+      bg-orange-50
+      blur-3xl
+      rounded-full
+    " />
+
+                            <div className="relative">
+
+                                {/* ICON */}
+
+                                <div className="
+        w-12
+        h-12
+        rounded-2xl
+        bg-orange-50
+        border
+        border-orange-100
+        flex
+        items-center
+        justify-center
+      ">
+
+                                    <Wallet
+                                        size={22}
+                                        className="text-orange-500"
+                                    />
+                                </div>
+
+                                {/* CONTENT */}
+
+                                <p className="
+        mt-5
+        text-[11px]
+        uppercase
+        tracking-[0.14em]
+        text-slate-400
+        font-[700]
+      ">
+                                    Total Outstanding
+                                </p>
+
+                                <h2 className="
+        mt-2
+        text-[34px]
+        leading-none
+        font-[900]
+        tracking-tight
+        text-[#111827]
+      ">
+                                    ₹
+                                    {
+                                        wholesaleCustomers
+                                            .reduce(
+                                                (s, c) =>
+                                                    s + (c.outstanding || 0),
+                                                0
+                                            )
+                                            .toLocaleString()
+                                    }
+                                </h2>
+
+                                <p className="
+        mt-2
+        text-sm
+        text-slate-500
+      ">
+                                    Pending payment balance
+                                </p>
+                            </div>
                         </div>
-                        <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-4 text-white">
-                            <p className="text-xs opacity-80">Total Credit Limit</p>
-                            <p className="text-2xl font-bold">₹{wholesaleCustomers.reduce((s, c) => s + (c.creditLimit || 0), 0).toLocaleString()}</p>
+
+                        {/* ====================================================== */}
+                        {/* CREDIT LIMIT */}
+                        {/* ====================================================== */}
+
+                        <div className="
+    bg-[#111827]
+    p-5
+    relative
+    overflow-hidden
+  ">
+
+                            {/* GLOW */}
+
+                            <div className="
+      absolute
+      top-0
+      right-0
+      w-52
+      h-52
+      bg-blue-500/10
+      blur-3xl
+      rounded-full
+    " />
+
+                            <div className="relative">
+
+                                {/* ICON */}
+
+                                <div className="
+        w-12
+        h-12
+        rounded-2xl
+        bg-white/10
+        border
+        border-white/10
+        flex
+        items-center
+        justify-center
+      ">
+
+                                    <BadgeIndianRupee
+                                        size={22}
+                                        className="text-blue-400"
+                                    />
+                                </div>
+
+                                {/* CONTENT */}
+
+                                <p className="
+        mt-5
+        text-[11px]
+        uppercase
+        tracking-[0.14em]
+        text-slate-500
+        font-[700]
+      ">
+                                    Total Credit Limit
+                                </p>
+
+                                <h2 className="
+        mt-2
+        text-[34px]
+        leading-none
+        font-[900]
+        tracking-tight
+        text-white
+      ">
+                                    ₹
+                                    {
+                                        wholesaleCustomers
+                                            .reduce(
+                                                (s, c) =>
+                                                    s + (c.creditLimit || 0),
+                                                0
+                                            )
+                                            .toLocaleString()
+                                    }
+                                </h2>
+
+                                <p className="
+        mt-2
+        text-sm
+        text-slate-400
+      ">
+                                    Combined customer credit capacity
+                                </p>
+                            </div>
                         </div>
                     </div>
 
-                    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                    <div className="bg-white border border-gray-200 overflow-hidden">
                         <div className="px-6 py-4 border-b bg-gray-50 flex justify-between items-center">
                             <h3 className="font-semibold text-gray-800">Wholesale Customer Directory</h3>
-                            <button onClick={() => setShowCustomerForm(true)} className="px-3 py-1 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700">+ Add Customer</button>
+                            <button onClick={() => setShowCustomerForm(true)} className="px-3 py-1 bg-[#17C4BB] text-white rounded-lg text-sm hover:bg-green-700">+ Add Customer</button>
                         </div>
                         <div className="overflow-x-auto">
                             <table className="w-full">
@@ -533,7 +792,7 @@ const WholesaleTab = () => {
                                                 <td className="px-6 py-4">
                                                     <div className="w-32">
                                                         <div className="w-full bg-gray-200 rounded-full h-2">
-                                                            <div className={`h-2 rounded-full ${creditUsedPercent > 80 ? 'bg-red-500' : creditUsedPercent > 50 ? 'bg-yellow-500' : 'bg-green-500'}`} style={{width: `${Math.min(creditUsedPercent, 100)}%`}}></div>
+                                                            <div className={`h-2 rounded-full ${creditUsedPercent > 80 ? 'bg-red-500' : creditUsedPercent > 50 ? 'bg-yellow-500' : 'bg-[#17C4BB]'}`} style={{ width: `${Math.min(creditUsedPercent, 100)}%` }}></div>
                                                         </div>
                                                         <p className="text-xs text-gray-400 mt-1">{creditUsedPercent.toFixed(0)}% used</p>
                                                     </div>
@@ -580,21 +839,20 @@ const WholesaleTab = () => {
                                                 <td className="px-6 py-4 text-sm font-medium">{order.customerName}</td>
                                                 <td className="px-6 py-4 text-sm">{order.date}</td>
                                                 <td className="px-6 py-4 text-right">{order.items.reduce((s, i) => s + i.quantity, 0)} units</td>
-                                                <td className="px-6 py-4 text-right font-bold text-green-600">₹{order.total.toLocaleString()}</td>
+                                                <td className="px-6 py-4 text-right font-bold text-[#17C4BB]">₹{order.total.toLocaleString()}</td>
                                                 <td className="px-6 py-4">
-                                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                                        order.paymentStatus === 'paid' ? 'bg-green-100 text-green-700' : 
-                                                        order.paymentStatus === 'partial' ? 'bg-yellow-100 text-yellow-700' : 
-                                                        'bg-red-100 text-red-700'
-                                                    }`}>
+                                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${order.paymentStatus === 'paid' ? 'bg-green-100 text-green-700' :
+                                                            order.paymentStatus === 'partial' ? 'bg-yellow-100 text-yellow-700' :
+                                                                'bg-red-100 text-red-700'
+                                                        }`}>
                                                         {order.paymentStatus === 'paid' ? 'Paid' : order.paymentStatus === 'partial' ? 'Partial' : 'Unpaid'}
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     {order.paymentStatus !== 'paid' && (
-                                                        <button 
+                                                        <button
                                                             onClick={() => updatePaymentStatus(order.id, 'paid')}
-                                                            className="px-3 py-1 bg-green-600 text-white rounded-lg text-xs hover:bg-green-700"
+                                                            className="px-3 py-1 bg-[#17C4BB] text-white rounded-lg text-xs hover:bg-green-700"
                                                         >
                                                             Mark Paid
                                                         </button>
@@ -616,15 +874,15 @@ const WholesaleTab = () => {
                     <div className="bg-white rounded-xl p-6 w-96">
                         <h3 className="font-bold text-gray-800 text-lg mb-4">➕ Add Wholesale Customer</h3>
                         <div className="space-y-3">
-                            <input type="text" placeholder="Company/Business Name *" value={customerForm.name} onChange={(e) => setCustomerForm({...customerForm, name: e.target.value})} className="w-full px-3 py-2 border rounded-lg" />
-                            <input type="text" placeholder="Mobile Number *" value={customerForm.mobile} onChange={(e) => setCustomerForm({...customerForm, mobile: e.target.value})} className="w-full px-3 py-2 border rounded-lg" />
-                            <input type="text" placeholder="GST Number" value={customerForm.gst} onChange={(e) => setCustomerForm({...customerForm, gst: e.target.value})} className="w-full px-3 py-2 border rounded-lg" />
-                            <textarea placeholder="Address" value={customerForm.address} onChange={(e) => setCustomerForm({...customerForm, address: e.target.value})} className="w-full px-3 py-2 border rounded-lg" rows="2"></textarea>
-                            <input type="number" placeholder="Credit Limit (₹)" value={customerForm.creditLimit} onChange={(e) => setCustomerForm({...customerForm, creditLimit: e.target.value})} className="w-full px-3 py-2 border rounded-lg" />
+                            <input type="text" placeholder="Company/Business Name *" value={customerForm.name} onChange={(e) => setCustomerForm({ ...customerForm, name: e.target.value })} className="w-full px-3 py-2 border rounded-lg" />
+                            <input type="text" placeholder="Mobile Number *" value={customerForm.mobile} onChange={(e) => setCustomerForm({ ...customerForm, mobile: e.target.value })} className="w-full px-3 py-2 border rounded-lg" />
+                            <input type="text" placeholder="GST Number" value={customerForm.gst} onChange={(e) => setCustomerForm({ ...customerForm, gst: e.target.value })} className="w-full px-3 py-2 border rounded-lg" />
+                            <textarea placeholder="Address" value={customerForm.address} onChange={(e) => setCustomerForm({ ...customerForm, address: e.target.value })} className="w-full px-3 py-2 border rounded-lg" rows="2"></textarea>
+                            <input type="number" placeholder="Credit Limit (₹)" value={customerForm.creditLimit} onChange={(e) => setCustomerForm({ ...customerForm, creditLimit: e.target.value })} className="w-full px-3 py-2 border rounded-lg" />
                         </div>
                         <div className="flex justify-end gap-3 mt-6">
-                            <button onClick={() => setShowCustomerForm(false)} className="px-4 py-2 border rounded-lg">Cancel</button>
-                            <button onClick={addWholesaleCustomer} className="px-4 py-2 bg-green-600 text-white rounded-lg">Add Customer</button>
+                            <button onClick={() => setShowCustomerForm(false)} className="px-4 py-2 text-gray-700    border rounded-lg">Cancel</button>
+                            <button onClick={addWholesaleCustomer} className="px-4 py-2 bg-[#17C4BB] text-white rounded-lg">Add Customer</button>
                         </div>
                     </div>
                 </div>

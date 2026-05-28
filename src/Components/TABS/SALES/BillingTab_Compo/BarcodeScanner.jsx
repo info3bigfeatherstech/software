@@ -183,13 +183,13 @@ const BarcodeScanner = ({
             placeholder="Type barcode & Enter..." 
             value={barcodeInput} 
             onChange={(e) => setBarcodeInput(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 bg-blue-50 border border-blue-200 rounded-lg font-mono text-blue-900 focus:ring-2 focus:ring-blue-500 shadow-inner"
+            className="w-full pl-10 pr-4 py-3 bg-blue-50 border outline-none rounded-lg font-mono text-blue-900 shadow-inner"
             disabled={disabled || showScanner}
           />
           <button 
             type="submit" 
             disabled={disabled || showScanner} 
-            className="absolute inset-y-0 right-0 px-4 text-sm font-medium text-white bg-blue-600 rounded-r-lg hover:bg-blue-700 disabled:opacity-50"
+            className="absolute inset-y-0 right-0 px-4 text-sm font-medium text-white bg-zinc-800 rounded-r-lg hover:bg-zinc-700 disabled:opacity-50"
           >
             Add
           </button>
@@ -197,10 +197,10 @@ const BarcodeScanner = ({
         
         <button 
           onClick={() => setShowScanner(!showScanner)}
-          className={`w-full py-2 border rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all ${
+          className={`w-full py-2 border rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-all ${
             showScanner 
               ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100' 
-              : 'bg-green-50 text-green-700 border-green-300 hover:bg-green-100'
+              : 'bg-[#17C4BB] text-[#17C4BB] bg-opacity-20 border-green-300 hover:bg-green-100'
           }`}
         >
           <span>📷</span> 

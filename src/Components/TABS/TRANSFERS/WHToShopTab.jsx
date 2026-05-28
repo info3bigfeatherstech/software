@@ -220,7 +220,7 @@ export default function WHToShopTab() {
                     dispatch(setShowForm(!showForm));
                     dispatch(clearFormErrors());
                 }}
-                    className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 cursor-pointer flex items-center gap-2"
+                    className="px-4 py-2 bg-gray-800 text-white text-sm font-medium rounded-lg hover:bg-gray-700 cursor-pointer flex items-center gap-2"
                 >
                     <Plus size={16} /> New Challan
                 </button>

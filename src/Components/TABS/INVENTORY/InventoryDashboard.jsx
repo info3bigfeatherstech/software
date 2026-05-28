@@ -1,46 +1,33 @@
-// TABS/PURCHASE/PurchaseDashboard.jsx
-//
-// Owns the horizontal tab bar for the Purchase section.
-// Reads `ctab` from URL, renders the matching sub-tab component.
-// Add new sub-tabs in purchaseTabRegistry.js only — nothing here changes.
+// InventoryDashboard.jsx
 
 import React, { Suspense } from "react";
 import { useSearchParams } from "react-router-dom";
-import { PURCHASE_TAB_REGISTRY } from "./PURCHASE_COMPO/purchaseTabRegistry";
-import { filterInternalTabsByRole } from "../../../Components/roles";
-import { useSelector } from "react-redux";
+import { INVENTORY_TAB_REGISTRY } from "./inventoryTabRegistry";
 
-const PurchaseTab = () => {
+const InventoryDashboard = () => {
     const [searchParams, setSearchParams] = useSearchParams();
-    const { user } = useSelector((state) => state.auth);
 
-    // Filter tabs based on user role
-    const filteredTabs = filterInternalTabsByRole("purchase", PURCHASE_TAB_REGISTRY);
+    const activeCtab =
+        searchParams.get("ctab") || INVENTORY_TAB_REGISTRY[0]?.id;
 
-    // If no tabs visible, show nothing
-    if (filteredTabs.length === 0) {
-        return (
-            <div className="text-center py-20 text-gray-400 text-sm">
-                No purchase tabs available for your role.
-            </div>
-        );
-    }
-
-    const activeCtab = searchParams.get("ctab") || filteredTabs[0]?.id;
     const activeConfig =
-        filteredTabs.find((t) => t.id === activeCtab) || filteredTabs[0];
+        INVENTORY_TAB_REGISTRY.find((t) => t.id === activeCtab) ||
+        INVENTORY_TAB_REGISTRY[0];
 
     const SubComponent = activeConfig?.component ?? null;
 
     const handleTabClick = (tabId) => {
-        setSearchParams({ tab: "purchase", ctab: tabId });
+        setSearchParams({
+            tab: "inventory",
+            ctab: tabId,
+        });
     };
 
     return (
         <div className="w-full">
-            {/* ── Horizontal tab bar ───────────────────────────────────────────── */}
+
             <div className="flex items-center gap-1 border-b border-gray-200 mb-6">
-                {filteredTabs.map((tab) => {
+                {INVENTORY_TAB_REGISTRY.map((tab) => {
                     const isActive = activeCtab === tab.id;
 
                     return (
@@ -55,7 +42,9 @@ const PurchaseTab = () => {
                         >
                             <svg
                                 className={`w-4 h-4 ${
-                                    isActive ? "text-blue-500" : "text-gray-400"
+                                    isActive
+                                        ? "text-blue-500"
+                                        : "text-gray-400"
                                 }`}
                                 fill="none"
                                 stroke="currentColor"
@@ -75,7 +64,6 @@ const PurchaseTab = () => {
                 })}
             </div>
 
-            {/* ── Sub-tab content ──────────────────────────────────────────────── */}
             <Suspense
                 fallback={
                     <div className="flex items-center justify-center h-64">
@@ -95,4 +83,4 @@ const PurchaseTab = () => {
     );
 };
 
-export default PurchaseTab;
+export default InventoryDashboard;
