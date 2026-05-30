@@ -1,8 +1,17 @@
 // TABS/SETTINGS/VendorsTab.jsx
-import React, { useEffect } from "react";
+
+import React, { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { Plus, Filter, X } from "lucide-react";
+
+import {
+  Plus,
+  Filter,
+  Search,
+  Upload,
+} from "lucide-react";
+
 import { useGetVendorsQuery } from "../../../REDUX_FEATURES/REDUX_SLICES/Vendor_api/vendorApi";
+
 import {
   openAddForm,
   closeAddForm,
@@ -21,16 +30,27 @@ import {
   setPageSize,
   resetFilters,
 } from "../../../REDUX_FEATURES/REDUX_SLICES/Vendor_api/vendorSlice";
+
 import VendorTable from "./VendorTable";
 import VendorAddForm from "./VendorAddForm";
 import VendorEditForm from "./VendorEditForm";
 import VendorDetailsModal from "./VendorDetailsModal";
-import { BUSINESS_TYPES, PAGE_SIZE_OPTIONS } from "../../../REDUX_FEATURES/REDUX_SLICES/Vendor_api/vendorConstants";
+
+import {
+  BUSINESS_TYPES,
+  PAGE_SIZE_OPTIONS,
+} from "../../../REDUX_FEATURES/REDUX_SLICES/Vendor_api/vendorConstants";
+
 import { can } from "../../../Components/roles";
+
 export default function VendorsTab() {
+
   const dispatch = useDispatch();
-  
-  // Redux State
+
+  const [showFilters, setShowFilters] = useState(false);
+
+  // REDUX STATE
+
   const {
     showAddForm,
     showEditForm,
@@ -46,7 +66,8 @@ export default function VendorsTab() {
     pageSize,
   } = useSelector((state) => state.vendor);
 
-  // Fetch vendors with filters
+  // API
+
   const {
     data: vendorsData,
     isLoading,
@@ -64,16 +85,33 @@ export default function VendorsTab() {
 
   const vendors = vendorsData?.vendors || [];
   const meta = vendorsData?.meta;
+
   const totalPages = meta?.totalPages || 1;
   const totalItems = meta?.total || 0;
 
-  // Stats calculations
+  const uniqueCities = [
+    ...new Set(
+      vendors
+        .map((v) => v.city)
+        .filter(Boolean)
+    ),
+  ];
+
+  // STATS
+
   const stats = {
     total: totalItems,
-    active: vendors.filter(v => v.is_active === true).length,
-    outstanding: 0, // Will come from backend if available
-    totalBusiness: 0, // Will come from backend if available
+
+    active: vendors.filter(
+      (v) => v.is_active === true
+    ).length,
+
+    outstanding: 0,
+
+    totalBusiness: 0,
   };
+
+  // HANDLERS
 
   const handleAddSuccess = () => {
     dispatch(closeAddForm());
@@ -88,196 +126,1525 @@ export default function VendorsTab() {
   };
 
   const handleToggleActive = () => {
-    refetch(); // Refresh the list after toggle
+    refetch();
   };
 
-  const uniqueCities = [...new Set(vendors.map(v => v.city).filter(Boolean))];
-
   return (
-    <div className="space-y-5">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+
+    <div className=" bg-[#f4f7fb] min-h-screen font-['satoshi'] -m-4 p-7 space-y-5">
+
+      {/* HEADER */}
+
+      <div
+        className="
+          bg-white
+          border
+          border-[#e8edf5]
+          px-6
+          py-5
+          flex
+          items-center
+          justify-between
+          shadow-[0_1px_2px_rgba(16,24,40,0.04)]
+        "
+      >
+
+        {/* LEFT */}
+
         <div>
-          <h2 className="text-base font-semibold text-gray-800">Vendor Master</h2>
-          <p className="text-xs text-gray-400 mt-0.5">Manage all vendor/supplier records, GSTIN, and outstanding balances</p>
+
+          <h2
+            className="
+              text-[26px]
+              font-[700]
+              tracking-tight
+              text-[#111827]
+            "
+          >
+            Vendor Master
+          </h2>
+
+          <p
+            className="
+              text-sm
+              text-slate-500
+              mt-1
+            "
+          >
+            Manage vendor profiles, GSTIN and business records
+          </p>
         </div>
-       {can("vendor.create") && (
-  <button
-    onClick={() => dispatch(openAddForm())}
-    className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 cursor-pointer flex items-center gap-2"
-  >
-    <Plus size={16} /> Add Vendor
-  </button>
-)}
+
+        {/* ACTIONS */}
+
+        <div className="flex items-center gap-3">
+
+          {can("vendor.create") && (
+
+            <button
+              onClick={() =>
+                dispatch(openAddForm())
+              }
+              className="
+                h-11
+                px-5
+\                bg-[#111827]
+                hover:bg-black
+                text-white
+                text-sm
+                font-[600]
+                flex
+                items-center
+                gap-2
+                transition-all
+                cursor-pointer
+              "
+            >
+              <Plus size={16} />
+              Add Vendor
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
-          <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Total Vendors</p>
-          <p className="text-2xl font-bold text-gray-800">{stats.total}</p>
-        </div>
-        <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
-          <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Active</p>
-          <p className="text-2xl font-bold text-green-600">{stats.active}</p>
-        </div>
-        <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
-          <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Total Outstanding</p>
-          <p className="text-2xl font-bold text-red-600">₹0</p>
-        </div>
-        <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
-          <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Total Business</p>
-          <p className="text-2xl font-bold text-blue-600">₹0</p>
-        </div>
+      {/* STATS */}
+
+      <div className="grid grid-cols-4 gap-5">
+
+        {[
+          {
+            label: "TOTAL VENDORS",
+            value: stats.total,
+            sub: "registered vendors",
+          },
+
+          {
+            label: "ACTIVE",
+            value: stats.active,
+            sub: "currently active",
+            green: true,
+          },
+
+          {
+            label: "OUTSTANDING",
+            value: "₹0",
+            sub: "pending payments",
+            red: true,
+          },
+
+          {
+            label: "TOTAL BUSINESS",
+            value: "₹0",
+            sub: "overall transactions",
+            blue: true,
+          },
+        ].map((s) => (
+
+          <div
+            key={s.label}
+            className="
+              bg-white
+              border
+              border-[#e8edf5]
+              p-5
+              shadow-[0_1px_2px_rgba(16,24,40,0.04)]
+            "
+          >
+
+            <p
+              className="
+                text-[11px]
+                uppercase
+                tracking-[0.14em]
+                text-slate-400
+                font-[700]
+              "
+            >
+              {s.label}
+            </p>
+
+            <h2
+              className={`
+                mt-4
+                text-[36px]
+                leading-none
+                font-[700]
+
+                ${
+                  s.green
+                    ? "text-[#17C4BB]"
+                    : s.red
+                    ? "text-[#dc2626]"
+                    : s.blue
+                    ? "text-[#2563eb]"
+                    : "text-[#111827]"
+                }
+              `}
+            >
+              {s.value}
+            </h2>
+
+            <p
+              className="
+                mt-2
+                text-sm
+                text-slate-400
+              "
+            >
+              {s.sub}
+            </p>
+          </div>
+        ))}
       </div>
 
-      {/* Search and Filters Bar */}
-      <div className="bg-white text-gray-700 rounded-xl border border-gray-200 p-4 space-y-3">
-        <div className="flex gap-3">
-          <div className="flex-1">
+      {/* MAIN CARD */}
+
+      <div
+        className="
+          bg-white
+          border
+          border-[#e8edf5]
+          overflow-hidden
+          shadow-[0_1px_2px_rgba(16,24,40,0.04)]
+        "
+      >
+
+        {/* TOP */}
+
+        <div
+          className="
+            px-6
+            py-5
+            border-b
+            border-[#eef2f7]
+            flex
+            items-center
+            justify-between
+          "
+        >
+
+          <div>
+
+            <h3
+              className="
+                text-[18px]
+                font-[700]
+                text-[#111827]
+              "
+            >
+              Vendors
+            </h3>
+
+            <p
+              className="
+                text-sm
+                text-slate-400
+                mt-1
+              "
+            >
+              {totalItems} vendor records
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+
+            {/* FILTER */}
+
+            <button
+              onClick={() =>
+                setShowFilters(true)
+              }
+              className="
+                h-11
+                px-4
+                rounded-xl
+                border
+                border-[#dbe3ee]
+                bg-white
+                hover:bg-[#f8fafc]
+                text-sm
+                text-slate-700
+                font-[600]
+                flex
+                items-center
+                gap-2
+                transition-all
+                cursor-pointer
+              "
+            >
+              <Filter size={15} />
+              Filters
+            </button>
+
+            {/* PAGE SIZE */}
+
+            <select
+              value={pageSize}
+              onChange={(e) =>
+                dispatch(
+                  setPageSize(
+                    Number(e.target.value)
+                  )
+                )
+              }
+              className="
+                h-11
+                px-4
+                rounded-xl
+                border
+                border-[#dbe3ee]
+                bg-white
+                text-sm
+                text-slate-700
+                outline-none
+                cursor-pointer
+              "
+            >
+              {
+                PAGE_SIZE_OPTIONS.map(size => (
+
+                  <option
+                    key={size}
+                    value={size}
+                  >
+                    {size} / page
+                  </option>
+                ))
+              }
+            </select>
+          </div>
+        </div>
+
+        {/* SEARCH */}
+
+        <div
+          className="
+            px-6
+            py-5
+            border-b
+            border-[#eef2f7]
+            space-y-4
+          "
+        >
+
+          {/* SEARCH INPUT */}
+
+          <div className="relative">
+
+            <Search
+              size={17}
+              className="
+                absolute
+                left-4
+                top-1/2
+                -translate-y-1/2
+                text-slate-400
+              "
+            />
+
             <input
               value={search}
-              onChange={(e) => dispatch(setSearch(e.target.value))}
-              placeholder="Search by name, vendor ID, city, or phone..."
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm"
+              onChange={(e) =>
+                dispatch(
+                  setSearch(e.target.value)
+                )
+              }
+              placeholder="Search by vendor name, city, phone..."
+              className="
+                w-full
+                h-12
+                pl-12
+                pr-4
+                rounded-2xl
+                border
+                border-[#dbe3ee]
+                bg-[#fbfcfe]
+                text-sm
+                text-slate-700
+                placeholder:text-slate-400
+                outline-none
+                transition-all
+
+                focus:border-[#cbd5e1]
+                focus:bg-white
+              "
             />
           </div>
-          <button
-            onClick={() => dispatch(resetFilters())}
-            className="px-4 py-2 border border-gray-300 cursor-pointer rounded-lg text-sm hover:bg-gray-50 flex items-center gap-2"
-          >
-            <X size={14} /> Clear Filters
-          </button>
+
+          {/* ACTIVE FILTERS */}
+
+          {
+            (
+              businessTypeFilter ||
+              cityFilter ||
+              activeFilter
+            ) && (
+
+              <div className="
+                flex
+                items-center
+                gap-2
+                flex-wrap
+              ">
+
+                {/* BUSINESS TYPE */}
+
+                {
+                  businessTypeFilter && (
+
+                    <div
+                      className="
+                        h-9
+                        px-4
+                        rounded-full
+                        bg-[#f3f5f9]
+                        border
+                        border-[#e2e8f0]
+                        text-sm
+                        font-[600]
+                        text-slate-700
+                        flex
+                        items-center
+                        gap-2
+                      "
+                    >
+
+                      {businessTypeFilter}
+
+                      <button
+                        onClick={() =>
+                          dispatch(
+                            setBusinessTypeFilter("")
+                          )
+                        }
+                        className="
+                          text-slate-400
+                          hover:text-slate-700
+                        "
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  )
+                }
+
+                {/* CITY */}
+
+                {
+                  cityFilter && (
+
+                    <div
+                      className="
+                        h-9
+                        px-4
+                        rounded-full
+                        bg-[#f3f5f9]
+                        border
+                        border-[#e2e8f0]
+                        text-sm
+                        font-[600]
+                        text-slate-700
+                        flex
+                        items-center
+                        gap-2
+                      "
+                    >
+
+                      {cityFilter}
+
+                      <button
+                        onClick={() =>
+                          dispatch(
+                            setCityFilter("")
+                          )
+                        }
+                        className="
+                          text-slate-400
+                          hover:text-slate-700
+                        "
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  )
+                }
+
+                {/* STATUS */}
+
+                {
+                  activeFilter && (
+
+                    <div
+                      className="
+                        h-9
+                        px-4
+                        rounded-full
+                        bg-[#f3f5f9]
+                        border
+                        border-[#e2e8f0]
+                        text-sm
+                        font-[600]
+                        text-slate-700
+                        flex
+                        items-center
+                        gap-2
+                      "
+                    >
+
+                      {
+                        activeFilter === "true"
+                          ? "Active"
+                          : "Inactive"
+                      }
+
+                      <button
+                        onClick={() =>
+                          dispatch(
+                            setActiveFilter("")
+                          )
+                        }
+                        className="
+                          text-slate-400
+                          hover:text-slate-700
+                        "
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  )
+                }
+
+                {/* CLEAR */}
+
+                <button
+                  onClick={() =>
+                    dispatch(resetFilters())
+                  }
+                  className="
+                    text-sm
+                    font-[600]
+                    text-red-500
+                    hover:text-red-600
+                    ml-1
+                  "
+                >
+                  Clear all
+                </button>
+              </div>
+            )
+          }
         </div>
 
-        <div className="flex gap-3 flex-wrap text-gray-700">
-          {/* Business Type Filter */}
-          <select
-            value={businessTypeFilter}
-            onChange={(e) => dispatch(setBusinessTypeFilter(e.target.value))}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm cursor-pointer"
-          >
-            <option value="" >All Business Types</option>
-            {BUSINESS_TYPES.map(type => (
-              <option  key={type.value} value={type.value}>{type.label}</option>
-            ))}
-          </select>
+        {/* ERROR */}
 
-          {/* City Filter */}
-          <select
-            value={cityFilter}
-            onChange={(e) => dispatch(setCityFilter(e.target.value))}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
-          >
-            <option value="">All Cities</option>
-            {uniqueCities.map(city => (
-              <option key={city} value={city}>{city}</option>
-            ))}
-          </select>
+        {
+          error && (
 
-          {/* Status Filter */}
-          <select
-            value={activeFilter}
-            onChange={(e) => dispatch(setActiveFilter(e.target.value))}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm cursor-pointer"
-          >
-            <option value="">All Status</option>
-            <option value="true">Active</option>
-            <option value="false">Inactive</option>
-          </select>
+            <div
+              className="
+                mx-6
+                mt-6
+                bg-red-50
+                border
+                border-red-200
+                rounded-2xl
+                p-4
+              "
+            >
 
-          {/* Page Size Selector */}
-          <select
-            value={pageSize}
-            onChange={(e) => dispatch(setPageSize(Number(e.target.value)))}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm ml-auto"
-          >
-            {PAGE_SIZE_OPTIONS.map(size => (
-              <option key={size} value={size}>{size} per page</option>
-            ))}
-          </select>
-        </div>
+              <p className="text-red-600 text-sm">
+
+                Error loading vendors:
+                {" "}
+                {
+                  error.data?.message ||
+                  "Please try again"
+                }
+              </p>
+            </div>
+          )
+        }
+
+        {/* TABLE */}
+
+        <VendorTable
+          vendors={vendors}
+          onEdit={(vendor) =>
+            dispatch(
+              openEditForm(vendor)
+            )
+          }
+          onView={(vendor) =>
+            dispatch(
+              openDetailsModal(vendor)
+            )
+          }
+          onToggleActive={
+            handleToggleActive
+          }
+          isLoading={
+            isLoading || isFetching
+          }
+        />
+
+        {/* PAGINATION */}
+
+        {
+          totalPages > 1 && (
+
+            <div
+              className="
+                px-6
+                py-5
+                border-t
+                border-[#eef2f7]
+                flex
+                items-center
+                justify-between
+              "
+            >
+
+              <div
+                className="
+                  text-sm
+                  text-slate-500
+                "
+              >
+                Showing
+                {" "}
+
+                {
+                  ((currentPage - 1) * pageSize) + 1
+                }
+
+                {" "}to{" "}
+
+                {
+                  Math.min(
+                    currentPage * pageSize,
+                    totalItems
+                  )
+                }
+
+                {" "}of{" "}
+
+                {totalItems}
+              </div>
+
+              <div className="flex gap-2">
+
+                <button
+                  onClick={() =>
+                    dispatch(
+                      setCurrentPage(
+                        currentPage - 1
+                      )
+                    )
+                  }
+                  disabled={currentPage === 1}
+                  className="
+                    h-10
+                    px-4
+                    border
+                    border-[#dbe3ee]
+                    rounded-xl
+                    text-sm
+                    disabled:opacity-50
+                    disabled:cursor-not-allowed
+                    hover:bg-[#f8fafc]
+                  "
+                >
+                  Previous
+                </button>
+
+                <button
+                  onClick={() =>
+                    dispatch(
+                      setCurrentPage(
+                        currentPage + 1
+                      )
+                    )
+                  }
+                  disabled={
+                    currentPage === totalPages
+                  }
+                  className="
+                    h-10
+                    px-4
+                    border
+                    border-[#dbe3ee]
+                    rounded-xl
+                    text-sm
+                    disabled:opacity-50
+                    disabled:cursor-not-allowed
+                    hover:bg-[#f8fafc]
+                  "
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )
+        }
       </div>
 
-      {/* Error Display */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-600 text-sm">Error loading vendors: {error.data?.message || "Please try again"}</p>
-        </div>
-      )}
+      {/* FILTER SIDEBAR */}
 
-      {/* Table */}
-      <VendorTable
-        vendors={vendors}
-        onEdit={(vendor) => dispatch(openEditForm(vendor))}
-        onView={(vendor) => dispatch(openDetailsModal(vendor))}
-        onToggleActive={handleToggleActive}
-        isLoading={isLoading || isFetching}
-      />
+      {
+        showFilters && (
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex justify-between items-center bg-white rounded-xl border border-gray-200 px-4 py-3">
-          <div className="text-sm text-gray-600">
-            Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalItems)} of {totalItems} vendors
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => dispatch(setCurrentPage(currentPage - 1))}
-              disabled={currentPage === 1}
-              className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+          <div
+            className="
+              fixed
+              inset-0
+              z-50
+              bg-black/20
+              backdrop-blur-[2px]
+              flex
+              justify-end
+            "
+          >
+
+            {/* PANEL */}
+
+            <div
+              className="
+                w-[380px]
+                h-full
+                bg-white
+                border-l
+                border-[#edf1f7]
+                flex
+                flex-col
+              "
             >
-              Previous
-            </button>
-            <span className="px-3 py-1 text-sm">
-              Page {currentPage} of {totalPages}
-            </span>
-            <button
-              onClick={() => dispatch(setCurrentPage(currentPage + 1))}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-            >
-              Next
-            </button>
+
+              {/* HEADER */}
+
+              <div
+                className="
+                  px-6
+                  py-5
+                  border-b
+                  border-[#eef2f7]
+                  flex
+                  items-center
+                  justify-between
+                "
+              >
+
+                <div>
+
+                  <h2
+                    className="
+                      text-[20px]
+                      font-[700]
+                      text-[#111827]
+                    "
+                  >
+                    Filters
+                  </h2>
+
+                  <p
+                    className="
+                      text-sm
+                      text-slate-400
+                      mt-1
+                    "
+                  >
+                    Refine vendor records
+                  </p>
+                </div>
+
+                <button
+                  onClick={() =>
+                    setShowFilters(false)
+                  }
+                  className="
+                    w-10
+                    h-10
+                    rounded-xl
+                    hover:bg-[#f8fafc]
+                    text-slate-500
+                    transition-all
+                    flex
+                    items-center
+                    justify-center
+                    cursor-pointer
+                  "
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* CONTENT */}
+
+              <div
+                className="
+                  flex-1
+                  overflow-y-auto
+                  px-6
+                  py-6
+                  space-y-7
+                "
+              >
+
+                {/* BUSINESS TYPE */}
+
+                <div>
+
+                  <div className="mb-3">
+
+                    <h3
+                      className="
+                        text-sm
+                        font-[700]
+                        text-[#111827]
+                      "
+                    >
+                      Business Type
+                    </h3>
+
+                    <p
+                      className="
+                        text-xs
+                        text-slate-400
+                        mt-1
+                      "
+                    >
+                      Filter vendors by category
+                    </p>
+                  </div>
+
+                  <div className="
+                    flex
+                    flex-wrap
+                    gap-2
+                  ">
+
+                    <button
+                      onClick={() =>
+                        dispatch(
+                          setBusinessTypeFilter("")
+                        )
+                      }
+                      className={`
+                        h-10
+                        px-4
+                        rounded-xl
+                        text-sm
+                        font-[600]
+                        transition-all
+                        border
+
+                        ${
+                          businessTypeFilter === ""
+
+                            ? `
+                              bg-[#111827]
+                              border-[#111827]
+                              text-white
+                            `
+
+                            : `
+                              bg-white
+                              border-[#e2e8f0]
+                              text-slate-600
+                            `
+                        }
+                      `}
+                    >
+                      All
+                    </button>
+
+                    {
+                      BUSINESS_TYPES.map(type => (
+
+                        <button
+                          key={type.value}
+                          onClick={() =>
+                            dispatch(
+                              setBusinessTypeFilter(
+                                type.value
+                              )
+                            )
+                          }
+                          className={`
+                            h-10
+                            px-4
+                            rounded-xl
+                            text-sm
+                            font-[600]
+                            transition-all
+                            border
+
+                            ${
+                              businessTypeFilter === type.value
+
+                                ? `
+                                  bg-[#111827]
+                                  border-[#111827]
+                                  text-white
+                                `
+
+                                : `
+                                  bg-white
+                                  border-[#e2e8f0]
+                                  text-slate-600
+                                `
+                            }
+                          `}
+                        >
+                          {type.label}
+                        </button>
+                      ))
+                    }
+                  </div>
+                </div>
+
+                {/* STATUS */}
+
+                <div>
+
+                  <div className="mb-3">
+
+                    <h3
+                      className="
+                        text-sm
+                        font-[700]
+                        text-[#111827]
+                      "
+                    >
+                      Vendor Status
+                    </h3>
+
+                    <p
+                      className="
+                        text-xs
+                        text-slate-400
+                        mt-1
+                      "
+                    >
+                      Filter by account status
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+
+                    {[
+                      {
+                        label: "All Vendors",
+                        value: "",
+                      },
+
+                      {
+                        label: "Active Vendors",
+                        value: "true",
+                      },
+
+                      {
+                        label: "Inactive Vendors",
+                        value: "false",
+                      },
+                    ].map((item) => (
+
+                      <button
+                        key={item.value}
+                        onClick={() =>
+                          dispatch(
+                            setActiveFilter(
+                              item.value
+                            )
+                          )
+                        }
+                        className={`
+                          w-full
+                          h-12
+                          px-4
+                          rounded-2xl
+                          border
+                          flex
+                          items-center
+                          justify-between
+                          transition-all
+
+                          ${
+                            activeFilter === item.value
+
+                              ? `
+                                bg-[#111827]
+                                border-[#111827]
+                                text-white
+                              `
+
+                              : `
+                                bg-white
+                                border-[#e2e8f0]
+                                text-slate-700
+                              `
+                          }
+                        `}
+                      >
+
+                        <span
+                          className="
+                            text-sm
+                            font-[600]
+                          "
+                        >
+                          {item.label}
+                        </span>
+
+                        {
+                          activeFilter === item.value && (
+
+                            <div
+                              className="
+                                w-2
+                                h-2
+                                rounded-full
+                                bg-white
+                              "
+                            />
+                          )
+                        }
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* CITY */}
+
+                <div>
+
+                  <div className="mb-3">
+
+                    <h3
+                      className="
+                        text-sm
+                        font-[700]
+                        text-[#111827]
+                      "
+                    >
+                      City
+                    </h3>
+
+                    <p
+                      className="
+                        text-xs
+                        text-slate-400
+                        mt-1
+                      "
+                    >
+                      Select vendor location
+                    </p>
+                  </div>
+
+                  <div
+                    className="
+                      max-h-[220px]
+                      overflow-y-auto
+                      space-y-2
+                      pr-1
+                    "
+                  >
+
+                    <button
+                      onClick={() =>
+                        dispatch(
+                          setCityFilter("")
+                        )
+                      }
+                      className={`
+                        w-full
+                        h-11
+                        px-4
+                        rounded-xl
+                        text-sm
+                        font-[600]
+                        flex
+                        items-center
+                        justify-between
+                        border
+                        transition-all
+
+                        ${
+                          cityFilter === ""
+
+                            ? `
+                              bg-[#111827]
+                              border-[#111827]
+                              text-white
+                            `
+
+                            : `
+                              bg-white
+                              border-[#e2e8f0]
+                              text-slate-700
+                            `
+                        }
+                      `}
+                    >
+                      All Cities
+                    </button>
+
+                    {
+                      uniqueCities.map(city => (
+
+                        <button
+                          key={city}
+                          onClick={() =>
+                            dispatch(
+                              setCityFilter(city)
+                            )
+                          }
+                          className={`
+                            w-full
+                            h-11
+                            px-4
+                            rounded-xl
+                            text-sm
+                            font-[600]
+                            flex
+                            items-center
+                            justify-between
+                            border
+                            transition-all
+
+                            ${
+                              cityFilter === city
+
+                                ? `
+                                  bg-[#111827]
+                                  border-[#111827]
+                                  text-white
+                                `
+
+                                : `
+                                  bg-white
+                                  border-[#e2e8f0]
+                                  text-slate-700
+                                `
+                            }
+                          `}
+                        >
+                          {city}
+                        </button>
+                      ))
+                    }
+                  </div>
+                </div>
+              </div>
+
+              {/* FOOTER */}
+
+              <div
+                className="
+                  p-6
+                  border-t
+                  border-[#eef2f7]
+                  bg-white
+                  flex
+                  items-center
+                  gap-3
+                "
+              >
+
+                <button
+                  onClick={() =>
+                    dispatch(resetFilters())
+                  }
+                  className="
+                    flex-1
+                    h-11
+                    rounded-xl
+                    border
+                    border-[#e2e8f0]
+                    bg-white
+                    hover:bg-[#f8fafc]
+                    text-sm
+                    font-[600]
+                    text-slate-600
+                    transition-all
+                    cursor-pointer
+                  "
+                >
+                  Reset
+                </button>
+
+                <button
+                  onClick={() =>
+                    setShowFilters(false)
+                  }
+                  className="
+                    flex-1
+                    h-11
+                    rounded-xl
+                    bg-[#111827]
+                    hover:bg-black
+                    text-white
+                    text-sm
+                    font-[600]
+                    transition-all
+                    cursor-pointer
+                  "
+                >
+                  Apply Filters
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
-      {/* Add Form Modal */}
-      {showAddForm && (
-        <VendorAddForm
-          formData={formData}
-          setFormData={(data) => dispatch(updateFormData(data))}
-          onSave={handleAddSuccess}
-          onCancel={() => dispatch(closeAddForm())}
-          formErrors={formErrors}
-          setFormErrors={(errors) => dispatch(setFormErrors(errors))}
-        />
-      )}
+      {/* MODALS */}
 
-      {/* Edit Form Modal */}
-      {showEditForm && (
-        <VendorEditForm
-          formData={formData}
-          setFormData={(data) => dispatch(updateFormData(data))}
-          onSave={handleEditSuccess}
-          onCancel={() => dispatch(closeEditForm())}
-          selectedVendor={selectedVendor}
-          formErrors={formErrors}
-          setFormErrors={(errors) => dispatch(setFormErrors(errors))}
-        />
-      )}
+      {
+        showAddForm && (
 
-      {/* Details Modal */}
-      {showDetailsModal && (
-        <VendorDetailsModal
-          vendor={selectedVendor}
-          onClose={() => dispatch(closeDetailsModal())}
-        />
-      )}
+          <VendorAddForm
+            formData={formData}
+            setFormData={(data) =>
+              dispatch(
+                updateFormData(data)
+              )
+            }
+            onSave={handleAddSuccess}
+            onCancel={() =>
+              dispatch(closeAddForm())
+            }
+            formErrors={formErrors}
+            setFormErrors={(errors) =>
+              dispatch(
+                setFormErrors(errors)
+              )
+            }
+          />
+        )
+      }
+
+      {
+        showEditForm && (
+
+          <VendorEditForm
+            formData={formData}
+            setFormData={(data) =>
+              dispatch(
+                updateFormData(data)
+              )
+            }
+            onSave={handleEditSuccess}
+            onCancel={() =>
+              dispatch(closeEditForm())
+            }
+            selectedVendor={selectedVendor}
+            formErrors={formErrors}
+            setFormErrors={(errors) =>
+              dispatch(
+                setFormErrors(errors)
+              )
+            }
+          />
+        )
+      }
+
+      {
+        showDetailsModal && (
+
+          <VendorDetailsModal
+            vendor={selectedVendor}
+            onClose={() =>
+              dispatch(
+                closeDetailsModal()
+              )
+            }
+          />
+        )
+      }
     </div>
   );
 }
+
+// // TABS/SETTINGS/VendorsTab.jsx
+// import React, { useEffect } from "react";
+// import { useSelector, useDispatch } from "react-redux";
+// import { Plus, Filter, X } from "lucide-react";
+// import { useGetVendorsQuery } from "../../../REDUX_FEATURES/REDUX_SLICES/Vendor_api/vendorApi";
+// import {
+//   openAddForm,
+//   closeAddForm,
+//   openEditForm,
+//   closeEditForm,
+//   openDetailsModal,
+//   closeDetailsModal,
+//   updateFormData,
+//   setFormErrors,
+//   clearFormErrors,
+//   setSearch,
+//   setBusinessTypeFilter,
+//   setCityFilter,
+//   setActiveFilter,
+//   setCurrentPage,
+//   setPageSize,
+//   resetFilters,
+// } from "../../../REDUX_FEATURES/REDUX_SLICES/Vendor_api/vendorSlice";
+// import VendorTable from "./VendorTable";
+// import VendorAddForm from "./VendorAddForm";
+// import VendorEditForm from "./VendorEditForm";
+// import VendorDetailsModal from "./VendorDetailsModal";
+// import { BUSINESS_TYPES, PAGE_SIZE_OPTIONS } from "../../../REDUX_FEATURES/REDUX_SLICES/Vendor_api/vendorConstants";
+// import { can } from "../../../Components/roles";
+// export default function VendorsTab() {
+//   const dispatch = useDispatch();
+  
+//   // Redux State
+//   const {
+//     showAddForm,
+//     showEditForm,
+//     showDetailsModal,
+//     selectedVendor,
+//     formData,
+//     formErrors,
+//     search,
+//     businessTypeFilter,
+//     cityFilter,
+//     activeFilter,
+//     currentPage,
+//     pageSize,
+//   } = useSelector((state) => state.vendor);
+
+//   // Fetch vendors with filters
+//   const {
+//     data: vendorsData,
+//     isLoading,
+//     isFetching,
+//     error,
+//     refetch,
+//   } = useGetVendorsQuery({
+//     page: currentPage,
+//     limit: pageSize,
+//     search: search,
+//     business_type: businessTypeFilter,
+//     city: cityFilter,
+//     is_active: activeFilter,
+//   });
+
+//   const vendors = vendorsData?.vendors || [];
+//   const meta = vendorsData?.meta;
+//   const totalPages = meta?.totalPages || 1;
+//   const totalItems = meta?.total || 0;
+
+//   // Stats calculations
+//   const stats = {
+//     total: totalItems,
+//     active: vendors.filter(v => v.is_active === true).length,
+//     outstanding: 0, // Will come from backend if available
+//     totalBusiness: 0, // Will come from backend if available
+//   };
+
+//   const handleAddSuccess = () => {
+//     dispatch(closeAddForm());
+//     dispatch(clearFormErrors());
+//     refetch();
+//   };
+
+//   const handleEditSuccess = () => {
+//     dispatch(closeEditForm());
+//     dispatch(clearFormErrors());
+//     refetch();
+//   };
+
+//   const handleToggleActive = () => {
+//     refetch(); // Refresh the list after toggle
+//   };
+
+//   const uniqueCities = [...new Set(vendors.map(v => v.city).filter(Boolean))];
+
+//   return (
+//     <div className="space-y-5">
+//       {/* Header */}
+//       <div className="flex items-center justify-between">
+//         <div>
+//           <h2 className="text-base font-semibold text-gray-800">Vendor Master</h2>
+//           <p className="text-xs text-gray-400 mt-0.5">Manage all vendor/supplier records, GSTIN, and outstanding balances</p>
+//         </div>
+//        {can("vendor.create") && (
+//   <button
+//     onClick={() => dispatch(openAddForm())}
+//     className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 cursor-pointer flex items-center gap-2"
+//   >
+//     <Plus size={16} /> Add Vendor
+//   </button>
+// )}
+//       </div>
+
+//       {/* Stats Cards */}
+//       <div className="grid grid-cols-4 gap-4">
+//         <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+//           <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Total Vendors</p>
+//           <p className="text-2xl font-bold text-gray-800">{stats.total}</p>
+//         </div>
+//         <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+//           <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Active</p>
+//           <p className="text-2xl font-bold text-green-600">{stats.active}</p>
+//         </div>
+//         <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+//           <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Total Outstanding</p>
+//           <p className="text-2xl font-bold text-red-600">₹0</p>
+//         </div>
+//         <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+//           <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Total Business</p>
+//           <p className="text-2xl font-bold text-blue-600">₹0</p>
+//         </div>
+//       </div>
+
+//       {/* Search and Filters Bar */}
+//       <div className="bg-white text-gray-700 rounded-xl border border-gray-200 p-4 space-y-3">
+//         <div className="flex gap-3">
+//           <div className="flex-1">
+//             <input
+//               value={search}
+//               onChange={(e) => dispatch(setSearch(e.target.value))}
+//               placeholder="Search by name, vendor ID, city, or phone..."
+//               className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm"
+//             />
+//           </div>
+//           <button
+//             onClick={() => dispatch(resetFilters())}
+//             className="px-4 py-2 border border-gray-300 cursor-pointer rounded-lg text-sm hover:bg-gray-50 flex items-center gap-2"
+//           >
+//             <X size={14} /> Clear Filters
+//           </button>
+//         </div>
+
+//         <div className="flex gap-3 flex-wrap text-gray-700">
+//           {/* Business Type Filter */}
+//           <select
+//             value={businessTypeFilter}
+//             onChange={(e) => dispatch(setBusinessTypeFilter(e.target.value))}
+//             className="px-3 py-2 border border-gray-300 rounded-lg text-sm cursor-pointer"
+//           >
+//             <option value="" >All Business Types</option>
+//             {BUSINESS_TYPES.map(type => (
+//               <option  key={type.value} value={type.value}>{type.label}</option>
+//             ))}
+//           </select>
+
+//           {/* City Filter */}
+//           <select
+//             value={cityFilter}
+//             onChange={(e) => dispatch(setCityFilter(e.target.value))}
+//             className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+//           >
+//             <option value="">All Cities</option>
+//             {uniqueCities.map(city => (
+//               <option key={city} value={city}>{city}</option>
+//             ))}
+//           </select>
+
+//           {/* Status Filter */}
+//           <select
+//             value={activeFilter}
+//             onChange={(e) => dispatch(setActiveFilter(e.target.value))}
+//             className="px-3 py-2 border border-gray-300 rounded-lg text-sm cursor-pointer"
+//           >
+//             <option value="">All Status</option>
+//             <option value="true">Active</option>
+//             <option value="false">Inactive</option>
+//           </select>
+
+//           {/* Page Size Selector */}
+//           <select
+//             value={pageSize}
+//             onChange={(e) => dispatch(setPageSize(Number(e.target.value)))}
+//             className="px-3 py-2 border border-gray-300 rounded-lg text-sm ml-auto"
+//           >
+//             {PAGE_SIZE_OPTIONS.map(size => (
+//               <option key={size} value={size}>{size} per page</option>
+//             ))}
+//           </select>
+//         </div>
+//       </div>
+
+//       {/* Error Display */}
+//       {error && (
+//         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+//           <p className="text-red-600 text-sm">Error loading vendors: {error.data?.message || "Please try again"}</p>
+//         </div>
+//       )}
+
+//       {/* Table */}
+//       <VendorTable
+//         vendors={vendors}
+//         onEdit={(vendor) => dispatch(openEditForm(vendor))}
+//         onView={(vendor) => dispatch(openDetailsModal(vendor))}
+//         onToggleActive={handleToggleActive}
+//         isLoading={isLoading || isFetching}
+//       />
+
+//       {/* Pagination */}
+//       {totalPages > 1 && (
+//         <div className="flex justify-between items-center bg-white rounded-xl border border-gray-200 px-4 py-3">
+//           <div className="text-sm text-gray-600">
+//             Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalItems)} of {totalItems} vendors
+//           </div>
+//           <div className="flex gap-2">
+//             <button
+//               onClick={() => dispatch(setCurrentPage(currentPage - 1))}
+//               disabled={currentPage === 1}
+//               className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+//             >
+//               Previous
+//             </button>
+//             <span className="px-3 py-1 text-sm">
+//               Page {currentPage} of {totalPages}
+//             </span>
+//             <button
+//               onClick={() => dispatch(setCurrentPage(currentPage + 1))}
+//               disabled={currentPage === totalPages}
+//               className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+//             >
+//               Next
+//             </button>
+//           </div>
+//         </div>
+//       )}
+
+//       {/* Add Form Modal */}
+//       {showAddForm && (
+//         <VendorAddForm
+//           formData={formData}
+//           setFormData={(data) => dispatch(updateFormData(data))}
+//           onSave={handleAddSuccess}
+//           onCancel={() => dispatch(closeAddForm())}
+//           formErrors={formErrors}
+//           setFormErrors={(errors) => dispatch(setFormErrors(errors))}
+//         />
+//       )}
+
+//       {/* Edit Form Modal */}
+//       {showEditForm && (
+//         <VendorEditForm
+//           formData={formData}
+//           setFormData={(data) => dispatch(updateFormData(data))}
+//           onSave={handleEditSuccess}
+//           onCancel={() => dispatch(closeEditForm())}
+//           selectedVendor={selectedVendor}
+//           formErrors={formErrors}
+//           setFormErrors={(errors) => dispatch(setFormErrors(errors))}
+//         />
+//       )}
+
+//       {/* Details Modal */}
+//       {showDetailsModal && (
+//         <VendorDetailsModal
+//           vendor={selectedVendor}
+//           onClose={() => dispatch(closeDetailsModal())}
+//         />
+//       )}
+//     </div>
+//   );
+// }
 // upper code have api intgration  
 
 // // TABS/SETTINGS/VendorsTab.jsx

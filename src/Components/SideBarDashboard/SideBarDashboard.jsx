@@ -160,182 +160,881 @@ const SideBarDashboard = () => {
             {/* ── Sidebar ──────────────────────────────────────────────────────── */}
             <aside
                 className={`
-                    fixed md:sticky top-0 h-screen z-40 bg-white border-r border-gray-200 
-                    flex flex-col transition-all duration-300 ease-in-out
-                    ${isSidebarCollapsed ? 'w-20' : 'w-64'}
-                    ${isMobileMenuOpen ? 'left-0' : '-left-full md:left-0'}
-                `}
+    fixed md:sticky top-0 h-screen z-40
+    bg-[#022448]
+    border-r border-white/5
+    flex flex-col
+    transition-all duration-300 ease-in-out
+
+    ${isSidebarCollapsed
+                        ? "w-20"
+                        : "w-[280px]"
+                    }
+
+    ${isMobileMenuOpen
+                        ? "left-0"
+                        : "-left-full md:left-0"
+                    }
+  `}
             >
-                {/* Logo / Brand Container */}
-                <div className={`p-6 flex flex-col items-center border-b border-gray-50 bg-white transition-all duration-300 ${isSidebarCollapsed ? 'px-2' : 'px-6'}`}>
-                    <div className="relative group flex items-center justify-center mb-4">
-                        <div className="absolute inset-0 bg-gradient-to-tr from-gray-50 to-white rounded-2xl border border-gray-100 shadow-sm transition-all duration-300 group-hover:shadow-md" />
-                        <img
-                            src={LOGO}
-                            alt="Brand Logo"
-                            className={`relative z-10 object-contain transition-all duration-300 ${isSidebarCollapsed ? 'w-16 h-16' : 'w-40 h-40'}`}
-                        />
-                    </div>
-                    {!isSidebarCollapsed && (
-                        <div className="text-center transition-all duration-300">
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100 tracking-widest uppercase">
-                                {ROLE_LABELS[activeRole] || `${activeRole}-${locationId}`}
-                            </span>
+
+                {/* ====================================================== */}
+                {/* LOGO / COMPANY SECTION */}
+                {/* ====================================================== */}
+
+                <div
+                    className={`
+    border-b border-white/5
+
+    ${isSidebarCollapsed
+                            ? "px-3 py-4"
+                            : "px-4 py-4"
+                        }
+  `}
+                >
+
+                    {/* EXPANDED */}
+
+                    {!isSidebarCollapsed ? (
+
+                        <div className="
+      flex
+      items-center
+      gap-3
+    ">
+
+                            {/* LOGO */}
+
+                            <div className="
+        w-16
+        h-16
+        rounded-2xl
+        bg-[#1b2330]
+        border border-white/5
+        flex
+        items-center
+        justify-center
+        shrink-0
+        overflow-hidden
+      ">
+
+                                <img
+                                    src={LOGO}
+                                    alt="Brand Logo"
+                                    className="
+            w-28
+            h-28
+            object-contain
+          "
+                                />
+                            </div>
+
+                            {/* COMPANY INFO */}
+
+                            <div className="
+        min-w-0
+        flex-1
+      ">
+
+                                {/* COMPANY NAME */}
+
+                                <h2 className="
+          text-[15px]
+          font-[700]
+          text-white
+          truncate
+          leading-none
+        ">
+                                    Inventory Management
+                                </h2>
+
+                                {/* ROLE */}
+
+                            </div>
                         </div>
-                    )}
-                    {isSidebarCollapsed && (
-                        <div className="text-center transition-all duration-300">
-                            <span className="inline-flex items-center justify-center w-8 h-8 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100">
-                                {ROLE_LABELS[activeRole]?.charAt(0) || `${activeRole?.charAt(0)}-${locationId}`}
-                            </span>
+
+                    ) : (
+
+                        /* COLLAPSED */
+
+                        <div className="
+      flex
+      justify-center
+    ">
+
+                            <div className="
+        w-12
+        h-12
+        rounded-2xl
+        bg-[#1b2330]
+        border border-white/5
+        flex
+        items-center
+        justify-center
+        overflow-hidden
+      ">
+
+                                <img
+                                    src={LOGO}
+                                    alt="Brand Logo"
+                                    className="
+            w-8
+            h-8
+            object-contain
+          "
+                                />
+                            </div>
                         </div>
                     )}
                 </div>
 
-                {/* Collapse Toggle Button */}
+                {/* ====================================================== */}
+                {/* TOGGLE */}
+                {/* ====================================================== */}
+
                 <button
                     onClick={toggleSidebar}
-                    className="absolute -right-3 top-20 bg-white border border-gray-200 rounded-full p-1.5 shadow-md hover:bg-gray-50 transition-all duration-200 hidden md:block"
+                    className="
+      absolute
+      -right-3
+      top-20
+      w-7
+      h-7
+      rounded-full
+      bg-[#1a1d24]
+      border border-white/10
+      flex items-center justify-center
+      hover:bg-[#232833]
+      transition-all
+      hidden md:flex
+    "
                 >
+
                     <svg
-                        className={`w-4 h-4 text-gray-600 transition-transform duration-300 ${isSidebarCollapsed ? 'rotate-180' : ''}`}
+                        className={`
+        w-4 h-4
+        text-slate-400
+        transition-transform duration-300
+
+        ${isSidebarCollapsed
+                                ? "rotate-180"
+                                : ""
+                            }
+      `}
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
                     >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+
+                        <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M15 19l-7-7 7-7"
+                        />
                     </svg>
                 </button>
 
-                {/* Navigation */}
-                <nav className="flex-1 px-4 space-y-1 mt-4 overflow-y-auto">
+                {/* ====================================================== */}
+                {/* NAVIGATION */}
+                {/* ====================================================== */}
+
+                <nav
+                    className="
+      flex-1
+      px-3
+      py-5
+      space-y-1.5
+      overflow-y-auto
+    "
+                >
+
                     {allowedTabs.map((tab) => {
-                        const isActive = activeTab === tab.id;
-                        const hasSubItems = tab.subItems?.length > 0;
-                        const isExpanded = expandedTab === tab.id;
+
+                        const isActive =
+                            activeTab === tab.id;
+
+                        const hasSubItems =
+                            tab.subItems?.length > 0;
+
+                        const isExpanded =
+                            expandedTab === tab.id;
 
                         return (
+
                             <div key={tab.id}>
+
+                                {/* ====================================================== */}
+                                {/* MAIN TAB */}
+                                {/* ====================================================== */}
+
                                 <button
-                                    onClick={() => handleTabClick(tab)}
+                                    onClick={() =>
+                                        handleTabClick(tab)
+                                    }
+                                    title={
+                                        isSidebarCollapsed
+                                            ? tab.label
+                                            : ""
+                                    }
                                     className={`
-                                        w-full flex items-center cursor-pointer rounded-lg transition-all duration-200
-                                        ${isActive
-                                            ? "bg-blue-50 text-blue-600 shadow-sm"
-                                            : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+              relative
+              w-full
+              rounded-2xl
+              transition-all
+              duration-200
+              group
+              border
+
+              ${isSidebarCollapsed
+
+                                            ? `
+                    h-14
+                    flex
+                    items-center
+                    justify-center
+                  `
+
+                                            : `
+                    h-14
+                    px-4
+                    flex
+                    items-center
+                    justify-between
+                  `
                                         }
-                                        ${isSidebarCollapsed ? 'justify-center px-2 py-3' : 'justify-between px-4 py-3'}
-                                    `}
-                                    title={isSidebarCollapsed ? tab.label : ""}
+
+              ${isActive
+
+                                            ? `
+                    bg-[#1e3a5f]
+                    border-[#1e3a5f]
+                  `
+
+                                            : `
+                    border-transparent
+                    hover:bg-white/[0.04]
+                  `
+                                        }
+            `}
                                 >
-                                    <div className={`flex items-center space-x-3 ${isSidebarCollapsed ? 'justify-center' : ''}`}>
-                                        <svg
-                                            className={`w-5 h-5 shrink-0 ${isActive ? "text-blue-600" : "text-gray-400"}`}
-                                            fill="none" stroke="currentColor" viewBox="0 0 24 24"
+
+                                    {/* LEFT */}
+
+                                    <div className="
+              flex
+              items-center
+              gap-3
+            ">
+
+                                        {/* ICON */}
+
+                                        <div
+                                            className={`
+                  flex
+                  items-center
+                  justify-center
+                  transition-all
+
+                  ${isActive
+
+                                                    ? `
+                        text-blue-400
+                      `
+
+                                                    : `
+                        text-slate-500
+                        group-hover:text-slate-300
+                      `
+                                                }
+                `}
                                         >
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={tab.icon} />
-                                        </svg>
-                                        {!isSidebarCollapsed && <span>{tab.label}</span>}
+
+                                            <svg
+                                                className="
+                    w-5
+                    h-5
+                    shrink-0
+                  "
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                            >
+
+                                                <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth={2}
+                                                    d={tab.icon}
+                                                />
+                                            </svg>
+                                        </div>
+
+                                        {/* LABEL */}
+
+                                        {!isSidebarCollapsed && (
+
+                                            <span
+                                                className={`
+                    text-lg font-medium
+                    transition-all ${isActive ? `text-white` : `text-slate-400 group-hover:text-slate-200
+                        `
+                                                    }
+                  `}
+                                            >
+                                                {tab.label}
+                                            </span>
+                                        )}
                                     </div>
 
-                                    {hasSubItems && !isSidebarCollapsed && (
-                                        <svg
-                                            className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""} ${isActive ? "text-blue-500" : "text-gray-400"
-                                                }`}
-                                            fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                                        >
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                        </svg>
-                                    )}
+                                    {/* RIGHT */}
+
+                                    {
+                                        hasSubItems &&
+                                        !isSidebarCollapsed && (
+
+                                            <svg
+                                                className={`
+                    w-4 h-4
+                    transition-all duration-300
+
+                    ${isExpanded
+                                                        ? "rotate-180"
+                                                        : ""
+                                                    }
+
+                    ${isActive
+
+                                                        ? `
+                          text-blue-400
+                        `
+
+                                                        : `
+                          text-slate-500
+                        `
+                                                    }
+                  `}
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                            >
+
+                                                <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth={2}
+                                                    d="M19 9l-7 7-7-7"
+                                                />
+                                            </svg>
+                                        )
+                                    }
                                 </button>
-                                {hasSubItems && isExpanded && !isSidebarCollapsed && (
-                                    <div className="mt-1 ml-4 pl-4 border-l-2 border-blue-100 space-y-0.5">
-                                        {filterSubItemsByRole(tab.id, tab.subItems).map((sub) => {
-                                            const isSubActive = isActive && activeCtab === sub.id;
-                                            return (
-                                                <button
-                                                    key={sub.id}
-                                                    onClick={() => handleSubItemClick(tab.id, sub.id)}
-                                                    className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-lg transition-all duration-150 cursor-pointer text-left ${isSubActive
-                                                        ? "bg-blue-50 text-blue-700"
-                                                        : "text-gray-500 hover:bg-gray-50 hover:text-gray-800"
-                                                        }`}
-                                                >
-                                                    <svg
-                                                        className={`w-3.5 h-3.5 shrink-0 ${isSubActive ? "text-blue-600" : "text-gray-400"}`}
-                                                        fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                                                    >
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={sub.icon} />
-                                                    </svg>
-                                                    {sub.label}
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                )}
-                                {/* {hasSubItems && isExpanded && !isSidebarCollapsed && (
-                                    <div className="mt-1 ml-4 pl-4 border-l-2 border-blue-100 space-y-0.5">
-                                        {tab.subItems.map((sub) => {
-                                            const isSubActive = isActive && activeCtab === sub.id;
-                                            return (
-                                                <button
-                                                    key={sub.id}
-                                                    onClick={() => handleSubItemClick(tab.id, sub.id)}
-                                                    className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-lg transition-all duration-150 cursor-pointer text-left ${isSubActive
-                                                        ? "bg-blue-50 text-blue-700"
-                                                        : "text-gray-500 hover:bg-gray-50 hover:text-gray-800"
-                                                        }`}
-                                                >
-                                                    <svg
-                                                        className={`w-3.5 h-3.5 shrink-0 ${isSubActive ? "text-blue-600" : "text-gray-400"}`}
-                                                        fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                                                    >
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={sub.icon} />
-                                                    </svg>
-                                                    {sub.label}
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                )} */}
+
+                                {/* ====================================================== */}
+                                {/* SUB ITEMS */}
+                                {/* ====================================================== */}
+
+                                {
+                                    hasSubItems &&
+                                    isExpanded &&
+                                    !isSidebarCollapsed && (
+
+                                        <div
+                                            className="
+                  mt-2
+                  ml-6
+                  pl-5
+                  border-l
+                  border-white/5
+                  space-y-1.5
+                "
+                                        >
+
+                                            {
+                                                filterSubItemsByRole(
+                                                    tab.id,
+                                                    tab.subItems
+                                                ).map((sub) => {
+
+                                                    const isSubActive =
+                                                        isActive &&
+                                                        activeCtab === sub.id;
+
+                                                    return (
+
+                                                        <button
+                                                            key={sub.id}
+                                                            onClick={() =>
+                                                                handleSubItemClick(
+                                                                    tab.id,
+                                                                    sub.id
+                                                                )
+                                                            }
+                                                            className={`
+                          w-full
+                          h-11
+                          px-3
+                          rounded-xl
+                          flex
+                          items-center
+                          gap-3
+                          text-left
+                          transition-all
+                          duration-200
+                          border
+                          group
+
+                          ${isSubActive
+
+                                                                    ? `
+                                bg-blue-500/10
+                                border-blue-500/20
+                              `
+
+                                                                    : `
+                                border-transparent
+                                hover:bg-white/[0.04]
+                              `
+                                                                }
+                        `}
+                                                        >
+
+                                                            {/* ICON */}
+
+                                                            <svg
+                                                                className={`
+                            w-4
+                            h-4
+                            shrink-0
+
+                            ${isSubActive
+
+                                                                        ? `
+                                  text-blue-400
+                                `
+
+                                                                        : `
+                                  text-slate-500
+                                  group-hover:text-slate-300
+                                `
+                                                                    }
+                          `}
+                                                                fill="none"
+                                                                stroke="currentColor"
+                                                                viewBox="0 0 24 24"
+                                                            >
+
+                                                                <path
+                                                                    strokeLinecap="round"
+                                                                    strokeLinejoin="round"
+                                                                    strokeWidth={2}
+                                                                    d={sub.icon}
+                                                                />
+                                                            </svg>
+
+                                                            {/* LABEL */}
+
+                                                            <span
+                                                                className={`
+                            text-[13px]
+                            font-[500]
+
+                            ${isSubActive
+
+                                                                        ? `
+                                  text-blue-300
+                                `
+
+                                                                        : `
+                                  text-slate-400
+                                  group-hover:text-slate-200
+                                `
+                                                                    }
+                          `}
+                                                            >
+                                                                {sub.label}
+                                                            </span>
+                                                        </button>
+                                                    );
+                                                })
+                                            }
+                                        </div>
+                                    )
+                                }
                             </div>
                         );
                     })}
                 </nav>
 
-                <div className={`p-4 border-t border-gray-100 ${isSidebarCollapsed ? 'text-center' : ''}`}>
+                {/* ====================================================== */}
+                {/* FOOTER */}
+                {/* ====================================================== */}
+
+                <div
+                    className={`
+      p-4
+      border-t
+      border-white/5
+
+      ${isSidebarCollapsed
+                            ? "text-center"
+                            : ""
+                        }
+    `}
+                >
+
+                    {/* LOGOUT */}
+
                     <button
                         onClick={handleLogout}
                         disabled={isLogoutLoading}
-                        className={`w-full mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-100 transition ${isLogoutLoading ? "cursor-not-allowed opacity-70" : ""}`}
+                        className={`
+        w-full
+        h-11
+        rounded-xl
+        border
+        border-red-500/20
+        bg-red-500/10
+        text-red-400
+        text-sm
+        font-[600]
+        hover:bg-red-500/15
+        transition-all
+
+        ${isLogoutLoading
+                                ? "opacity-70 cursor-not-allowed"
+                                : ""
+                            }
+      `}
                     >
-                        {isLogoutLoading ? "Logging out..." : "Logout"}
+                        {
+                            isLogoutLoading
+                                ? "Logging out..."
+                                : "Logout"
+                        }
                     </button>
-                    <p className={`text-[10px] text-gray-400 uppercase tracking-widest font-bold ${isSidebarCollapsed ? 'text-center' : 'mb-2'}`}>
-                        {isSidebarCollapsed ? 'v1.0' : 'Vyapar v1.0.0'}
+
+                    {/* VERSION */}
+
+                    <p
+                        className={`
+        mt-4
+        text-[10px]
+        uppercase
+        tracking-[0.16em]
+        text-slate-600
+        font-[700]
+
+        ${isSidebarCollapsed
+                                ? "text-center"
+                                : ""
+                            }
+      `}
+                    >
+                        {
+                            isSidebarCollapsed
+                                ? "v1.0"
+                                : "Vyapar ERP v1.0.0"
+                        }
                     </p>
                 </div>
             </aside>
 
             {/* ── Main Content ──────────────────────────────────────────────────── */}
             <main className="flex-1 overflow-y-auto">
-                <header className="bg-white h-16 border-b border-gray-200 flex items-center justify-between px-4 md:px-8 sticky top-0 z-10">
-                    {/* Mobile Menu Button */}
-                    <button
-                        onClick={toggleMobileMenu}
-                        className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200"
-                    >
-                        <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                        </svg>
-                    </button>
+                <header className="
+  sticky
+  top-0
+  z-20
+  h-[74px]
+  bg-white/80
+  backdrop-blur-xl
+  border-b
+  border-slate-200
+  flex
+  items-center
+  justify-between
+  px-4
+  md:px-8
+">
 
-                    <h2 className="text-lg font-semibold text-gray-800 capitalize">
-                        {activeTabConfig?.label || "Dashboard"}
-                    </h2>
+                    {/* ====================================================== */}
+                    {/* LEFT */}
+                    {/* ====================================================== */}
 
-                    {/* Placeholder for right side actions if needed */}
-                    <div className="w-8 md:w-0"></div>
+                    <div className="
+    flex
+    items-center
+    gap-4
+  ">
+
+                        {/* MOBILE MENU */}
+
+                        <button
+                            onClick={toggleMobileMenu}
+                            className="
+        md:hidden
+        w-11
+        h-11
+        rounded-2xl
+        border
+        border-slate-200
+        bg-white
+        flex
+        items-center
+        justify-center
+        hover:bg-slate-50
+        transition-all
+      "
+                        >
+
+                            <svg
+                                className="
+          w-5
+          h-5
+          text-slate-600
+        "
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M4 6h16M4 12h16M4 18h16"
+                                />
+                            </svg>
+                        </button>
+
+                        {/* PAGE TITLE */}
+
+                        <div>
+
+                            <h2 className="
+        text-[22px]
+        font-[500]
+        tracking-tight
+        text-[#111827]
+        capitalize
+      ">
+                                {activeTabConfig?.label || "Dashboard"}
+                            </h2>
+
+                            <p className="
+        mt-0.5
+        text-sm
+        text-slate-500
+      ">
+                                Welcome back, manage your business efficiently
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* ====================================================== */}
+                    {/* RIGHT */}
+                    {/* ====================================================== */}
+
+                    <div className="
+    flex
+    items-center
+    gap-3
+  ">
+
+                        {/* SEARCH */}
+
+                        <div className="
+      hidden
+      lg:flex
+      items-center
+      relative
+    ">
+
+                            {/* ICON */}
+
+                            <svg
+                                className="
+          absolute
+          left-4
+          w-4
+          h-4
+          text-slate-400
+        "
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                                />
+                            </svg>
+
+                            <input
+                                type="text"
+                                placeholder="Search anything..."
+                                className="
+          w-[320px]
+          h-11
+          border
+          border-slate-200
+          bg-[#f8fafc]
+          pl-11
+          pr-4
+          text-sm
+          text-slate-700
+          placeholder:text-slate-400
+          outline-none
+          focus:border-blue-300
+          focus:bg-white
+          transition-all
+        "
+                            />
+                        </div>
+
+                        {/* NOTIFICATION */}
+
+                        <button
+                            className="
+        relative
+        w-11
+        h-11
+        border
+        border-slate-200
+        bg-white
+        flex
+        items-center
+        justify-center
+        hover:bg-slate-50
+        transition-all
+      "
+                        >
+
+                            {/* DOT */}
+
+                            <div className="
+        absolute
+        top-2.5
+        right-2.5
+        w-2
+        h-2
+        rounded-full
+        bg-red-500
+      " />
+
+                            <svg
+                                className="
+          w-5
+          h-5
+          text-slate-600
+        "
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V4a2 2 0 10-4 0v1.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+                                />
+                            </svg>
+                        </button>
+
+                        {/* PROFILE */}
+
+                        <button
+                            className="
+        flex
+        items-center
+        gap-3
+        pl-3
+        pr-4
+        h-11
+        border
+        border-slate-200
+        bg-white
+        hover:bg-slate-50
+        transition-all
+      "
+                        >
+
+                            {/* AVATAR */}
+
+                            <div className="
+        w-9
+        h-9
+        rounded-xl
+        bg-[#111827]
+        flex
+        items-center
+        justify-center
+        text-sm
+        font-[800]
+        text-white
+        shrink-0
+      ">
+                                {user?.name?.charAt(0) || "A"}
+                            </div>
+
+                            {/* INFO */}
+
+                            <div className="
+        hidden
+        md:block
+        text-left
+      ">
+
+                                <p className="
+          text-sm
+          font-[700]
+          text-[#111827]
+          leading-none
+        ">
+                                    {user?.name || "Admin"}
+                                </p>
+
+                                <p className="
+          mt-1
+          text-xs
+          text-slate-500
+        ">
+                                    {
+                                        ROLE_LABELS[activeRole] ||
+                                        activeRole
+                                    }
+                                </p>
+                            </div>
+
+                            {/* ARROW */}
+
+                            <svg
+                                className="
+          hidden
+          md:block
+          w-4
+          h-4
+          text-slate-400
+        "
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M19 9l-7 7-7-7"
+                                />
+                            </svg>
+                        </button>
+                    </div>
                 </header>
 
                 <div className="p-4 md:p-8">

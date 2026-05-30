@@ -109,7 +109,7 @@ export default function UsersTab() {
                 </div>
                 <button
                     onClick={() => dispatch(openAddForm())}
-                    className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 cursor-pointer"
+                    className="px-4 py-2 bg-gray-800 text-white text-sm font-medium rounded-lg hover:bg-gray-700 cursor-pointer"
                 >
                     + Add User
                 </button>
@@ -117,15 +117,15 @@ export default function UsersTab() {
 
             {/* ── Summary Cards ───────────────────────────────────────────────── */}
             <div className="grid grid-cols-3 gap-4">
-                <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-4 text-white shadow-md">
+                <div className="bg-white p-4 text-black shadow-md">
                     <p className="text-xs opacity-80 uppercase tracking-wide">Total Users</p>
                     <p className="text-3xl font-bold mt-1">{totalItems}</p>
                 </div>
-                <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-4 text-white shadow-md">
+                <div className="bg-white p-4 text-black shadow-md">
                     <p className="text-xs opacity-80 uppercase tracking-wide">Active (this page)</p>
                     <p className="text-3xl font-bold mt-1">{activeCount}</p>
                 </div>
-                <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+                <div className="bg-white border border-gray-200 p-4 shadow-sm">
                     <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">Role Breakdown</p>
                     <div className="space-y-1">
                         {USER_ROLES.map(r => {
@@ -143,7 +143,7 @@ export default function UsersTab() {
             </div>
 
             {/* ── Filters Bar ─────────────────────────────────────────────────── */}
-            <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+            <div className="bg-white border border-gray-200 p-4 space-y-3">
                 <div className="flex gap-3">
                     <input
                         value={search}

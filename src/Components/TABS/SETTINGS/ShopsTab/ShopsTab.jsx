@@ -91,7 +91,7 @@ export default function ShopsTab() {
                     {isSuperAdmin && (
                         <button
                             onClick={() => dispatch(openAddForm())}
-                            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm cursor-pointer"
+                            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-gray-800 hover:bg-gray-700 rounded-lg shadow-sm cursor-pointer"
                         >
                             <Plus size={16} /> Add Shop
                         </button>
@@ -100,7 +100,7 @@ export default function ShopsTab() {
             </div>
 
             {/* Filters */}
-            <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+            <div className="bg-white border border-gray-200 p-4 space-y-3">
                 <div className="flex gap-3">
                     <input
                         value={search}

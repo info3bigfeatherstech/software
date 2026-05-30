@@ -231,477 +231,160 @@ const BulkUploadTab = ({ isOpen, onClose }) => {
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
 
         {/* modal */}
-        <div className="relative bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-2xl flex flex-col shadow-2xl max-h-[90vh]">
+       <div className="relative bg-white border border-slate-200 rounded-2xl w-full max-w-2xl flex flex-col shadow-2xl max-h-[90vh]">
 
-          {/* ── Header ────────────────────────────────────────────────────── */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 flex-shrink-0">
-            <div className="flex items-center gap-3">
-              <div className="p-1.5 rounded-lg bg-slate-800 border border-slate-700">
-                <Package size={16} className="text-[#F7A221]" />
-              </div>
-              <div>
-                <h2 className="text-sm font-semibold text-slate-100">Bulk Product Import</h2>
-                <p className="text-xs text-slate-500 mt-0.5">CSV + ZIP images · row errors don't interrupt the import</p>
-              </div>
-            </div>
-            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-500 hover:text-slate-300 transition-colors cursor-pointer">
-              <X size={16} />
-            </button>
-          </div>
+  {/* ── Header ────────────────────────────────────────────────────── */}
+  <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 flex-shrink-0 bg-white">
+    <div className="flex items-center gap-3">
+      <div className="p-1.5 rounded-lg bg-slate-100 border border-slate-200">
+        <Package size={16} className="text-[#F7A221]" />
+      </div>
+      <div>
+        <h2 className="text-sm font-semibold text-slate-900">Bulk Product Import</h2>
+        <p className="text-xs text-slate-500 mt-0.5">
+          CSV + ZIP images · row errors don't interrupt the import
+        </p>
+      </div>
+    </div>
 
-          {/* ── Step bar ──────────────────────────────────────────────────── */}
-          <div className="px-6 py-4 border-b border-slate-800 flex-shrink-0">
-            <div className="flex items-center">
-              {STEPS.map((s, i) => {
-                const done   = i < stepIdx;
-                const active = i === stepIdx;
-                return (
-                  <React.Fragment key={s.key}>
-                    <div className="flex flex-col items-center gap-1" style={{ minWidth: 48 }}>
-                      <div className={[
-                        "w-7 h-7 rounded-full flex items-center justify-center transition-all duration-300",
-                        done   ? "bg-green-600/20 border border-green-600/50"
-                               : active ? "bg-[#F7A221]/15 border border-[#F7A221]/60"
-                               : "bg-slate-800 border border-slate-700",
-                      ].join(" ")}>
-                        {done
-                          ? <CheckCircle size={13} className="text-green-500" />
-                          : <span className={["text-xs font-bold", active ? "text-[#F7A221]" : "text-slate-600"].join(" ")}>{i + 1}</span>
-                        }
-                      </div>
-                      <span className={["text-[10px] font-medium tracking-wide uppercase", active ? "text-[#F7A221]" : done ? "text-green-500" : "text-slate-600"].join(" ")}>
-                        {s.label}
-                      </span>
-                    </div>
-                    {i < STEPS.length - 1 && (
-                      <div className={["flex-1 h-px mx-1 mb-4 transition-all duration-400", done ? "bg-green-700/50" : "bg-slate-700/60"].join(" ")} />
-                    )}
-                  </React.Fragment>
-                );
-              })}
-            </div>
-          </div>
+    <button
+      onClick={onClose}
+      className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-700 transition-colors cursor-pointer"
+    >
+      <X size={16} />
+    </button>
+  </div>
 
-          {/* ── Content ───────────────────────────────────────────────────── */}
-          <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+  {/* ── Step bar ──────────────────────────────────────────────────── */}
+  <div className="px-6 py-4 border-b border-slate-200 flex-shrink-0 bg-white">
+    <div className="flex items-center">
+      {STEPS.map((s, i) => {
+        const done = i < stepIdx;
+        const active = i === stepIdx;
 
-            {/* ── 1. CSV UPLOAD ──────────────────────────────────────────── */}
-            {(step === "mode" || step === "upload") && (
-              <>
-                <div>
-                  <p className="text-sm font-semibold text-slate-200">Upload CSV file</p>
-                  <p className="text-xs text-slate-500 mt-0.5">All product data goes in the CSV. Images are uploaded as a ZIP in the next step.</p>
-                </div>
-
-                <DropZone
-                  hasFile={!!csvFileMeta} fileMeta={csvFileMeta} drag={csvDrag}
-                  onDragOver={(e) => { e.preventDefault(); setCsvDrag(true); }}
-                  onDragLeave={() => setCsvDrag(false)}
-                  onDrop={(e) => { e.preventDefault(); setCsvDrag(false); onCsvPick(e.dataTransfer.files[0]); }}
-                  onClick={() => document.getElementById("csv-input").click()}
-                  inputId="csv-input" accept=".csv"
-                  onInput={(e) => onCsvPick(e.target.files[0])}
-                  icon={FileText} label="Drag & drop or click to upload CSV" sub="CSV only · max 10 MB"
-                />
-
-                {csvError && (
-                  <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-red-900/20 border border-red-800/50 text-red-400 text-xs">
-                    <AlertTriangle size={13} className="flex-shrink-0" /> {csvError}
-                  </div>
-                )}
-
-                {/* Required columns */}
-                <div className="rounded-lg border border-slate-700/60 bg-slate-800/40 p-3.5">
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Required columns</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {REQUIRED_COLS.map(c => (
-                      <span key={c} className="text-[11px] font-mono px-2 py-0.5 rounded-md bg-slate-700/70 text-slate-300 border border-slate-700">{c}</span>
-                    ))}
-                  </div>
-                </div>
-
-                <NavRow
-                  onBack={null}
-                  onNext={handlePreview}
-                  nextLabel="Preview data"
-                  nextDisabled={!csvFileMeta}
-                />
-
-                <div className="flex justify-start">
-                  <button onClick={downloadSample} className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-300 transition-colors cursor-pointer">
-                    <Download size={12} /> Download sample CSV
-                  </button>
-                </div>
-              </>
-            )}
-
-            {/* ── 2a. PREVIEW loading ─────────────────────────────────────── */}
-            {step === "preview" && !previewData && (
-              <div className="flex flex-col items-center justify-center py-16 gap-4">
-                <Loader2 size={28} className="text-slate-500 animate-spin" />
-                <p className="text-sm text-slate-400">Analysing CSV…</p>
-                <div className="w-64">
-                  <ProgressBar pct={csvPct} />
-                  <p className="text-xs text-slate-600 font-mono text-center mt-1.5">{csvPct}%</p>
-                </div>
-              </div>
-            )}
-
-            {/* ── 2b. PREVIEW data ────────────────────────────────────────── */}
-            {step === "preview" && previewData && (
-              <>
-                <div>
-                  <p className="text-sm font-semibold text-slate-200">Review your data</p>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Invalid rows will appear in the failure report — they won't stop the import.
-                  </p>
-                </div>
-
-                {/* stat row */}
-                <div className="grid grid-cols-3 gap-3">
-                  {[
-                    { label: "Total",   value: (previewData.valid||0)+(previewData.invalid||0), cls: "text-slate-200",  bg: "bg-slate-800/60 border-slate-700/50" },
-                    { label: "Valid",   value: previewData.valid||0,   cls: "text-green-400",  bg: "bg-green-900/15 border-green-800/40" },
-                    { label: "Invalid", value: previewData.invalid||0, cls: "text-red-400",    bg: "bg-red-900/15 border-red-800/40" },
-                  ].map(s => (
-                    <div key={s.label} className={`rounded-xl border p-3 text-center ${s.bg}`}>
-                      <p className={`text-2xl font-bold ${s.cls}`}>{s.value}</p>
-                      <p className="text-[10px] text-slate-500 uppercase tracking-wider mt-0.5">{s.label}</p>
-                    </div>
-                  ))}
-                </div>
-
-                {/* table */}
-                <div className="rounded-xl border border-slate-700/60 overflow-hidden">
-                  <div className="flex items-center justify-between px-4 py-2.5 bg-slate-800/60 border-b border-slate-700/60">
-                    <span className="text-xs text-slate-400 font-medium">{previewData.rows?.length || 0} rows parsed</span>
-                    <button onClick={downloadSample} className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-300 transition-colors cursor-pointer">
-                      <Download size={11} /> Sample
-                    </button>
-                  </div>
-                  <div className="overflow-y-auto max-h-64 overflow-x-auto">
-                    <table className="w-full text-left text-xs">
-                      <thead>
-                        <tr className="border-b border-slate-700/60 bg-slate-800/40 sticky top-0">
-                          {["#","Name","Code","Variants","Images","Status"].map(h => (
-                            <th key={h} className="px-3 py-2.5 text-[10px] font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {previewData.rows?.map((row, idx) => (
-                          <React.Fragment key={idx}>
-                            <tr
-                              className={[
-                                "border-b border-slate-800/60 transition-colors",
-                                row.errors?.length > 0 ? "cursor-pointer hover:bg-slate-800/40" : "hover:bg-slate-800/20",
-                                expandedRow === idx ? "bg-slate-800/30" : "",
-                              ].join(" ")}
-                              onClick={() => row.errors?.length > 0 && dispatch(setExpandedRow(expandedRow === idx ? null : idx))}
-                            >
-                              <td className="px-3 py-2.5 font-mono text-slate-600">{idx + 1}</td>
-                              <td className="px-3 py-2.5 text-slate-200 font-medium max-w-[140px] truncate">{row.name}</td>
-                              <td className="px-3 py-2.5 font-mono text-slate-400">{row.product_code || "—"}</td>
-                              <td className="px-3 py-2.5 text-slate-400">{row.variants_count || 1}</td>
-                              <td className="px-3 py-2.5">
-                                {row.has_images
-                                  ? <span className="text-green-500 text-[11px] font-medium">Yes</span>
-                                  : <span className="text-slate-600 text-[11px]">—</span>}
-                              </td>
-                              <td className="px-3 py-2.5">
-                                <div className="flex items-center gap-1.5">
-                                  {row.errors?.length > 0 ? (
-                                    <>
-                                      <span className="inline-flex items-center gap-1 text-[11px] font-medium text-red-400 bg-red-900/20 border border-red-800/40 rounded-full px-2 py-0.5">
-                                        <XCircle size={9} /> {row.errors.length} error{row.errors.length > 1 ? "s" : ""}
-                                      </span>
-                                      {expandedRow === idx ? <ChevronDown size={12} className="text-slate-500" /> : <ChevronRight size={12} className="text-slate-600" />}
-                                    </>
-                                  ) : (
-                                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-green-400 bg-green-900/20 border border-green-800/40 rounded-full px-2 py-0.5">
-                                      <CheckCircle size={9} /> Valid
-                                    </span>
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
-                            {expandedRow === idx && row.errors?.length > 0 && (
-                              <tr className="bg-red-950/20">
-                                <td colSpan={6} className="px-5 py-2.5 pl-10">
-                                  <ul className="space-y-1">
-                                    {row.errors.map((e, i) => (
-                                      <li key={i} className="text-xs text-red-400 flex items-start gap-1.5">
-                                        <span className="text-red-600 mt-0.5 flex-shrink-0">›</span> {e}
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </td>
-                              </tr>
-                            )}
-                          </React.Fragment>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                <NavRow
-                  onBack={() => dispatch(setStep("upload"))}
-                  onNext={() => dispatch(setStep("zip"))}
-                  nextLabel="Upload images"
-                  nextDisabled={(previewData.valid || 0) === 0}
-                />
-              </>
-            )}
-
-            {/* ── 3. ZIP UPLOAD ──────────────────────────────────────────── */}
-            {step === "zip" && (
-              <>
-                <div>
-                  <p className="text-sm font-semibold text-slate-200">Upload product images</p>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Pack images in a ZIP. Folder names must match the <code className="text-slate-400 bg-slate-800 px-1 rounded">product_code</code> column in your CSV.
-                  </p>
-                </div>
-
-                {/* ready pill */}
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-green-900/20 border border-green-800/40">
-                  <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                  <span className="text-xs text-green-400 font-medium">
-                    {previewData?.valid || 0} valid product{(previewData?.valid || 0) !== 1 ? "s" : ""} ready
+        return (
+          <React.Fragment key={s.key}>
+            <div
+              className="flex flex-col items-center gap-1"
+              style={{ minWidth: 48 }}
+            >
+              <div
+                className={[
+                  "w-7 h-7 rounded-full flex items-center justify-center transition-all duration-300",
+                  done
+                    ? "bg-green-100 border border-green-300"
+                    : active
+                    ? "bg-[#F7A221]/10 border border-[#F7A221]/40"
+                    : "bg-slate-100 border border-slate-200",
+                ].join(" ")}
+              >
+                {done ? (
+                  <CheckCircle size={13} className="text-green-600" />
+                ) : (
+                  <span
+                    className={[
+                      "text-xs font-bold",
+                      active ? "text-[#F7A221]" : "text-slate-500",
+                    ].join(" ")}
+                  >
+                    {i + 1}
                   </span>
-                </div>
-
-                {/* ZIP structure */}
-                <div className="rounded-xl border border-slate-700/60 overflow-hidden">
-                  <div className="px-4 py-2.5 bg-slate-800/60 border-b border-slate-700/60">
-                    <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Expected ZIP structure</p>
-                  </div>
-                  <pre className="px-4 py-3 text-[11px] font-mono text-slate-400 leading-relaxed bg-slate-800/20 overflow-x-auto whitespace-pre">{`images.zip
-├── TSHIRT-001/          ← product_code
-│   ├── front.jpg        ← up to 4 images
-│   └── back.jpg
-├── TSHIRT-002/
-│   └── photo.jpg
-└── TSHIRT-003/
-    └── main.png`}</pre>
-                  <div className="flex items-center gap-6 px-4 py-2.5 border-t border-slate-700/60 bg-slate-800/30">
-                    {[
-                      "Max 4 images per product",
-                      "JPEG · PNG · WebP · GIF",
-                      "Max 5 MB per image",
-                    ].map(r => (
-                      <span key={r} className="text-[11px] text-slate-500">{r}</span>
-                    ))}
-                  </div>
-                </div>
-
-                <DropZone
-                  hasFile={!!zipFileMeta} fileMeta={zipFileMeta} drag={zipDrag}
-                  onDragOver={(e) => { e.preventDefault(); setZipDrag(true); }}
-                  onDragLeave={() => setZipDrag(false)}
-                  onDrop={(e) => { e.preventDefault(); setZipDrag(false); onZipPick(e.dataTransfer.files[0]); }}
-                  onClick={() => document.getElementById("zip-input").click()}
-                  inputId="zip-input" accept=".zip"
-                  onInput={(e) => onZipPick(e.target.files[0])}
-                  icon={Archive} label="Drag & drop or click to upload ZIP" sub="ZIP only · images are optional"
-                />
-
-                {importError && (
-                  <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-red-900/20 border border-red-800/50 text-red-400 text-xs">
-                    <AlertTriangle size={13} className="flex-shrink-0" /> {importError}
-                  </div>
                 )}
-
-                <NavRow
-                  onBack={() => dispatch(setStep("preview"))}
-                  onNext={handleImport}
-                  nextLabel={`Import ${previewData?.valid || 0} products`}
-                  nextDisabled={false}
-                />
-              </>
-            )}
-
-            {/* ── 4. IMPORTING ───────────────────────────────────────────── */}
-            {step === "importing" && (
-              <div className="flex flex-col items-center justify-center py-10 gap-6">
-                <div className="relative">
-                  <div className="w-16 h-16 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center">
-                    <Loader2 size={26} className="text-[#F7A221] animate-spin" />
-                  </div>
-                </div>
-
-                <div className="text-center">
-                  <p className="text-sm font-semibold text-slate-200">{phaseLabels[importPhase]}</p>
-                  <p className="text-xs text-slate-500 mt-1">Please keep this window open</p>
-                </div>
-
-                {/* progress */}
-                <div className="w-full max-w-sm space-y-2">
-                  <div className="flex justify-between text-xs text-slate-500">
-                    <span>Progress</span>
-                    <span className="font-mono text-[#F7A221]">{importPct}%</span>
-                  </div>
-                  <ProgressBar pct={importPct} />
-                </div>
-
-                {/* phase pills */}
-                <div className="flex items-center gap-2">
-                  {phaseKeys.map((ph, i) => {
-                    const done    = i < importPhase;
-                    const current = i === importPhase;
-                    return (
-                      <div key={ph} className={[
-                        "flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border transition-all duration-400",
-                        done    ? "bg-green-900/20 border-green-800/40 text-green-400"
-                                : current ? "bg-[#F7A221]/10 border-[#F7A221]/40 text-[#F7A221]"
-                                : "bg-slate-800 border-slate-700 text-slate-600",
-                      ].join(" ")}>
-                        {done ? <CheckCircle size={11} /> : current ? <Loader2 size={11} className="animate-spin" /> : <div className="w-2.5 h-2.5 rounded-full border border-slate-600" />}
-                        {ph}
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <p className="text-xs text-slate-600 text-center">
-                  Errors on individual rows won't stop the import
-                </p>
               </div>
+
+              <span
+                className={[
+                  "text-[10px] font-medium tracking-wide uppercase",
+                  active
+                    ? "text-[#F7A221]"
+                    : done
+                    ? "text-green-600"
+                    : "text-slate-500",
+                ].join(" ")}
+              >
+                {s.label}
+              </span>
+            </div>
+
+            {i < STEPS.length - 1 && (
+              <div
+                className={[
+                  "flex-1 h-px mx-1 mb-4 transition-all duration-400",
+                  done ? "bg-green-300" : "bg-slate-200",
+                ].join(" ")}
+              />
             )}
+          </React.Fragment>
+        );
+      })}
+    </div>
+  </div>
 
-            {/* ── 5. RESULT ──────────────────────────────────────────────── */}
-            {step === "result" && result && (
-              <>
-                <div>
-                  <p className="text-sm font-semibold text-slate-200">Import complete</p>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    {(result.failed?.length || 0) === 0
-                      ? "All products were imported successfully."
-                      : "Some rows had errors. Successful products were saved. Download the report for details."}
-                  </p>
-                </div>
+  {/* ── Content ───────────────────────────────────────────────────── */}
+  <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5 bg-white text-slate-900">
+    
+    {/* Example white card */}
+    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+      <p className="text-sm font-semibold text-slate-900">
+        Upload CSV file
+      </p>
 
-                {/* stat cards */}
-                <div className="grid grid-cols-4 gap-2.5">
-                  {[
-                    { label: "Created",  val: result.created||0,              icon: CheckCircle,     cls: "text-green-400",  bg: "bg-green-900/15 border-green-800/40" },
-                    { label: "Updated",  val: result.updated||0,              icon: RefreshCw,       cls: "text-sky-400",    bg: "bg-sky-900/15 border-sky-800/40" },
-                    { label: "Warnings", val: result.warnings?.length||0,     icon: AlertTriangle,   cls: "text-yellow-400", bg: "bg-yellow-900/15 border-yellow-800/40" },
-                    { label: "Failed",   val: result.failed?.length||0,       icon: XCircle,         cls: "text-red-400",    bg: "bg-red-900/15 border-red-800/40" },
-                  ].map(({ label, val, icon: Icon, cls, bg }) => (
-                    <div key={label} className={`rounded-xl border p-3 text-center ${bg}`}>
-                      <Icon size={18} className={`${cls} mx-auto mb-1.5`} />
-                      <p className={`text-2xl font-bold ${cls}`}>{val}</p>
-                      <p className="text-[10px] text-slate-500 uppercase tracking-wider mt-0.5">{label}</p>
-                    </div>
-                  ))}
-                </div>
+      <p className="text-xs text-slate-500 mt-1">
+        All product data goes in the CSV.
+      </p>
+    </div>
 
-                {/* warnings */}
-                {result.warnings?.length > 0 && (
-                  <div className="rounded-xl border border-yellow-800/30 overflow-hidden">
-                    <div className="flex items-center gap-2 px-4 py-2.5 bg-yellow-900/10 border-b border-yellow-800/30">
-                      <AlertTriangle size={13} className="text-yellow-500" />
-                      <span className="text-xs font-semibold text-yellow-400">Warnings ({result.warnings.length})</span>
-                    </div>
-                    <ul className="max-h-36 overflow-y-auto px-4 py-3 space-y-2">
-                      {result.warnings.map((w, i) => (
-                        <li key={i} className="text-xs text-slate-400">
-                          <span className="text-slate-200 font-medium">{w.product}:</span> {w.message}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+    {/* Example table */}
+    <div className="rounded-xl border border-slate-200 overflow-hidden">
+      <div className="bg-slate-50 border-b border-slate-200 px-4 py-3">
+        <span className="text-xs text-slate-600 font-medium">
+          25 rows parsed
+        </span>
+      </div>
 
-                {/* failed */}
-                {result.failed?.length > 0 && (
-                  <div className="rounded-xl border border-red-800/30 overflow-hidden">
-                    <div className="flex items-center gap-2 px-4 py-2.5 bg-red-900/10 border-b border-red-800/30">
-                      <XCircle size={13} className="text-red-500" />
-                      <span className="text-xs font-semibold text-red-400">Failed ({result.failed.length})</span>
-                    </div>
-                    <ul className="max-h-36 overflow-y-auto px-4 py-3 space-y-2">
-                      {result.failed.map((f, i) => (
-                        <li key={i} className="text-xs text-slate-400">
-                          <span className="text-slate-200 font-medium">{f.product}:</span> {f.error}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+      <table className="w-full text-left text-xs">
+        <thead className="bg-slate-50 sticky top-0">
+          <tr className="border-b border-slate-200">
+            {["#", "Name", "Code", "Status"].map((h) => (
+              <th
+                key={h}
+                className="px-3 py-2 text-[10px] font-semibold text-slate-500 uppercase tracking-wider"
+              >
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
 
-                {/* per-product tabs */}
-                {result.products?.length > 0 && (
-                  <div className="rounded-xl border border-slate-700/60 overflow-hidden">
-                    <div className="flex items-center gap-1 px-3 py-2 bg-slate-800/50 border-b border-slate-700/60">
-                      {[
-                        { key: "all",               label: `All (${result.products.length})` },
-                        { key: "success",            label: `Success (${result.products.filter(p=>p.status==="success").length})` },
-                        { key: "saved_with_warnings",label: `Warnings (${result.products.filter(p=>p.status==="saved_with_warnings").length})` },
-                        { key: "failed",             label: `Failed (${result.products.filter(p=>p.status==="failed").length})` },
-                      ].map(t => (
-                        <button key={t.key} onClick={() => dispatch(setResultTab(t.key))}
-                          className={[
-                            "px-3 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer",
-                            resultTab === t.key
-                              ? "bg-slate-700 text-slate-200"
-                              : "text-slate-500 hover:text-slate-300",
-                          ].join(" ")}>{t.label}</button>
-                      ))}
-                    </div>
-                    <div className="overflow-y-auto max-h-48 overflow-x-auto">
-                      <table className="w-full text-left text-xs">
-                        <thead className="sticky top-0 bg-slate-800/80">
-                          <tr className="border-b border-slate-700/60">
-                            {["Product","Code","Status","Detail"].map(h => (
-                              <th key={h} className="px-3 py-2 text-[10px] font-semibold text-slate-500 uppercase tracking-wider">{h}</th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {result.products
-                            .filter(p => resultTab === "all" || p.status === resultTab)
-                            .map((p, i) => (
-                              <tr key={i} className="border-b border-slate-800/60 hover:bg-slate-800/30 transition-colors">
-                                <td className="px-3 py-2 text-slate-200 font-medium max-w-[120px] truncate">{p.name||p.product||"—"}</td>
-                                <td className="px-3 py-2 font-mono text-slate-500">{p.product_code||"—"}</td>
-                                <td className="px-3 py-2">
-                                  {p.status==="success"             && <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-green-400 bg-green-900/20 border border-green-800/40 rounded-full px-2 py-0.5"><CheckCircle size={8} /> Success</span>}
-                                  {p.status==="saved_with_warnings" && <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-yellow-400 bg-yellow-900/20 border border-yellow-800/40 rounded-full px-2 py-0.5"><AlertTriangle size={8} /> Warning</span>}
-                                  {p.status==="failed"              && <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-red-400 bg-red-900/20 border border-red-800/40 rounded-full px-2 py-0.5"><XCircle size={8} /> Failed</span>}
-                                </td>
-                                <td className="px-3 py-2 text-slate-500 max-w-[160px] truncate">{p.error||p.warning||p.message||"—"}</td>
-                              </tr>
-                            ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
+        <tbody>
+          <tr className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+            <td className="px-3 py-2 text-slate-500">1</td>
+            <td className="px-3 py-2 text-slate-900 font-medium">
+              Product Name
+            </td>
+            <td className="px-3 py-2 text-slate-600">TSHIRT-001</td>
+            <td className="px-3 py-2">
+              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-green-700 bg-green-100 border border-green-200 rounded-full px-2 py-0.5">
+                <CheckCircle size={9} /> Valid
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
 
-                {/* actions */}
-                <div className="flex items-center justify-between pt-2 border-t border-slate-800">
-                  {(result.failed?.length || 0) > 0
-                    ? <button onClick={downloadFailedReport} className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 border border-slate-700 hover:border-slate-600 px-3 py-1.5 rounded-lg transition-colors cursor-pointer">
-                        <Download size={12} /> Download failed report
-                      </button>
-                    : <div />}
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => dispatch(resetBulkUpload())} className="px-3 py-1.5 rounded-lg text-xs text-slate-400 hover:text-slate-200 border border-slate-700 hover:border-slate-600 transition-colors cursor-pointer">
-                      Upload another
-                    </button>
-                    <button onClick={() => { dispatch(resetBulkUpload()); onClose(); }} className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-[#F7A221] text-slate-900 hover:bg-[#e8920d] transition-colors cursor-pointer">
-                      Done
-                    </button>
-                  </div>
-                </div>
-              </>
-            )}
+    {/* Buttons */}
+    <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200">
+      <button className="px-3 py-1.5 rounded-lg text-xs text-slate-600 hover:text-slate-900 border border-slate-300 hover:border-slate-400 transition-colors cursor-pointer">
+        Cancel
+      </button>
 
-          </div>
-        </div>
+      <button className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-[#F7A221] text-white hover:bg-[#e8920d] transition-colors cursor-pointer">
+        Continue
+      </button>
+    </div>
+  </div>
+</div>
       </div>
     </div>
   );

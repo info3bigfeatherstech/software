@@ -31,8 +31,7 @@ const ReturnsTab = () => {
     const [selectedBill, setSelectedBill] = useState(null);
     const [returnItems, setReturnItems] = useState([]);
     const [showReturnModal, setShowReturnModal] = useState(false);
-    const [showRedeemModal, setShowRedeemModal] = useState(false);
-    const [activeTab, setActiveTab] = useState('active'); // active, redeemed, all
+    const [activeTab, setActiveTab] = useState('active');
     const [redeemMobile, setRedeemMobile] = useState('');
     const [redeemAmount, setRedeemAmount] = useState(0);
 
@@ -41,107 +40,68 @@ const ReturnsTab = () => {
         const allBills = getData(STORAGE_KEYS.BILLS, INITIAL_BILLS);
         const allProducts = getData(STORAGE_KEYS.PRODUCTS, INITIAL_PRODUCTS);
         const allShops = getData(STORAGE_KEYS.SHOPS, INITIAL_SHOPS);
-        
         setCreditNotes(allCreditNotes);
         setBills(allBills.filter(b => b.shopId === selectedShop));
         setProducts(allProducts);
         setShops(allShops);
     }, [selectedShop]);
 
-    // Search customer bills for return
-    const searchCustomerBills = () => {
-        if (!searchMobile || searchMobile.length < 10) {
-            alert('❌ Please enter a valid 10-digit mobile number');
-            return;
-        }
-        
-        const customerBills = bills.filter(b => b.customerMobile === searchMobile);
-        if (customerBills.length === 0) {
-            alert('❌ No bills found for this mobile number');
-        }
-        return customerBills;
-    };
-
-    // Initiate return process
     const initiateReturn = (bill) => {
         setSelectedBill(bill);
         setReturnItems(bill.items.map(item => ({
-            ...item,
-            returnQty: 0,
-            selected: false,
-            maxQty: item.qty
+            ...item, returnQty: 0, selected: false, maxQty: item.qty
         })));
         setShowReturnModal(true);
     };
 
-    // Toggle item selection for return
     const toggleReturnItem = (item) => {
-        setReturnItems(returnItems.map(i => 
-            i.productId === item.productId 
+        setReturnItems(returnItems.map(i =>
+            i.productId === item.productId
                 ? { ...i, selected: !i.selected, returnQty: !i.selected ? i.maxQty : 0 }
                 : i
         ));
     };
 
-    // Update return quantity
     const updateReturnQty = (item, qty) => {
         const newQty = Math.min(parseInt(qty) || 0, item.maxQty);
-        setReturnItems(returnItems.map(i => 
-            i.productId === item.productId 
-                ? { ...i, returnQty: newQty }
-                : i
+        setReturnItems(returnItems.map(i =>
+            i.productId === item.productId ? { ...i, returnQty: newQty } : i
         ));
     };
 
-    // Calculate return amount
     const calculateReturnAmount = () => {
-        let total = 0;
-        returnItems.forEach(item => {
+        return returnItems.reduce((total, item) => {
             if (item.selected && item.returnQty > 0) {
-                const itemTotal = (item.price / item.qty) * item.returnQty;
-                total += itemTotal;
+                return total + (item.price / item.qty) * item.returnQty;
             }
-        });
-        return total;
+            return total;
+        }, 0);
     };
 
-    // Generate credit note
     const generateCreditNote = () => {
         const selectedItems = returnItems.filter(i => i.selected && i.returnQty > 0);
-        if (selectedItems.length === 0) {
-            alert('❌ Please select items to return');
-            return;
-        }
-
+        if (selectedItems.length === 0) { alert('Please select items to return'); return; }
         const returnAmount = calculateReturnAmount();
-        if (returnAmount <= 0) {
-            alert('❌ Invalid return amount');
-            return;
-        }
+        if (returnAmount <= 0) { alert('Invalid return amount'); return; }
 
         const allProducts = getData(STORAGE_KEYS.PRODUCTS, INITIAL_PRODUCTS);
         const allCreditNotes = getData(STORAGE_KEYS.CREDIT_NOTES, INITIAL_CREDIT_NOTES);
         const allBills = getData(STORAGE_KEYS.BILLS, INITIAL_BILLS);
 
-        // Update stock - ADD BACK to inventory
         const updatedProducts = allProducts.map(p => {
             const returnItem = selectedItems.find(i => i.productId === p.id);
-            if (returnItem && p.shopId === selectedShop) {
-                return { ...p, stock: p.stock + returnItem.returnQty };
-            }
+            if (returnItem && p.shopId === selectedShop) return { ...p, stock: p.stock + returnItem.returnQty };
             return p;
         });
         saveData(STORAGE_KEYS.PRODUCTS, updatedProducts);
 
-        // Update bill status (add return flag)
-        const updatedBills = allBills.map(b => 
-            b.id === selectedBill.id 
+        const updatedBills = allBills.map(b =>
+            b.id === selectedBill.id
                 ? { ...b, hasReturns: true, returnedAmount: (b.returnedAmount || 0) + returnAmount }
                 : b
         );
         saveData(STORAGE_KEYS.BILLS, updatedBills);
 
-        // Create credit note
         const newCreditNote = {
             id: `CN-${Date.now()}`,
             creditNoteNumber: `CR-${Date.now().toString().slice(-8)}`,
@@ -152,11 +112,8 @@ const ReturnsTab = () => {
             customerName: selectedBill.customerName,
             amount: returnAmount,
             items: selectedItems.map(i => ({
-                productId: i.productId,
-                name: i.name,
-                quantity: i.returnQty,
-                price: i.price / i.qty,
-                total: (i.price / i.qty) * i.returnQty
+                productId: i.productId, name: i.name, quantity: i.returnQty,
+                price: i.price / i.qty, total: (i.price / i.qty) * i.returnQty
             })),
             redeemed: false,
             redeemedAt: null,
@@ -164,7 +121,7 @@ const ReturnsTab = () => {
             redeemedAtBill: null,
             createdAt: new Date().toISOString().split('T')[0],
             reason: document.getElementById('returnReason')?.value || 'Customer return',
-            expiryDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] // 90 days expiry
+            expiryDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
         };
 
         saveData(STORAGE_KEYS.CREDIT_NOTES, [...allCreditNotes, newCreditNote]);
@@ -173,420 +130,370 @@ const ReturnsTab = () => {
         setShowReturnModal(false);
         setSelectedBill(null);
         setSearchMobile('');
-        
-        // Generate credit note preview
-        const preview = `
-╔════════════════════════════════════════╗
-║         CREDIT NOTE #${newCreditNote.creditNoteNumber}         ║
-╠════════════════════════════════════════╣
-║ Original Bill: ${newCreditNote.originalBillNumber}
-║ Customer: ${newCreditNote.customerName}
-║ Mobile: ${newCreditNote.customerMobile}
-║ Date: ${newCreditNote.createdAt}
-╠════════════════════════════════════════╣
-║ Returned Items:
-${newCreditNote.items.map(i => `║ • ${i.name} x${i.quantity} = ₹${i.total}`).join('\n')}
-╠════════════════════════════════════════╣
-║ Total Credit Amount: ₹${newCreditNote.amount}
-║ Valid Until: ${newCreditNote.expiryDate}
-╚════════════════════════════════════════╝
-        `;
-        
-        alert(`✅ CREDIT NOTE GENERATED!\n\n${preview}\n\n📱 WhatsApp sent to ${newCreditNote.customerMobile}\n\n💡 Customer can redeem this credit note at any shop by providing their mobile number.`);
+        alert(`Credit note ${newCreditNote.creditNoteNumber} generated for ₹${returnAmount.toFixed(2)}`);
     };
 
-    // Check and redeem credit note
     const checkCreditNote = () => {
-        if (!redeemMobile || redeemMobile.length < 10) {
-            alert('❌ Please enter a valid 10-digit mobile number');
-            return;
-        }
-        
-        const activeNotes = creditNotes.filter(cn => 
-            cn.customerMobile === redeemMobile && 
-            !cn.redeemed &&
-            new Date(cn.expiryDate) > new Date()
+        if (!redeemMobile || redeemMobile.length < 10) { alert('Please enter a valid 10-digit mobile number'); return; }
+        const activeNotes = creditNotes.filter(cn =>
+            cn.customerMobile === redeemMobile && !cn.redeemed && new Date(cn.expiryDate) > new Date()
         );
-        
-        if (activeNotes.length === 0) {
-            alert('❌ No active credit notes found for this mobile number');
-            setRedeemAmount(0);
-        } else {
-            const totalAmount = activeNotes.reduce((sum, cn) => sum + cn.amount, 0);
-            setRedeemAmount(totalAmount);
-            alert(`💰 Found ${activeNotes.length} active credit note(s)\nTotal available: ₹${totalAmount.toLocaleString()}\n\n💡 Apply this at billing counter by entering mobile number.`);
-        }
+        if (activeNotes.length === 0) { setRedeemAmount(0); alert('No active credit notes found'); }
+        else { setRedeemAmount(activeNotes.reduce((sum, cn) => sum + cn.amount, 0)); }
     };
 
-    // Redeem credit note (manual redemption)
     const redeemCreditNote = (creditNoteId) => {
         const allCreditNotes = getData(STORAGE_KEYS.CREDIT_NOTES, INITIAL_CREDIT_NOTES);
-        const updatedNotes = allCreditNotes.map(cn => 
-            cn.id === creditNoteId 
-                ? { 
-                    ...cn, 
-                    redeemed: true, 
-                    redeemedAt: new Date().toISOString().split('T')[0],
-                    redeemedAtShop: selectedShop
-                  }
+        const updatedNotes = allCreditNotes.map(cn =>
+            cn.id === creditNoteId
+                ? { ...cn, redeemed: true, redeemedAt: new Date().toISOString().split('T')[0], redeemedAtShop: selectedShop }
                 : cn
         );
         saveData(STORAGE_KEYS.CREDIT_NOTES, updatedNotes);
         setCreditNotes(updatedNotes);
-        alert(`✅ Credit note redeemed successfully!`);
     };
 
-    // Filter credit notes based on active tab
     const filteredCreditNotes = creditNotes.filter(cn => {
-        const matchesSearch = cn.customerMobile.includes(searchTerm) || 
-                              cn.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                              cn.creditNoteNumber?.toLowerCase().includes(searchTerm.toLowerCase());
-        
+        const matchesSearch = cn.customerMobile.includes(searchTerm) ||
+            cn.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            cn.creditNoteNumber?.toLowerCase().includes(searchTerm.toLowerCase());
         if (activeTab === 'active') return !cn.redeemed && matchesSearch;
         if (activeTab === 'redeemed') return cn.redeemed && matchesSearch;
         return matchesSearch;
     });
 
-    const getShopName = (shopId) => {
-        const shop = shops.find(s => s.id === shopId);
-        return shop ? shop.name : shopId;
-    };
+    const getTotalActiveCredit = () =>
+        creditNotes.filter(cn => !cn.redeemed && new Date(cn.expiryDate) > new Date())
+            .reduce((sum, cn) => sum + cn.amount, 0);
 
-    const getTotalActiveCredit = () => {
-        return creditNotes.filter(cn => !cn.redeemed && new Date(cn.expiryDate) > new Date())
-                         .reduce((sum, cn) => sum + cn.amount, 0);
-    };
-
-    const getTotalRedeemedCredit = () => {
-        return creditNotes.filter(cn => cn.redeemed).reduce((sum, cn) => sum + cn.amount, 0);
-    };
+    const getTotalRedeemedCredit = () =>
+        creditNotes.filter(cn => cn.redeemed).reduce((sum, cn) => sum + cn.amount, 0);
 
     const getExpiringSoonCount = () => {
         const thirtyDaysFromNow = new Date();
         thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
-        return creditNotes.filter(cn => 
-            !cn.redeemed && 
-            new Date(cn.expiryDate) <= thirtyDaysFromNow &&
-            new Date(cn.expiryDate) > new Date()
+        return creditNotes.filter(cn =>
+            !cn.redeemed && new Date(cn.expiryDate) <= thirtyDaysFromNow && new Date(cn.expiryDate) > new Date()
         ).length;
     };
 
+    const tabs = [
+        { key: 'active',   label: 'Active Credit Notes' },
+        { key: 'redeemed', label: 'Redeemed' },
+        { key: 'all',      label: 'All' },
+    ];
+
     return (
-        <div className="space-y-6">
-            {/* Header Stats */}
+        <div className="min-h-screen bg-gray-50 p-7  space-y-6">
+
+            {/* ── Header ── */}
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-2xl font-bold text-gray-900 ">Returns & Credit Notes</h1>
+                    <p className="text-sm text-gray-400 mt-0.5 ">Process returns and manage credit notes across shops</p>
+                </div>
+                <select
+                    value={selectedShop}
+                    onChange={(e) => setSelectedShop(e.target.value)}
+                    className="px-4 py-2 border border-gray-200 rounded-xl text-sm bg-white text-gray-700  outline-none cursor-pointer"
+                >
+                    {shops.map(shop => (
+                        <option key={shop.id} value={shop.id}>{shop.name}</option>
+                    ))}
+                </select>
+            </div>
+
+            {/* ── Stat Cards ── */}
             <div className="grid grid-cols-4 gap-4">
-                <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-4 text-white shadow-lg">
-                    <p className="text-xs opacity-80 uppercase tracking-wide">Active Credit Notes</p>
-                    <p className="text-2xl font-bold">{creditNotes.filter(cn => !cn.redeemed).length}</p>
-                    <p className="text-xs opacity-70 mt-1">Value: ₹{getTotalActiveCredit().toLocaleString()}</p>
-                </div>
-                <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-4 text-white shadow-lg">
-                    <p className="text-xs opacity-80 uppercase tracking-wide">Redeemed Credit Notes</p>
-                    <p className="text-2xl font-bold">{creditNotes.filter(cn => cn.redeemed).length}</p>
-                    <p className="text-xs opacity-70 mt-1">Value: ₹{getTotalRedeemedCredit().toLocaleString()}</p>
-                </div>
-                <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl p-4 text-white shadow-lg">
-                    <p className="text-xs opacity-80 uppercase tracking-wide">Expiring Soon (30 days)</p>
-                    <p className="text-2xl font-bold">{getExpiringSoonCount()}</p>
-                    <p className="text-xs opacity-70 mt-1">Need attention</p>
-                </div>
-                <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl p-4 text-white shadow-lg">
-                    <p className="text-xs opacity-80 uppercase tracking-wide">Total Credit Issued</p>
-                    <p className="text-2xl font-bold">₹{creditNotes.reduce((sum, cn) => sum + cn.amount, 0).toLocaleString()}</p>
-                    <p className="text-xs opacity-70 mt-1">Lifetime</p>
-                </div>
+                {[
+                    { label: 'Active Credit Notes', value: creditNotes.filter(cn => !cn.redeemed).length, sub: `Value: ₹${getTotalActiveCredit().toLocaleString()}` },
+                    { label: 'Redeemed Credit Notes', value: creditNotes.filter(cn => cn.redeemed).length, sub: `Value: ₹${getTotalRedeemedCredit().toLocaleString()}` },
+                    { label: 'Expiring Soon (30 days)', value: getExpiringSoonCount(), sub: 'Need attention' },
+                    { label: 'Total Credit Issued', value: `₹${creditNotes.reduce((sum, cn) => sum + cn.amount, 0).toLocaleString()}`, sub: 'Lifetime' },
+                ].map((card, i) => (
+                    <div key={i} className="bg-white border border-gray-100 p-5 flex flex-col gap-1">
+                        <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 ">{card.label}</p>
+                        <p className="text-3xl font-bold text-gray-900  leading-tight">{card.value}</p>
+                        <p className="text-xs text-gray-400 ">{card.sub}</p>
+                    </div>
+                ))}
             </div>
 
-            {/* Shop Selector */}
-            <div className="flex justify-between items-center">
-                <div className="flex items-center gap-4">
-                    <h2 className="text-xl font-bold text-gray-800">🔄 Returns & Credit Notes</h2>
-                    <select 
-                        value={selectedShop} 
-                        onChange={(e) => setSelectedShop(e.target.value)}
-                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white text-gray-700"
+            {/* ── Action Cards ── */}
+            <div className="grid grid-cols-2 gap-5">
+
+                {/* Create Return */}
+                <div className="bg-white border border-gray-100 p-6 space-y-4">
+                    <div>
+                        <h3 className="text-sm font-bold text-gray-800 ">Create Return & Credit Note</h3>
+                        <p className="text-xs text-gray-400 mt-1 ">Process customer returns and generate credit notes redeemable at any shop.</p>
+                    </div>
+                    <input
+                        type="tel"
+                        placeholder="Customer Mobile Number"
+                        value={searchMobile}
+                        onChange={(e) => setSearchMobile(e.target.value)}
+                        className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm  outline-none focus:border-gray-400 transition"
+                    />
+                    <button
+                        onClick={() => {
+                            const customerBills = bills.filter(b => b.customerMobile === searchMobile);
+                            if (customerBills.length > 0) initiateReturn(customerBills[0]);
+                            else alert('No bills found for this customer');
+                        }}
+                        className="w-full py-2.5 bg-gray-900 text-white rounded-xl text-sm font-semibold  hover:bg-gray-700 transition"
                     >
-                        {shops.map(shop => (
-                            <option key={shop.id} value={shop.id}>{shop.name}</option>
-                        ))}
-                    </select>
-                </div>
-            </div>
-
-            {/* Action Cards */}
-            <div className="grid grid-cols-2 gap-6">
-                {/* Create Return / Credit Note */}
-                <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-                            <span className="text-xl">🔄</span>
-                        </div>
-                        <h3 className="font-bold text-gray-800">Create Return & Credit Note</h3>
-                    </div>
-                    <p className="text-sm text-gray-500 mb-4">Process customer returns and generate credit notes redeemable at any shop.</p>
-                    
-                    <div className="space-y-3 text-gray-700">
-                        <input 
-                            type="tel" 
-                            placeholder="Customer Mobile Number" 
-                            value={searchMobile}
-                            onChange={(e) => setSearchMobile(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                        />
-                        <button 
-                            onClick={() => {
-                                const customerBills = bills.filter(b => b.customerMobile === searchMobile);
-                                if (customerBills.length > 0) {
-                                    setSelectedBill(customerBills[0]);
-                                    initiateReturn(customerBills[0]);
-                                } else {
-                                    alert('No bills found for this customer');
-                                }
-                            }}
-                            className="w-full py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
-                        >
-                            Find Customer Bills
-                        </button>
-                    </div>
+                        Find Customer Bills
+                    </button>
                 </div>
 
                 {/* Redeem Credit Note */}
-                <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                            <span className="text-xl">💰</span>
+                <div className="bg-white border border-gray-100 p-6 space-y-4">
+                    <div>
+                        <h3 className="text-sm font-bold text-gray-800 ">Redeem Credit Note</h3>
+                        <p className="text-xs text-gray-400 mt-1 ">Customer can redeem credit note at any shop by providing mobile number.</p>
+                    </div>
+                    <input
+                        type="tel"
+                        placeholder="Customer Mobile Number"
+                        value={redeemMobile}
+                        onChange={(e) => setRedeemMobile(e.target.value)}
+                        className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm  outline-none focus:border-gray-400 transition"
+                    />
+                    <button
+                        onClick={checkCreditNote}
+                        className="w-full py-2.5 bg-gray-900 text-white rounded-xl text-sm font-semibold  hover:bg-gray-700 transition"
+                    >
+                        Check Credit Notes
+                    </button>
+                    {redeemAmount > 0 && (
+                        <div className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl">
+                            <p className="text-sm font-semibold text-gray-800 ">Available Credit: ₹{redeemAmount.toLocaleString()}</p>
+                            <p className="text-xs text-gray-400 mt-0.5 ">Apply at billing counter by entering customer mobile</p>
                         </div>
-                        <h3 className="font-bold text-gray-800">Redeem Credit Note</h3>
-                    </div>
-                    <p className="text-sm text-gray-500 mb-4">Customer can redeem credit note at any shop by providing mobile number.</p>
-                    
-                    <div className="space-y-3 text-gray-700">
-                        <input 
-                            type="tel" 
-                            placeholder="Customer Mobile Number" 
-                            value={redeemMobile}
-                            onChange={(e) => setRedeemMobile(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                        />
-                        <button 
-                            onClick={checkCreditNote}
-                            className="w-full py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
-                        >
-                            Check Credit Notes
-                        </button>
-                        {redeemAmount > 0 && (
-                            <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                                <p className="text-sm text-green-800 font-medium">💰 Available Credit: ₹{redeemAmount.toLocaleString()}</p>
-                                <p className="text-xs text-green-600 mt-1">Apply at billing counter by entering customer mobile</p>
-                            </div>
-                        )}
-                    </div>
+                    )}
                 </div>
             </div>
 
-            {/* Tabs for Credit Notes List */}
+            {/* ── Tabs ── */}
             <div className="flex gap-1 border-b border-gray-200">
-                <button 
-                    onClick={() => setActiveTab('active')}
-                    className={`px-6 py-2.5 text-sm font-medium transition-all ${activeTab === 'active' ? 'text-green-600 border-b-2 border-green-600' : 'text-gray-500 hover:text-gray-700'}`}
-                >
-                    🟢 Active Credit Notes
-                </button>
-                <button 
-                    onClick={() => setActiveTab('redeemed')}
-                    className={`px-6 py-2.5 text-sm font-medium transition-all ${activeTab === 'redeemed' ? 'text-green-600 border-b-2 border-green-600' : 'text-gray-500 hover:text-gray-700'}`}
-                >
-                    ✅ Redeemed Credit Notes
-                </button>
-                <button 
-                    onClick={() => setActiveTab('all')}
-                    className={`px-6 py-2.5 text-sm font-medium transition-all ${activeTab === 'all' ? 'text-green-600 border-b-2 border-green-600' : 'text-gray-500 hover:text-gray-700'}`}
-                >
-                    📋 All Credit Notes
-                </button>
+                {tabs.map(t => (
+                    <button
+                        key={t.key}
+                        onClick={() => setActiveTab(t.key)}
+                        className={`px-5 py-2.5 text-sm font-medium  transition-all border-b-2 -mb-px ${
+                            activeTab === t.key
+                                ? 'text-gray-900 border-gray-900'
+                                : 'text-gray-400 border-transparent hover:text-gray-600'
+                        }`}
+                    >
+                        {t.label}
+                    </button>
+                ))}
             </div>
 
-            {/* Search */}
-            <div className="relative">
-                <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            {/* ── Search ── */}
+            <div className="flex items-center gap-2.5 px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl w-full">
+                <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
-                <input 
-                    type="text" 
-                    placeholder="🔍 Search by customer name, mobile, or credit note number..." 
+                <input
+                    type="text"
+                    placeholder="Search by customer name, mobile, or credit note number…"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
+                    className="flex-1 text-sm bg-transparent outline-none text-gray-700  placeholder:text-gray-400"
                 />
             </div>
 
-            {/* Credit Notes Table */}
-            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                <div className="overflow-x-auto">
-                    <table className="w-full">
-                        <thead className="bg-gray-50 border-b border-gray-200">
+            {/* ── Table ── */}
+            <div className="bg-white border border-gray-100 overflow-hidden">
+                <table className="w-full">
+                    <thead>
+                        <tr className="border-b border-gray-100 bg-gray-50">
+                            {['Credit Note #', 'Customer', 'Original Bill', 'Created', 'Amount', 'Valid Until', 'Status', 'Actions'].map(h => (
+                                <th key={h} className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider ">{h}</th>
+                            ))}
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                        {filteredCreditNotes.length === 0 ? (
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Credit Note #</th>
-                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Customer</th>
-                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Original Bill</th>
-                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Created</th>
-                                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Amount</th>
-                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Valid Until</th>
-                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Status</th>
-                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Actions</th>
-                            ｜｜DSML｜｜
+                                <td colSpan="8" className="px-5 py-14 text-center text-sm text-gray-400 ">
+                                    No credit notes found
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody className="divide-y text-gray-700 divide-gray-100">
-                            {filteredCreditNotes.length === 0 ? (
-                                <tr>
-                                    <td colSpan="8" className="px-6 py-12 text-center text-gray-400">
-                                        No credit notes found
-                                    </td>
-                                </tr>
-                            ) : (
-                                filteredCreditNotes.map(creditNote => {
-                                    const isExpired = new Date(creditNote.expiryDate) < new Date();
-                                    return (
-                                        <tr key={creditNote.id} className="hover:bg-gray-50 transition-colors">
-                                            <td className="px-6 py-4">
-                                                <code className="text-xs font-mono bg-gray-100 px-2 py-1 rounded text-gray-700">
-                                                    {creditNote.creditNoteNumber || creditNote.id}
-                                                </code>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <p className="font-medium text-gray-800">{creditNote.customerName}</p>
-                                                <p className="text-xs text-gray-400">{creditNote.customerMobile}</p>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <code className="text-xs font-mono text-gray-600">{creditNote.originalBillNumber}</code>
-                                            </td>
-                                            <td className="px-6 py-4 text-sm text-gray-600">{creditNote.createdAt}</td>
-                                            <td className="px-6 py-4 text-right font-bold text-green-600">₹{creditNote.amount.toLocaleString()}</td>
-                                            <td className="px-6 py-4">
-                                                <span className={`text-xs ${isExpired ? 'text-red-500' : 'text-gray-500'}`}>
-                                                    {creditNote.expiryDate || '90 days from creation'}
-                                                    {isExpired && <span className="ml-1 text-red-600">(Expired)</span>}
-                                                </span>
-                                             </td>
-                                            <td className="px-6 py-4">
-                                                {creditNote.redeemed ? (
-                                                    <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">Redeemed</span>
-                                                ) : isExpired ? (
-                                                    <span className="px-2 py-1 bg-red-100 text-red-600 text-xs rounded-full">Expired</span>
-                                                ) : (
-                                                    <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Active</span>
-                                                )}
-                                             </td>
-                                            <td className="px-6 py-4">
-                                                {!creditNote.redeemed && !isExpired && (
-                                                    <button 
-                                                        onClick={() => redeemCreditNote(creditNote.id)}
-                                                        className="px-3 py-1 bg-green-600 text-white rounded-lg text-xs hover:bg-green-700 mr-2"
+                        ) : (
+                            filteredCreditNotes.map(cn => {
+                                const isExpired = new Date(cn.expiryDate) < new Date();
+                                return (
+                                    <tr key={cn.id} className="hover:bg-gray-50 transition-colors">
+                                        <td className="px-5 py-4">
+                                            <span className="text-xs font-mono bg-gray-100 text-gray-600 px-2 py-1 rounded-lg ">
+                                                {cn.creditNoteNumber || cn.id}
+                                            </span>
+                                        </td>
+                                        <td className="px-5 py-4">
+                                            <p className="text-sm font-semibold text-gray-800 ">{cn.customerName}</p>
+                                            <p className="text-xs text-gray-400 mt-0.5 ">{cn.customerMobile}</p>
+                                        </td>
+                                        <td className="px-5 py-4">
+                                            <span className="text-xs font-mono text-gray-500">{cn.originalBillNumber}</span>
+                                        </td>
+                                        <td className="px-5 py-4 text-sm text-gray-500 ">{cn.createdAt}</td>
+                                        <td className="px-5 py-4 text-sm font-bold text-gray-900 ">
+                                            ₹{cn.amount.toLocaleString()}
+                                        </td>
+                                        <td className="px-5 py-4">
+                                            <span className={`text-xs  ${isExpired ? 'text-red-400' : 'text-gray-400'}`}>
+                                                {cn.expiryDate || '90 days from creation'}
+                                                {isExpired && ' · Expired'}
+                                            </span>
+                                        </td>
+                                        <td className="px-5 py-4">
+                                            {cn.redeemed ? (
+                                                <span className="px-2.5 py-1 bg-gray-100 text-gray-500 text-xs rounded-full ">Redeemed</span>
+                                            ) : isExpired ? (
+                                                <span className="px-2.5 py-1 bg-red-50 text-red-400 text-xs rounded-full ">Expired</span>
+                                            ) : (
+                                                <span className="px-2.5 py-1 bg-emerald-50 text-emerald-600 text-xs rounded-full ">Active</span>
+                                            )}
+                                        </td>
+                                        <td className="px-5 py-4">
+                                            <div className="flex items-center gap-2">
+                                                {!cn.redeemed && !isExpired && (
+                                                    <button
+                                                        onClick={() => redeemCreditNote(cn.id)}
+                                                        className="px-3 py-1.5 bg-gray-900 text-white rounded-lg text-xs font-semibold  hover:bg-gray-700 transition"
                                                     >
                                                         Redeem
                                                     </button>
                                                 )}
-                                                <button 
-                                                    onClick={() => {
-                                                        alert(`Credit Note Details:\n\nNumber: ${creditNote.creditNoteNumber}\nCustomer: ${creditNote.customerName}\nAmount: ₹${creditNote.amount}\nItems: ${creditNote.items?.map(i => `${i.name} x${i.quantity}`).join(', ')}\nReason: ${creditNote.reason}`);
-                                                    }}
-                                                    className="px-3 py-1 border border-gray-300 rounded-lg text-xs hover:bg-gray-50"
+                                                <button
+                                                    onClick={() => alert(`Credit Note: ${cn.creditNoteNumber}\nCustomer: ${cn.customerName}\nAmount: ₹${cn.amount}\nItems: ${cn.items?.map(i => `${i.name} x${i.quantity}`).join(', ')}\nReason: ${cn.reason}`)}
+                                                    className="px-3 py-1.5 border border-gray-200 text-gray-600 rounded-lg text-xs font-semibold  hover:bg-gray-50 transition"
                                                 >
                                                     View
                                                 </button>
-                                             </td>
-                                         </tr>
-                                    );
-                                })
-                            )}
-                        </tbody>
-                     </table>
-                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })
+                        )}
+                    </tbody>
+                </table>
             </div>
 
-            {/* Return Modal */}
+            {/* ── Return Modal ── */}
             {showReturnModal && selectedBill && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-xl p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="font-bold text-gray-800 text-lg">Create Return & Credit Note</h3>
-                            <button onClick={() => setShowReturnModal(false)} className="text-gray-400 hover:text-gray-600">✕</button>
+                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white p-6 w-full max-w-2xl max-h-[85vh] overflow-y-auto shadow-xl">
+
+                        {/* Modal Header */}
+                        <div className="flex items-center justify-between mb-5">
+                            <div>
+                                <h3 className="text-base font-bold text-gray-900 ">Create Return & Credit Note</h3>
+                                <p className="text-xs text-gray-400 mt-0.5 ">Select items to return from the original bill</p>
+                            </div>
+                            <button onClick={() => setShowReturnModal(false)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition text-lg">
+                                ✕
+                            </button>
                         </div>
-                        
-                        <div className="space-y-4 text-gray-700">
-                            {/* Bill Info */}
-                            <div className="bg-gray-50 p-4 rounded-lg">
-                                <p className="font-medium">Original Bill: {selectedBill.billNumber}</p>
-                                <p className="text-sm text-gray-600">Customer: {selectedBill.customerName} ({selectedBill.customerMobile})</p>
-                                <p className="text-sm text-gray-600">Date: {selectedBill.date}</p>
-                            </div>
 
-                            {/* Items to Return */}
-                            <div>
-                                <h4 className="font-medium mb-3">Select Items to Return</h4>
-                                <div className="space-y-3">
-                                    {returnItems.map(item => (
-                                        <div key={item.productId} className="flex items-center gap-4 p-3 border border-gray-200 rounded-lg">
-                                            <input 
-                                                type="checkbox" 
-                                                checked={item.selected} 
-                                                onChange={() => toggleReturnItem(item)}
-                                                className="w-4 h-4"
-                                            />
-                                            <div className="flex-1">
-                                                <p className="font-medium text-gray-800">{item.name}</p>
-                                                <p className="text-xs text-gray-500">Price: ₹{(item.price / item.qty).toFixed(2)} | GST: {item.gst}%</p>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-sm text-gray-500">Qty:</span>
-                                                <input 
-                                                    type="number" 
-                                                    value={item.returnQty} 
-                                                    onChange={(e) => updateReturnQty(item, e.target.value)}
-                                                    disabled={!item.selected}
-                                                    min="0"
-                                                    max={item.maxQty}
-                                                    className="w-16 px-2 py-1 border border-gray-300 rounded text-sm"
-                                                />
-                                                <span className="text-xs text-gray-400">/ {item.maxQty}</span>
-                                            </div>
-                                            <div className="w-24 text-right">
-                                                <p className="font-semibold text-gray-800">
-                                                    ₹{((item.price / item.qty) * item.returnQty).toFixed(2)}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    ))}
+                        {/* Bill Info */}
+                        <div className="bg-gray-50 rounded-xl p-4 mb-5 border border-gray-100">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-xs text-gray-400 ">Original Bill</p>
+                                    <p className="text-sm font-semibold text-gray-800  mt-0.5">{selectedBill.billNumber}</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs text-gray-400 ">Customer</p>
+                                    <p className="text-sm font-semibold text-gray-800  mt-0.5">{selectedBill.customerName}</p>
+                                    <p className="text-xs text-gray-400 ">{selectedBill.customerMobile}</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs text-gray-400 ">Date</p>
+                                    <p className="text-sm font-semibold text-gray-800  mt-0.5">{selectedBill.date}</p>
                                 </div>
                             </div>
+                        </div>
 
-                            {/* Return Reason */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Return Reason</label>
-                                <select id="returnReason" className="w-full px-3 py-2 border border-gray-300 rounded-lg">
-                                    <option value="Damaged product">Damaged product</option>
-                                    <option value="Expired product">Expired product</option>
-                                    <option value="Wrong product delivered">Wrong product delivered</option>
-                                    <option value="Customer changed mind">Customer changed mind</option>
-                                    <option value="Quality issue">Quality issue</option>
-                                </select>
-                            </div>
-
-                            {/* Summary */}
-                            <div className="border-t pt-3">
-                                <div className="flex justify-between font-bold text-lg">
-                                    <span>Total Credit Amount:</span>
-                                    <span className="text-green-600">₹{calculateReturnAmount().toFixed(2)}</span>
+                        {/* Items */}
+                        <div className="space-y-2 mb-5">
+                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider ">Select Items to Return</p>
+                            {returnItems.map(item => (
+                                <div
+                                    key={item.productId}
+                                    onClick={() => toggleReturnItem(item)}
+                                    className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition ${
+                                        item.selected ? 'border-gray-900 bg-gray-50' : 'border-gray-100 hover:border-gray-200'
+                                    }`}
+                                >
+                                    <div className={`w-4 h-4 rounded border-2 flex-shrink-0 flex items-center justify-center transition ${
+                                        item.selected ? 'bg-gray-900 border-gray-900' : 'border-gray-300'
+                                    }`}>
+                                        {item.selected && <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 12 12"><path d="M10 3L5 8.5 2 5.5" stroke="white" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-semibold text-gray-800 ">{item.name}</p>
+                                        <p className="text-xs text-gray-400 ">₹{(item.price / item.qty).toFixed(2)} per unit · GST {item.gst}%</p>
+                                    </div>
+                                    <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                                        <span className="text-xs text-gray-400 ">Qty</span>
+                                        <input
+                                            type="number"
+                                            value={item.returnQty}
+                                            onChange={(e) => updateReturnQty(item, e.target.value)}
+                                            disabled={!item.selected}
+                                            min="0"
+                                            max={item.maxQty}
+                                            className="w-14 px-2 py-1.5 border border-gray-200 rounded-lg text-sm text-center  outline-none focus:border-gray-400 disabled:opacity-40"
+                                        />
+                                        <span className="text-xs text-gray-400 ">/ {item.maxQty}</span>
+                                    </div>
+                                    <div className="w-20 text-right">
+                                        <p className="text-sm font-bold text-gray-900 ">
+                                            ₹{((item.price / item.qty) * item.returnQty).toFixed(2)}
+                                        </p>
+                                    </div>
                                 </div>
-                            </div>
+                            ))}
+                        </div>
 
-                            {/* Actions */}
-                            <div className="flex justify-end gap-3 pt-4">
-                                <button onClick={() => setShowReturnModal(false)} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+                        {/* Return Reason */}
+                        <div className="mb-5">
+                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider  block mb-2">Return Reason</label>
+                            <select
+                                id="returnReason"
+                                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-700  outline-none focus:border-gray-400 bg-white"
+                            >
+                                <option>Damaged product</option>
+                                <option>Expired product</option>
+                                <option>Wrong product delivered</option>
+                                <option>Customer changed mind</option>
+                                <option>Quality issue</option>
+                            </select>
+                        </div>
+
+                        {/* Summary + Actions */}
+                        <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                            <div>
+                                <p className="text-xs text-gray-400 ">Total Credit Amount</p>
+                                <p className="text-xl font-bold text-gray-900 ">₹{calculateReturnAmount().toFixed(2)}</p>
+                            </div>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setShowReturnModal(false)}
+                                    className="px-5 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm font-semibold  hover:bg-gray-50 transition"
+                                >
                                     Cancel
                                 </button>
-                                <button onClick={generateCreditNote} className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                                <button
+                                    onClick={generateCreditNote}
+                                    className="px-5 py-2.5 bg-gray-900 text-white rounded-xl text-sm font-semibold  hover:bg-gray-700 transition"
+                                >
                                     Generate Credit Note
                                 </button>
                             </div>

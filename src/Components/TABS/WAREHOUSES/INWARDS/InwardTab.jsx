@@ -126,7 +126,7 @@ export default function InwardTab() {
                 </div>
                 <button
                     onClick={() => dispatch(openAddForm())}
-                    className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 cursor-pointer"
+                    className="px-4 py-2 bg-gray-800 text-white text-sm font-medium rounded-lg hover:bg-gray-700 cursor-pointer"
                 >
                     + Schedule Inward
                 </button>

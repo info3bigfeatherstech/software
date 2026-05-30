@@ -28,10 +28,10 @@ import {
 import WarehouseAddForm from "./WarehouseShared/WarehouseAddForm";
 import WarehouseEditForm from "./WarehouseShared/WarehouseEditForm";
 
+
 export default function WarehouseOverviewTab() {
   const dispatch = useDispatch();
 
-  // ── Slice state ──────────────────────────────────────────────────────────
   const {
     showAddForm,
     showEditForm,
@@ -46,7 +46,6 @@ export default function WarehouseOverviewTab() {
     pageSize,
   } = useSelector((state) => state.warehouse);
 
-  // ── API ──────────────────────────────────────────────────────────────────
   const {
     data: warehouseData,
     isLoading,
@@ -63,27 +62,16 @@ export default function WarehouseOverviewTab() {
 
   const [deleteWarehouse] = useDeleteWarehouseMutation();
 
-  const warehouses  = warehouseData?.warehouses || [];
-  const meta        = warehouseData?.meta;
-  const totalPages  = meta?.totalPages || 1;
-  const totalItems  = meta?.total      || 0;
+  const warehouses = warehouseData?.warehouses || [];
+  const meta       = warehouseData?.meta;
+  const totalPages = meta?.totalPages || 1;
+  const totalItems = meta?.total      || 0;
 
-  // ── Derived stats from current page data ────────────────────────────────
   const activeCount  = warehouses.filter(w => w.is_active).length;
   const uniqueCities = [...new Set(warehouses.map(w => w.city).filter(Boolean))];
 
-  // ── Handlers ─────────────────────────────────────────────────────────────
-  const handleAddSuccess = () => {
-    dispatch(closeAddForm());
-    dispatch(clearFormErrors());
-    refetch();
-  };
-
-  const handleEditSuccess = () => {
-    dispatch(closeEditForm());
-    dispatch(clearFormErrors());
-    refetch();
-  };
+  const handleAddSuccess = () => { dispatch(closeAddForm()); dispatch(clearFormErrors()); refetch(); };
+  const handleEditSuccess = () => { dispatch(closeEditForm()); dispatch(clearFormErrors()); refetch(); };
 
   const handleDeactivate = async (warehouseId) => {
     if (!window.confirm("Deactivate this warehouse?")) return;
@@ -95,156 +83,171 @@ export default function WarehouseOverviewTab() {
     }
   };
 
-  // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="space-y-5">
+    <div className="min-h-screen bg-gray-50 p-7  space-y-6">
 
-      {/* ── Page Header ─────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between">
+      {/* ── Header ── */}
+      {/* <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-base font-semibold text-gray-800">Warehouse Overview</h2>
-          <p className="text-xs text-gray-400 mt-0.5">All warehouse locations and their current status</p>
+          <h1 className="text-2xl font-bold text-gray-900 ">Warehouses</h1>
+          <p className="text-sm text-gray-400 mt-0.5 ">All warehouse locations and their current status</p>
         </div>
         <button
           onClick={() => dispatch(openAddForm())}
-          className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 cursor-pointer"
+          className="px-5 py-2.5 bg-gray-800 text-white text-sm font-semibold rounded-lg hover:bg-gray-700 transition  cursor-pointer"
         >
           + Add Warehouse
         </button>
-      </div>
+      </div> */}
 
-      {/* ── Summary Cards ───────────────────────────────────────────────── */}
+      {/* ── Stat Cards ── */}
       <div className="grid grid-cols-3 gap-4">
-        <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-4 text-white shadow-md">
-          <p className="text-xs opacity-80 uppercase tracking-wide">Total Warehouses</p>
-          <p className="text-3xl font-bold mt-1">{totalItems}</p>
-        </div>
-        <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-4 text-white shadow-md">
-          <p className="text-xs opacity-80 uppercase tracking-wide">Active (this page)</p>
-          <p className="text-3xl font-bold mt-1">{activeCount}</p>
-        </div>
-        <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl p-4 text-white shadow-md">
-          <p className="text-xs opacity-80 uppercase tracking-wide">Cities Covered</p>
-          <p className="text-3xl font-bold mt-1">{uniqueCities.length}</p>
-        </div>
+        {[
+          { label: 'Total Warehouses', value: totalItems },
+          { label: 'Active (this page)', value: activeCount },
+          { label: 'Cities Covered', value: uniqueCities.length },
+        ].map((card, i) => (
+          <div key={i} className="bg-white rounded-2xl border border-gray-100 p-5 flex flex-col gap-1">
+            <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 ">{card.label}</p>
+            <p className="text-3xl font-bold text-gray-900  leading-tight">{card.value}</p>
+          </div>
+        ))}
       </div>
 
-      {/* ── Filters Bar ─────────────────────────────────────────────────── */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+      {/* ── Filters ── */}
+      <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-3">
         <div className="flex gap-3">
-          <input
-            value={search}
-            onChange={(e) => dispatch(setSearch(e.target.value))}
-            placeholder="Search by name or code…"
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm"
-          />
+          <div className="flex-1 flex items-center gap-2.5 px-3.5 py-2.5 border border-gray-200 rounded-xl">
+            <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              value={search}
+              onChange={(e) => dispatch(setSearch(e.target.value))}
+              placeholder="Search by name or code…"
+              className="flex-1 text-sm bg-transparent outline-none text-gray-700  placeholder:text-gray-400"
+            />
+          </div>
           <button
             onClick={() => dispatch(resetFilters())}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 flex items-center gap-2 cursor-pointer"
+            className="px-4 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-500 hover:bg-gray-50  flex items-center gap-2 transition cursor-pointer"
           >
             <X size={14} /> Clear
           </button>
         </div>
+
         <div className="flex gap-3 flex-wrap">
-          {/* City filter (derived from current page) */}
           <select
             value={cityFilter}
             onChange={(e) => dispatch(setCityFilter(e.target.value))}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 cursor-pointer"
+            className="px-3 py-2 border border-gray-200 rounded-xl text-sm text-gray-600  outline-none bg-white cursor-pointer"
           >
             <option value="">All Cities</option>
             {uniqueCities.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
 
-          {/* Status filter */}
           <select
             value={activeFilter}
             onChange={(e) => dispatch(setActiveFilter(e.target.value))}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 cursor-pointer"
+            className="px-3 py-2 border border-gray-200 rounded-xl text-sm text-gray-600  outline-none bg-white cursor-pointer"
           >
             <option value="">All Status</option>
             <option value="true">Active</option>
             <option value="false">Inactive</option>
           </select>
 
-          {/* Page size */}
           <select
             value={pageSize}
             onChange={(e) => dispatch(setPageSize(Number(e.target.value)))}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 ml-auto cursor-pointer"
+            className="px-3 py-2 border border-gray-200 rounded-xl text-sm text-gray-600  outline-none bg-white ml-auto cursor-pointer"
           >
             {[10, 20, 50].map(s => <option key={s} value={s}>{s} per page</option>)}
           </select>
         </div>
       </div>
 
-      {/* ── Error ───────────────────────────────────────────────────────── */}
+      {/* ── Error ── */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-600 text-sm">
+        <div className="bg-red-50 border border-red-100 rounded-xl px-5 py-3">
+          <p className="text-sm text-red-500 ">
             Error loading warehouses: {error.data?.message || "Please try again"}
           </p>
         </div>
       )}
 
-      {/* ── Loading Spinner ──────────────────────────────────────────────── */}
+      {/* ── Loading ── */}
       {(isLoading || isFetching) && (
-        <div className="flex justify-center py-10">
-          <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+        <div className="flex justify-center py-16">
+          <div className="w-7 h-7 border-2 border-gray-900 border-t-transparent rounded-full animate-spin" />
         </div>
       )}
 
-      {/* ── Warehouse Cards Grid ─────────────────────────────────────────── */}
+      {/* ── Empty ── */}
       {!isLoading && !isFetching && warehouses.length === 0 && (
-        <div className="text-center py-16 text-gray-400 text-sm">No warehouses found</div>
+        <div className="bg-white rounded-2xl border border-gray-100 py-20 text-center">
+          <p className="text-sm text-gray-400 ">No warehouses found</p>
+          <p className="text-xs text-gray-300 mt-1 ">Try adjusting your filters or add a new warehouse</p>
+        </div>
       )}
 
+      {/* ── Warehouse Cards Grid ── */}
       {!isLoading && warehouses.length > 0 && (
         <div className="grid grid-cols-2 gap-4">
           {warehouses.map(wh => (
             <div
               key={wh.warehouse_id}
-              className="bg-white rounded-xl border-2 border-gray-200 hover:border-blue-300 transition-all shadow-sm hover:shadow-md p-5"
+              className="bg-white rounded-2xl border border-gray-100 hover:border-gray-300 transition-all p-5 group"
             >
               {/* Card Header */}
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <p className="text-xs text-gray-400 font-mono">{wh.warehouse_id}</p>
-                  <p className="text-xs text-gray-400 font-mono">{wh.warehouse_code}</p>
-                  <h3 className="font-semibold text-gray-800 mt-0.5">{wh.warehouse_name}</h3>
-                  <p className="text-xs text-gray-400 mt-0.5">{wh.city} — {wh.address}</p>
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xs font-mono text-gray-300">{wh.warehouse_code}</span>
+                  </div>
+                  <h3 className="text-sm font-bold text-gray-900  leading-snug">{wh.warehouse_name}</h3>
+                  <p className="text-xs text-gray-400  mt-0.5 truncate">{wh.city}{wh.address ? ` · ${wh.address}` : ''}</p>
                 </div>
-                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                  wh.is_active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
+                <span className={`ml-3 flex-shrink-0 px-2.5 py-1 rounded-full text-xs font-semibold  ${
+                  wh.is_active
+                    ? 'bg-emerald-50 text-emerald-600'
+                    : 'bg-gray-100 text-gray-400'
                 }`}>
-                  {wh.is_active ? "Active" : "Inactive"}
+                  {wh.is_active ? 'Active' : 'Inactive'}
                 </span>
               </div>
 
-              {/* Manager */}
-              {wh.manager_name && (
-                <p className="text-xs text-gray-400 mb-3">
-                  Manager: <span className="text-gray-600 font-medium">{wh.manager_name}</span>
-                </p>
-              )}
+              {/* Meta rows */}
+              <div className="space-y-1.5 mb-4">
+                {wh.manager_name && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-400  w-16 flex-shrink-0">Manager</span>
+                    <span className="text-xs font-medium text-gray-700 ">{wh.manager_name}</span>
+                  </div>
+                )}
+                {wh.remarks && (
+                  <div className="flex items-start gap-2">
+                    <span className="text-xs text-gray-400  w-16 flex-shrink-0">Remarks</span>
+                    <span className="text-xs text-gray-400 italic ">{wh.remarks}</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-400  w-16 flex-shrink-0">ID</span>
+                  <span className="text-xs font-mono text-gray-300">{wh.warehouse_id}</span>
+                </div>
+              </div>
 
-              {/* Remarks */}
-              {wh.remarks && (
-                <p className="text-xs text-gray-400 italic mb-3">{wh.remarks}</p>
-              )}
-
-              {/* Action Buttons */}
-              <div className="flex gap-2 mt-3 pt-3 border-t border-gray-100">
+              {/* Actions */}
+              <div className="flex gap-2 pt-4 border-t border-gray-100">
                 <button
                   onClick={() => dispatch(openEditForm(wh))}
-                  className="flex-1 px-3 py-1.5 border border-gray-300 rounded-lg text-xs text-gray-600 hover:bg-gray-50 cursor-pointer"
+                  className="flex-1 px-3 py-2 border border-gray-200 rounded-xl text-xs font-semibold text-gray-600 hover:bg-gray-50  transition cursor-pointer"
                 >
                   Edit
                 </button>
                 {wh.is_active && (
                   <button
                     onClick={() => handleDeactivate(wh.warehouse_id)}
-                    className="flex-1 px-3 py-1.5 border border-red-200 rounded-lg text-xs text-red-500 hover:bg-red-50 cursor-pointer"
+                    className="flex-1 px-3 py-2 border border-gray-200 rounded-xl text-xs font-semibold text-gray-400 hover:border-red-200 hover:text-red-400 hover:bg-red-50  transition cursor-pointer"
                   >
                     Deactivate
                   </button>
@@ -255,27 +258,29 @@ export default function WarehouseOverviewTab() {
         </div>
       )}
 
-      {/* ── Pagination ───────────────────────────────────────────────────── */}
+      {/* ── Pagination ── */}
       {totalPages > 1 && (
-        <div className="flex justify-between items-center bg-white rounded-xl border border-gray-200 px-4 py-3">
-          <p className="text-sm text-gray-500">
-            Showing {((currentPage - 1) * pageSize) + 1}–{Math.min(currentPage * pageSize, totalItems)} of {totalItems}
+        <div className="flex justify-between items-center bg-white rounded-2xl border border-gray-100 px-5 py-3.5">
+          <p className="text-sm text-gray-400 ">
+            Showing{' '}
+            <span className="text-gray-700 font-semibold">{((currentPage - 1) * pageSize) + 1}–{Math.min(currentPage * pageSize, totalItems)}</span>
+            {' '}of <span className="text-gray-700 font-semibold">{totalItems}</span>
           </p>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
             <button
               onClick={() => dispatch(setCurrentPage(currentPage - 1))}
               disabled={currentPage === 1}
-              className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-40 hover:bg-gray-50"
+              className="px-4 py-2 border border-gray-200 rounded-xl text-sm text-gray-600  disabled:opacity-30 hover:bg-gray-50 transition cursor-pointer"
             >
               Previous
             </button>
-            <span className="px-3 py-1 text-sm text-gray-600">
+            <span className="px-3 py-2 text-sm text-gray-500 ">
               {currentPage} / {totalPages}
             </span>
             <button
               onClick={() => dispatch(setCurrentPage(currentPage + 1))}
               disabled={currentPage === totalPages}
-              className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-40 hover:bg-gray-50"
+              className="px-4 py-2 border border-gray-200 rounded-xl text-sm text-gray-600  disabled:opacity-30 hover:bg-gray-50 transition cursor-pointer"
             >
               Next
             </button>
@@ -283,23 +288,14 @@ export default function WarehouseOverviewTab() {
         </div>
       )}
 
-      {/* ── Add Form Modal ───────────────────────────────────────────────── */}
+      {/* ── Add Form Modal ── */}
       {showAddForm && (
-        <WarehouseAddForm
-          formData={formData}
-          formErrors={formErrors}
-          onSave={handleAddSuccess}
-        />
+        <WarehouseAddForm formData={formData} formErrors={formErrors} onSave={handleAddSuccess} />
       )}
 
-      {/* ── Edit Form Modal ──────────────────────────────────────────────── */}
+      {/* ── Edit Form Modal ── */}
       {showEditForm && (
-        <WarehouseEditForm
-          formData={formData}
-          formErrors={formErrors}
-          selectedWarehouse={selectedWarehouse}
-          onSave={handleEditSuccess}
-        />
+        <WarehouseEditForm formData={formData} formErrors={formErrors} selectedWarehouse={selectedWarehouse} onSave={handleEditSuccess} />
       )}
 
     </div>
