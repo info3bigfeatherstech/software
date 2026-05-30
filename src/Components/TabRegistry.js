@@ -5,7 +5,7 @@
 // Nothing else needs to change.
 
 import { lazy } from "react";
-import ArchiveTab from "./TABS/INVENTORY/ArchiveTab/ArchiveTab";
+// import ArchiveTab from "./TABS/INVENTORY/ArchiveTab/ArchiveTab";
 
 const ContentDashboardTab = lazy(() => import("./ContentDashboard/ContentDashboardTab"));
 const SalesDashboard = lazy(() => import("./TABS/SALES/SalesDashboard"));
@@ -18,6 +18,10 @@ const TransferRequestsTab = lazy(() => import("./TABS/TRANSFERS/TransferRequests
 const WarehousesDashboard = lazy(() => import("./TABS/WAREHOUSES/WarehousesDashboard"));
 const SettingsDashboard = lazy(() => import("./TABS/SETTINGS/SettingsDashboard"));
 const VendorsTab = lazy(() => import("./TABS/VENDOR/VendorsTab"));
+const ArchiveTab = lazy(() => import("./TABS/INVENTORY/ArchiveTab/ArchiveTab"));
+const CashBankDashboard = lazy(() => import("./TABS/CASHBANK/CashBankDashboard"));
+const CompanyDetailsTab = lazy(() => import("./TABS/SETTINGS/CompanyDetailsTab/CompanyDetailsTab"));
+const BankDetailsTab = lazy(() => import("./TABS/SETTINGS/BankDetailsTab/BankDetailsTab"));
 
 export const TAB_REGISTRY = [
     {
@@ -48,6 +52,12 @@ export const TAB_REGISTRY = [
         label: "Inventory",
         icon: "M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10",
         component: InventoryDashboard,
+    },
+    {
+        id: "cashbank",
+        label: "Cash & Bank",
+        icon: "M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10",
+        component: CashBankDashboard,
     },
     {
         id: "archive",
@@ -91,6 +101,10 @@ export const TAB_REGISTRY = [
         label: "Parties",
         icon: "M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z",
         component: PartiesTab,
+        subItems: [
+            { id: "partyDetails", label: "Party Details", icon: "M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" },
+            { id: "loyaltyPoints", label: "Loyalty Points", icon: "M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" },
+        ],
     },
     {
         id: "reports",
@@ -113,6 +127,8 @@ export const TAB_REGISTRY = [
             { id: "users", label: "Users & Roles", icon: "M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" },
             { id: "shops", label: "Shops", icon: "M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" },
             { id: "vendors", label: "Vendors", icon: "M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" },
+            { id: "companydetails", label: "Company Details", icon: "M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z", component: CompanyDetailsTab },
+            { id: "bankdetails", label: "Bank Details", icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z", component: BankDetailsTab },
         ],
     },
 ];

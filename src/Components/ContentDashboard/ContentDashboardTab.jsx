@@ -9,10 +9,10 @@ import { useGetShopsQuery } from "../../REDUX_FEATURES/REDUX_SLICES/Shop_api/sho
 import NetworkStockPanel from "../shared/NetworkStockPanel";
 
 const StatCard = ({ label, value, sub, color = "text-gray-800", gradient }) => (
-    <div className={`rounded-xl p-5 shadow-sm ${gradient || "bg-white border border-gray-100"}`}>
-        <p className={`text-xs uppercase tracking-wide mb-2 ${gradient ? "text-white/80" : "text-gray-400"}`}>{label}</p>
-        <p className={`text-2xl font-bold ${gradient ? "text-white" : color}`}>{value}</p>
-        {sub && <p className={`text-xs mt-1 ${gradient ? "text-white/70" : "text-gray-400"}`}>{sub}</p>}
+    <div className={`rounded-xl p-5 ${gradient || "bg-white border border-gray-100 shadow-sm"}`}>
+        <p className={`text-[11px] uppercase tracking-widest font-medium mb-2 ${gradient ? "text-white/70" : "text-gray-400"}`}>{label}</p>
+        <p className={`text-2xl font-bold tracking-tight ${gradient ? "text-white" : color}`}>{value}</p>
+        {sub && <p className={`text-xs mt-1.5 ${gradient ? "text-white/60" : "text-gray-400"}`}>{sub}</p>}
     </div>
 );
 
@@ -95,8 +95,9 @@ const locationLabel = isAdmin()
             {/* ── Top bar ──────────────────────────────────────────────────── */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-lg font-bold text-gray-800">BizPro Dashboard</h1>
+                    <h1 className="text-xl font-bold text-gray-800">Dashboard</h1>
                     <p className="text-xs text-gray-400 mt-0.5">
+                        Welcome back, manage your business efficiently &nbsp;
                         <span className="font-medium text-blue-600">{locationLabel}</span>
                     </p>
                 </div>
@@ -108,7 +109,7 @@ const locationLabel = isAdmin()
                         <select
                             value={shopFilter}
                             onChange={e => setShopFilter(e.target.value)}
-                            className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white text-gray-700"
+                            className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
                         >
                             <option value="all">All Locations</option>
                             {shops.map(s => (
@@ -123,24 +124,21 @@ const locationLabel = isAdmin()
             </div>
 
             {/* ── KPI Cards ────────────────────────────────────────────────── */}
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <StatCard
                     label="Total SKUs"
                     value={filteredProducts.length}
                     sub="active stock entries"
-                    gradient="bg-gradient-to-r from-blue-500 to-blue-600"
                 />
                 <StatCard
                     label="Total Units"
                     value={filteredProducts.reduce((s, p) => s + p.stock, 0).toLocaleString()}
                     sub="across all products"
-                    gradient="bg-gradient-to-r from-green-500 to-green-600"
                 />
                 <StatCard
                     label="Inventory Value"
                     value={`₹${(totalInventoryValue / 100000).toFixed(1)}L`}
                     sub="at MRP"
-                    gradient="bg-gradient-to-r from-purple-500 to-purple-600"
                 />
                 <StatCard
                     label="Low Stock Alerts"
@@ -151,7 +149,7 @@ const locationLabel = isAdmin()
             </div>
 
             {/* ── Secondary KPIs ───────────────────────────────────────────── */}
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <StatCard
                     label="Products in Scope"
                     value={filteredProducts.length}
@@ -184,12 +182,12 @@ const locationLabel = isAdmin()
                     </div>
                     <ResponsiveContainer width="100%" height={220}>
                         <BarChart data={chartData} margin={{ top: 0, right: 10, left: -10, bottom: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
                             <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#9ca3af" }} axisLine={false} tickLine={false} />
                             <YAxis tick={{ fontSize: 10, fill: "#9ca3af" }} axisLine={false} tickLine={false} tickFormatter={v => `₹${(v / 1000).toFixed(0)}K`} />
                             <Tooltip content={<CustomTooltip />} />
                             <Legend wrapperStyle={{ fontSize: 11, color: "#6b7280" }} />
-                            <Bar dataKey="Sales" fill="#3b82f6" radius={[3, 3, 0, 0]} maxBarSize={28} />
+                            <Bar dataKey="Sales" fill="#6366f1" radius={[3, 3, 0, 0]} maxBarSize={28} />
                             <Bar dataKey="Purchase" fill="#10b981" radius={[3, 3, 0, 0]} maxBarSize={28} />
                             <Bar dataKey="Profit" fill="#8b5cf6" radius={[3, 3, 0, 0]} maxBarSize={28} />
                         </BarChart>
@@ -245,6 +243,255 @@ const locationLabel = isAdmin()
         </div>
     );
 }
+
+// down code is working but upper code have updated ui 
+// // src/Components/ContentDashboard/ContentDashboardTab.jsx
+// import React, { useState } from "react";
+// import { useSelector } from "react-redux";
+// import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+// import { DASHBOARD_STATS, MONTHLY_SALES } from "../demoData";
+// import { CURRENT_USER, filterByLocation, isAdmin } from "../roles";
+// import { useGetProductStocksQuery } from "../../REDUX_FEATURES/REDUX_SLICES/Stock_api/stockApi";
+// import { useGetShopsQuery } from "../../REDUX_FEATURES/REDUX_SLICES/Shop_api/shopApi";
+// import NetworkStockPanel from "../shared/NetworkStockPanel";
+
+// const StatCard = ({ label, value, sub, color = "text-gray-800", gradient }) => (
+//     <div className={`rounded-xl p-5 shadow-sm ${gradient || "bg-white border border-gray-100"}`}>
+//         <p className={`text-xs uppercase tracking-wide mb-2 ${gradient ? "text-white/80" : "text-gray-400"}`}>{label}</p>
+//         <p className={`text-2xl font-bold ${gradient ? "text-white" : color}`}>{value}</p>
+//         {sub && <p className={`text-xs mt-1 ${gradient ? "text-white/70" : "text-gray-400"}`}>{sub}</p>}
+//     </div>
+// );
+
+// const CustomTooltip = ({ active, payload, label }) => {
+//     if (!active || !payload?.length) return null;
+//     return (
+//         <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3 text-sm">
+//             <p className="font-semibold text-gray-700 mb-2">{label}</p>
+//             {payload.map((p, i) => (
+//                 <p key={i} style={{ color: p.color }} className="flex items-center gap-1.5">
+//                     <span className="w-2 h-2 rounded-full inline-block" style={{ background: p.color }} />
+//                     {p.name}: <span className="font-semibold ml-1">₹{p.value?.toLocaleString()}</span>
+//                 </p>
+//             ))}
+//         </div>
+//     );
+// };
+
+// export default function ContentDashboardTab() {
+//     const { user } = useSelector((state) => state.auth);
+//     const [shopFilter, setShopFilter] = useState("all");
+
+//     // ── Real API calls ─────────────────────────────────────────────────────────
+//     const { data: stocksData } = useGetProductStocksQuery({ page: 1, limit: 100 });
+//     const { data: shopsData } = useGetShopsQuery({ page: 1, limit: 100 });
+
+//     // Transform stocks to products format
+//     const allProducts = stocksData?.stocks?.map(s => ({
+//         id: s.stock_id,
+//         name: s.variant?.product?.name || "Unknown Product",
+//         stock: s.quantity || 0,
+//         lowStockAlert: s.low_stock_threshold || 10,
+//         mrp: s.variant?.mrp || 0,
+//         warehouse_id: s.warehouse_id,
+//         variant_id: s.variant_id,
+//     })) || [];
+
+//     const shops = shopsData?.shops || [];
+
+//     // ── Scope products to user's location ──────────────────────────────────────
+//     // const scopedProducts = filterByLocation(allProducts, 'warehouse_id');
+//     // For SHOP_OWNER, show all products (no warehouse filter)
+//     // For WH roles, filter by warehouse_id
+//     const scopedProducts = user?.role === "SHOP_OWNER" || user?.role === "SHOP_STOCK_LISTER"
+//         ? allProducts
+//         : filterByLocation(allProducts, 'warehouse_id');
+
+//     // Admin can filter by specific shop (for products, we use warehouse filtering)
+//     const filteredProducts = (isAdmin() && shopFilter !== "all")
+//         ? scopedProducts.filter(p => p.warehouse_id === shopFilter)
+//         : scopedProducts;
+
+//     // ── Derived stats ─────────────────────────────────────────────────────────
+//     const lowStock = filteredProducts.filter(p => p.stock > 0 && p.stock <= (p.lowStockAlert || 10));
+//     const outOfStock = filteredProducts.filter(p => p.stock === 0);
+//     const totalInventoryValue = filteredProducts.reduce((s, p) => s + ((p.stock || 0) * (p.mrp || 0)), 0);
+
+//     // Chart data from demo (no API yet)
+//     const chartData = MONTHLY_SALES.map(m => ({
+//         month: m.month,
+//         Sales: m.sales,
+//         Purchase: m.purchase || Math.round(m.sales * 0.65),
+//         Profit: m.profit || Math.round(m.sales * 0.28),
+//     }));
+
+//     // Location label for display
+//     // const locationLabel = isAdmin()
+//     //     ? "All Locations"
+//     //     : `${CURRENT_USER.locationName || CURRENT_USER.locationId?.startsWith("WH") ? "Warehouse" : "Shop"}: ${CURRENT_USER.locationName || CURRENT_USER.locationId}`;
+//     // Location label for display
+// const locationLabel = isAdmin()
+//     ? "All Locations"
+//     : user?.role === "SHOP_OWNER" || user?.role === "SHOP_STOCK_LISTER"
+//         ? `Shop: ${CURRENT_USER.locationName || CURRENT_USER.shop_id}`
+//         : `Warehouse: ${CURRENT_USER.locationName || CURRENT_USER.locationId}`;
+
+//     return (
+//         <div className="space-y-6">
+
+//             {/* ── Top bar ──────────────────────────────────────────────────── */}
+//             <div className="flex items-center justify-between">
+//                 <div>
+//                     <h1 className="text-lg font-bold text-gray-800">BizPro Dashboard</h1>
+//                     <p className="text-xs text-gray-400 mt-0.5">
+//                         <span className="font-medium text-blue-600">{locationLabel}</span>
+//                     </p>
+//                 </div>
+
+//                 {/* Admin-only shop/warehouse filter */}
+//                 {isAdmin() && shops.length > 0 && (
+//                     <div className="flex items-center gap-3">
+//                         <span className="text-xs text-gray-400">Filter by location:</span>
+//                         <select
+//                             value={shopFilter}
+//                             onChange={e => setShopFilter(e.target.value)}
+//                             className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white text-gray-700"
+//                         >
+//                             <option value="all">All Locations</option>
+//                             {shops.map(s => (
+//                                 <option key={s.shop_id} value={s.shop_id}>
+//                                     🏪 {s.shop_name} (Shop)
+//                                 </option>
+//                             ))}
+//                             {/* Add warehouses here when warehouse API is ready */}
+//                         </select>
+//                     </div>
+//                 )}
+//             </div>
+
+//             {/* ── KPI Cards ────────────────────────────────────────────────── */}
+//             <div className="grid grid-cols-4 gap-4">
+//                 <StatCard
+//                     label="Total SKUs"
+//                     value={filteredProducts.length}
+//                     sub="active stock entries"
+//                     gradient="bg-gradient-to-r from-blue-500 to-blue-600"
+//                 />
+//                 <StatCard
+//                     label="Total Units"
+//                     value={filteredProducts.reduce((s, p) => s + p.stock, 0).toLocaleString()}
+//                     sub="across all products"
+//                     gradient="bg-gradient-to-r from-green-500 to-green-600"
+//                 />
+//                 <StatCard
+//                     label="Inventory Value"
+//                     value={`₹${(totalInventoryValue / 100000).toFixed(1)}L`}
+//                     sub="at MRP"
+//                     gradient="bg-gradient-to-r from-purple-500 to-purple-600"
+//                 />
+//                 <StatCard
+//                     label="Low Stock Alerts"
+//                     value={lowStock.length}
+//                     sub={`${outOfStock.length} out of stock`}
+//                     color={lowStock.length > 0 ? "text-red-500" : "text-green-600"}
+//                 />
+//             </div>
+
+//             {/* ── Secondary KPIs ───────────────────────────────────────────── */}
+//             <div className="grid grid-cols-4 gap-4">
+//                 <StatCard
+//                     label="Products in Scope"
+//                     value={filteredProducts.length}
+//                     sub={isAdmin() ? `across ${shops.length} locations` : `at your ${CURRENT_USER.locationName || "location"}`}
+//                 />
+//                 <StatCard
+//                     label="Active Products"
+//                     value={filteredProducts.filter(p => p.stock > 0).length}
+//                     sub="with positive stock"
+//                 />
+//                 <StatCard
+//                     label="Low Stock Items"
+//                     value={lowStock.length}
+//                     sub={outOfStock.length > 0 ? `${outOfStock.length} completely out` : "all good"}
+//                     color={lowStock.length > 0 ? "text-orange-500" : "text-gray-800"}
+//                 />
+//                 <StatCard
+//                     label={isAdmin() ? "Total Locations" : "Your Location"}
+//                     value={isAdmin() ? shops.length : "1"}
+//                     sub={isAdmin() ? `${DASHBOARD_STATS?.totalSuppliers || 0} vendors` : CURRENT_USER.locationName || CURRENT_USER.locationId}
+//                 />
+//             </div>
+
+//             {/* ── Chart + Network Stock Panel ──────────────────────────────── */}
+//             <div className="grid grid-cols-3 gap-5">
+//                 <div className="col-span-2 bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+//                     <div className="flex items-center justify-between mb-4">
+//                         <h3 className="font-semibold text-gray-700 text-sm">Monthly Sales vs Purchase vs Profit</h3>
+//                         <span className="text-xs text-gray-400">Last 6 months (demo data)</span>
+//                     </div>
+//                     <ResponsiveContainer width="100%" height={220}>
+//                         <BarChart data={chartData} margin={{ top: 0, right: 10, left: -10, bottom: 0 }}>
+//                             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+//                             <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#9ca3af" }} axisLine={false} tickLine={false} />
+//                             <YAxis tick={{ fontSize: 10, fill: "#9ca3af" }} axisLine={false} tickLine={false} tickFormatter={v => `₹${(v / 1000).toFixed(0)}K`} />
+//                             <Tooltip content={<CustomTooltip />} />
+//                             <Legend wrapperStyle={{ fontSize: 11, color: "#6b7280" }} />
+//                             <Bar dataKey="Sales" fill="#3b82f6" radius={[3, 3, 0, 0]} maxBarSize={28} />
+//                             <Bar dataKey="Purchase" fill="#10b981" radius={[3, 3, 0, 0]} maxBarSize={28} />
+//                             <Bar dataKey="Profit" fill="#8b5cf6" radius={[3, 3, 0, 0]} maxBarSize={28} />
+//                         </BarChart>
+//                     </ResponsiveContainer>
+//                 </div>
+
+//                 {/* NetworkStockPanel — stock-only, visible to ALL roles */}
+//                 <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 overflow-y-auto max-h-80">
+//                     <div className="flex items-center justify-between mb-4">
+//                         <h3 className="font-semibold text-gray-700 text-sm">📦 Network Stock</h3>
+//                         <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">All locations</span>
+//                     </div>
+//                     <NetworkStockPanel />
+//                 </div>
+//             </div>
+
+//             {/* ── Low stock alerts ─────────────────────────────────────────── */}
+//             {lowStock.length > 0 && (
+//                 <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
+//                     <div className="flex items-center gap-2 mb-3">
+//                         <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
+//                         <h3 className="font-semibold text-orange-800 text-sm">⚠️ Low Stock Alerts ({lowStock.length} items)</h3>
+//                     </div>
+//                     <div className="flex flex-wrap gap-2">
+//                         {lowStock.slice(0, 10).map(p => (
+//                             <span key={p.id} className={`text-xs px-2.5 py-1 rounded-full font-medium ${p.stock === 0 ? "bg-red-100 text-red-700" : "bg-orange-100 text-orange-700"}`}>
+//                                 {p.name} — {p.stock === 0 ? "OUT" : `${p.stock} left`}
+//                             </span>
+//                         ))}
+//                         {lowStock.length > 10 && <span className="text-xs text-orange-600 font-medium">+{lowStock.length - 10} more...</span>}
+//                     </div>
+//                 </div>
+//             )}
+
+//             {/* ── Out of stock banner ───────────────────────────────────────── */}
+//             {outOfStock.length > 0 && (
+//                 <div className="bg-red-50 border border-red-200 rounded-xl px-5 py-3">
+//                     <div className="flex items-center gap-2">
+//                         <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+//                         <p className="text-sm text-red-800 font-medium">{outOfStock.length} product(s) completely out of stock</p>
+//                     </div>
+//                 </div>
+//             )}
+
+//             {/* ── Coming Soon Note ──────────────────────────────────────────── */}
+//             <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-center">
+//                 <p className="text-xs text-blue-700">
+//                     📊 Sales bills, transfers, and advanced analytics coming soon.
+//                     Stock levels are now live from your inventory.
+//                 </p>
+//             </div>
+
+//         </div>
+//     );
+// }
 
 // use upper code 
 // // src/Components/ContentDashboard/ContentDashboardTab.jsx

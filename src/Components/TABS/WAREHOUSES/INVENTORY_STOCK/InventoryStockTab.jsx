@@ -55,9 +55,9 @@ const fmtDate = (iso) => {
 };
 
 const getStockStatus = (quantity, threshold) => {
-    if (quantity === 0) return { label: "Out of stock", color: "bg-red-100 text-red-700", icon: "🔴" };
-    if (quantity <= threshold) return { label: "Low stock", color: "bg-orange-100 text-orange-700", icon: "⚠️" };
-    return { label: "In stock", color: "bg-green-100 text-green-700", icon: "✅" };
+    if (quantity === 0) return { label: "Out of stock", color: "bg-red-50 text-red-600 border border-red-200", icon: "🔴" };
+    if (quantity <= threshold) return { label: "Low stock", color: "bg-orange-50 text-orange-700 border border-orange-200", icon: "⚠️" };
+    return { label: "In stock", color: "bg-green-50 text-green-700 border border-green-200", icon: "✅" };
 };
 
 const isExpiringSoon = (expiryDate) => {
@@ -167,26 +167,26 @@ export default function InventoryStockTab() {
     };
 
     return (
-        <div className="space-y-5">
+        <div className="space-y-5 bg-gray-50 min-h-screen px-1 py-1">
 
             {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-gray-100">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-gray-200">
                 <div>
-                    <h2 className="text-xl font-bold text-gray-900 tracking-tight">Current Stock Levels</h2>
-                    <p className="text-sm text-gray-500 mt-1">
+                    <h2 className="text-xl font-semibold text-gray-900">Current Stock Levels</h2>
+                    <p className="text-sm text-gray-400 mt-0.5">
                         Manage warehouse stock — edit location, adjust quantity, or delete stock records
                     </p>
                 </div>
-                <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-2">
                     <button
                         onClick={() => dispatch(openManualAddModal())}
-                        className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-sm transition-all cursor-pointer"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-700 transition-colors"
                     >
-                        <Plus size={16} /> Add Stock
+                        <Plus size={14} /> Add Stock
                     </button>
                     <button
                         onClick={handleRefresh}
-                        className="px-3 py-2 text-sm font-medium text-gray-600 bg-white hover:bg-gray-50 border border-gray-300 rounded-lg cursor-pointer"
+                        className="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-200 text-gray-500 text-sm rounded-lg hover:bg-gray-50 transition-colors"
                     >
                         Refresh
                     </button>
@@ -194,38 +194,26 @@ export default function InventoryStockTab() {
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-4 gap-4">
-                <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-4 text-white shadow-md">
-                    <div className="flex items-center justify-between mb-2">
-                        <p className="text-xs opacity-75 uppercase tracking-wide font-medium">Total SKUs</p>
-                        <Layers size={16} className="opacity-60" />
-                    </div>
-                    <p className="text-3xl font-bold">{totalSKUs}</p>
-                    <p className="text-xs opacity-60 mt-1">unique variant+warehouse combos</p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="bg-white rounded-xl border border-gray-100 p-4">
+                    <p className="text-xs uppercase tracking-wide font-medium text-gray-500">Total SKUs</p>
+                    <p className="text-3xl font-bold text-gray-800">{totalSKUs}</p>
+                    <p className="text-xs text-gray-400 mt-1">unique variant+warehouse combos</p>
                 </div>
-                <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl p-4 text-white shadow-md">
-                    <div className="flex items-center justify-between mb-2">
-                        <p className="text-xs opacity-75 uppercase tracking-wide font-medium">Total Units</p>
-                        <Package size={16} className="opacity-60" />
-                    </div>
-                    <p className="text-3xl font-bold">{totalUnits.toLocaleString()}</p>
-                    <p className="text-xs opacity-60 mt-1">across all SKUs</p>
+                <div className="bg-white rounded-xl border border-gray-100 p-4">
+                    <p className="text-xs uppercase tracking-wide font-medium text-gray-500">Total Units</p>
+                    <p className="text-3xl font-bold text-gray-800">{totalUnits.toLocaleString()}</p>
+                    <p className="text-xs text-gray-400 mt-1">across all SKUs</p>
                 </div>
-                <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-4 text-white shadow-md">
-                    <div className="flex items-center justify-between mb-2">
-                        <p className="text-xs opacity-75 uppercase tracking-wide font-medium">Low Stock</p>
-                        <AlertTriangle size={16} className="opacity-60" />
-                    </div>
-                    <p className="text-3xl font-bold">{lowStockCount}</p>
-                    <p className="text-xs opacity-60 mt-1">below threshold</p>
+                <div className="bg-white rounded-xl border border-gray-100 p-4">
+                    <p className="text-xs uppercase tracking-wide font-medium text-gray-500">Low Stock</p>
+                    <p className="text-3xl font-bold text-gray-800">{lowStockCount}</p>
+                    <p className="text-xs text-gray-400 mt-1">below threshold</p>
                 </div>
-                <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-xl p-4 text-white shadow-md">
-                    <div className="flex items-center justify-between mb-2">
-                        <p className="text-xs opacity-75 uppercase tracking-wide font-medium">Out of Stock</p>
-                        <Box size={16} className="opacity-60" />
-                    </div>
-                    <p className="text-3xl font-bold">{outOfStockCount}</p>
-                    <p className="text-xs opacity-60 mt-1">zero quantity</p>
+                <div className="bg-white rounded-xl border border-gray-100 p-4">
+                    <p className="text-xs uppercase tracking-wide font-medium text-gray-500">Out of Stock</p>
+                    <p className="text-3xl font-bold text-gray-800">{outOfStockCount}</p>
+                    <p className="text-xs text-gray-400 mt-1">zero quantity</p>
                 </div>
             </div>
 
@@ -236,11 +224,11 @@ export default function InventoryStockTab() {
                         value={search}
                         onChange={(e) => dispatch(setSearch(e.target.value))}
                         placeholder="Search product, SKU, barcode, batch, location..."
-                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300"
                     />
                     <button
                         onClick={() => dispatch(resetFilters())}
-                        className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 cursor-pointer"
+                        className="inline-flex items-center gap-1 bg-gray-50 border border-gray-200 text-gray-500 text-sm px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
                     >
                         <X size={14} /> Clear
                     </button>
@@ -251,7 +239,7 @@ export default function InventoryStockTab() {
                         <select
                             value={warehouseFilter}
                             onChange={(e) => dispatch(setWarehouseFilter(e.target.value))}
-                            className="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 cursor-pointer"
+                            className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300 cursor-pointer"
                         >
                             <option value="">All Warehouses</option>
                             {warehouses.map(w => (
@@ -266,7 +254,7 @@ export default function InventoryStockTab() {
                     <select
                         value={categoryFilter}
                         onChange={(e) => dispatch(setCategoryFilter(e.target.value))}
-                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 cursor-pointer"
+                        className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300 cursor-pointer"
                     >
                         <option value="">All Categories</option>
                         {categories.map(c => (
@@ -278,7 +266,7 @@ export default function InventoryStockTab() {
                     <select
                         value={pageSize}
                         onChange={(e) => dispatch(setPageSize(Number(e.target.value)))}
-                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 ml-auto cursor-pointer"
+                        className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 ml-auto focus:outline-none focus:ring-2 focus:ring-gray-300 cursor-pointer"
                     >
                         {[10, 20, 50].map(s => <option key={s} value={s}>{s} per page</option>)}
                     </select>
@@ -300,7 +288,11 @@ export default function InventoryStockTab() {
             )}
 
             {/* Table */}
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-x-auto">
+            <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
+                <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center">
+                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Inventory Stock</span>
+                    <span className="text-xs text-gray-400 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded-full">{meta.total} records</span>
+                </div>
                 <table className="w-full text-sm">
                     <thead className="bg-gray-50 border-b border-gray-100">
                         <tr>
@@ -321,15 +313,15 @@ export default function InventoryStockTab() {
                                     </button>
                                 )}
                             </th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Product</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Variant</th>
-                            <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Qty</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Batch</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Expiry</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Location</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Last Inward</th>
-                            <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide">Actions</th>
+                            <th className="px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide text-left">Product</th>
+                            <th className="px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide text-left">Variant</th>
+                            <th className="px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide text-right">Qty</th>
+                            <th className="px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide text-left">Status</th>
+                            <th className="px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide text-left">Batch</th>
+                            <th className="px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide text-left">Expiry</th>
+                            <th className="px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide text-left">Location</th>
+                            <th className="px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide text-left">Last Inward</th>
+                            <th className="px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide text-center">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
@@ -338,7 +330,7 @@ export default function InventoryStockTab() {
                             <tr>
                                 <td colSpan={10} className="px-4 py-10 text-center">
                                     <div className="flex justify-center">
-                                        <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                                        <div className="w-5 h-5 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
                                     </div>
                                  </td>
                             </tr>
@@ -349,8 +341,8 @@ export default function InventoryStockTab() {
                                 <td colSpan={10} className="px-4 py-14 text-center">
                                     <div className="flex flex-col items-center gap-2">
                                         <Package size={32} className="text-gray-300" />
-                                        <p className="text-gray-400 text-sm">No stock records found</p>
-                                        <p className="text-xs text-gray-400">
+                                        <p className="text-sm text-gray-400">No stock records found</p>
+                                        <p className="text-xs text-gray-400 mt-1">
                                             Stock is created automatically when inwards are marked MAPPED,
                                             or you can manually add stock using the "Add Stock" button.
                                         </p>
@@ -397,10 +389,10 @@ export default function InventoryStockTab() {
                                         <div>
                                             <p className="text-xs text-gray-700">{variantAttr}</p>
                                             {variant.sku && (
-                                                <p className="text-xs font-mono text-gray-400 mt-0.5">SKU: {variant.sku}</p>
+                                                <p className="text-xs font-mono text-gray-500 mt-0.5">SKU: {variant.sku}</p>
                                             )}
                                             {variant.system_barcode && !variant.sku && (
-                                                <p className="text-xs font-mono text-gray-400 mt-0.5">Barcode: {variant.system_barcode}</p>
+                                                <p className="text-xs font-mono text-gray-500 mt-0.5">Barcode: {variant.system_barcode}</p>
                                             )}
                                         </div>
                                     </td>
@@ -408,19 +400,19 @@ export default function InventoryStockTab() {
                                         <span className="font-bold text-gray-800">{stock.quantity}</span>
                                     </td>
                                     <td className="px-4 py-3">
-                                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${status.color}`}>
+                                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${status.color}`}>
                                             <span>{status.icon}</span> {status.label}
                                         </span>
                                     </td>
                                     <td className="px-4 py-3">
-                                        <span className="text-xs font-mono text-gray-500">
+                                        <span className="text-sm text-gray-500">
                                             {stock.batch_number || "—"}
                                         </span>
                                     </td>
                                     <td className="px-4 py-3">
                                         {stock.expiry_date ? (
                                             <div className="flex items-center gap-1">
-                                                <span className={`text-xs ${expiringSoon ? "text-orange-600 font-semibold" : "text-gray-500"}`}>
+                                                <span className={`text-xs ${expiringSoon ? "text-orange-600 font-semibold" : "text-gray-400"}`}>
                                                     {fmtDate(stock.expiry_date)}
                                                 </span>
                                                 {expiringSoon && (
@@ -438,30 +430,30 @@ export default function InventoryStockTab() {
                                         </div>
                                      </td>
                                     <td className="px-4 py-3">
-                                        <div className="flex items-center gap-1 text-xs text-gray-500">
+                                        <div className="flex items-center gap-1 text-xs text-gray-400">
                                             <Calendar size={12} />
                                             <span>{fmtDate(stock.last_purchase_date)}</span>
                                         </div>
                                      </td>
                                     <td className="px-4 py-3">
-                                        <div className="flex items-center justify-center gap-2">
+                                        <div className="flex items-center justify-center gap-1">
                                             <button
                                                 onClick={() => dispatch(openEditModal(stock))}
-                                                className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-gray-100 rounded-md transition-colors"
                                                 title="Edit Stock Details"
                                             >
                                                 <Edit2 size={15} />
                                             </button>
                                             <button
                                                 onClick={() => dispatch(openQuantityModal(stock))}
-                                                className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                                                className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-gray-100 rounded-md transition-colors"
                                                 title="Adjust Quantity"
                                             >
                                                 <Move size={15} />
                                             </button>
                                             <button
                                                 onClick={() => handleDeleteStock(stock.stock_id, product.name)}
-                                                className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                                className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-gray-100 rounded-md transition-colors"
                                                 title="Delete Stock (Hard Delete)"
                                             >
                                                 <Trash2 size={15} />
@@ -478,22 +470,22 @@ export default function InventoryStockTab() {
             {/* Pagination */}
             {meta.totalPages > 1 && (
                 <div className="flex justify-between items-center bg-white rounded-xl border border-gray-200 px-4 py-3">
-                    <p className="text-sm text-gray-500">
+                    <p className="text-xs text-gray-400">
                         Showing {((currentPage - 1) * pageSize) + 1}–{Math.min(currentPage * pageSize, meta.total)} of {meta.total}
                     </p>
-                    <div className="flex gap-2">
+                    <div className="flex gap-1.5">
                         <button
                             onClick={() => dispatch(setCurrentPage(currentPage - 1))}
                             disabled={currentPage === 1}
-                            className="px-3 py-1 border border-gray-300 rounded-lg text-sm disabled:opacity-40 hover:bg-gray-50 cursor-pointer"
+                            className="px-3 py-1 text-xs text-gray-500 border border-gray-200 rounded-lg disabled:opacity-40 hover:bg-gray-50 transition-colors"
                         >
                             Previous
                         </button>
-                        <span className="px-3 py-1 text-sm text-gray-600">{currentPage} / {meta.totalPages}</span>
+                        <span className="px-3 py-1 text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-lg">{currentPage} / {meta.totalPages}</span>
                         <button
                             onClick={() => dispatch(setCurrentPage(currentPage + 1))}
                             disabled={currentPage === meta.totalPages}
-                            className="px-3 py-1 border border-gray-300 rounded-lg text-sm disabled:opacity-40 hover:bg-gray-50 cursor-pointer"
+                            className="px-3 py-1 text-xs text-gray-500 border border-gray-200 rounded-lg disabled:opacity-40 hover:bg-gray-50 transition-colors"
                         >
                             Next
                         </button>

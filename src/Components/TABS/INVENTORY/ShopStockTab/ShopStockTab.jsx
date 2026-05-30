@@ -37,9 +37,9 @@ const fmtDate = (iso) => {
 };
 
 const getStockStatus = (quantity, threshold) => {
-    if (quantity === 0) return { label: "Out of stock", color: "bg-red-100 text-red-700", icon: "🔴" };
-    if (quantity <= threshold) return { label: "Low stock", color: "bg-orange-100 text-orange-700", icon: "⚠️" };
-    return { label: "In stock", color: "bg-green-100 text-green-700", icon: "✅" };
+    if (quantity === 0) return { label: "Out of stock", color: "bg-red-50 text-red-600 border border-red-200", icon: "🔴" };
+    if (quantity <= threshold) return { label: "Low stock", color: "bg-orange-50 text-orange-700 border border-orange-200", icon: "⚠️" };
+    return { label: "In stock", color: "bg-green-50 text-green-700 border border-green-200", icon: "✅" };
 };
 
 export default function ShopStockTab() {
@@ -136,17 +136,17 @@ export default function ShopStockTab() {
     };
 
     return (
-        <div className="space-y-5">
+        <div className="space-y-5 bg-gray-50 min-h-screen px-1 py-1">
 
             {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-gray-100">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-gray-200">
                 <div>
-                    <h2 className="text-xl font-bold text-gray-900 tracking-tight">Shop Stock Management</h2>
-                    <p className="text-sm text-gray-500 mt-1">
+                    <h2 className="text-xl font-semibold text-gray-900">Shop Stock Management</h2>
+                    <p className="text-sm text-gray-400 mt-0.5">
                         Manage stock levels — set min-max thresholds, track low stock, and create bulk restock requests
                     </p>
                 </div>
-                <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-2">
                     {/* {canEdit && (
                         <button
                             onClick={() => dispatch(openBulkModal())}
@@ -159,61 +159,61 @@ export default function ShopStockTab() {
                      {/* no need because we give them checkbox to select the product and create bulk request in action bar */}
                     <button
                         onClick={handleRefresh}
-                        className="px-3 py-2 text-sm font-medium text-gray-600 bg-white hover:bg-gray-50 border border-gray-300 rounded-lg cursor-pointer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-500 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
                     >
-                        <RefreshCw size={14} className="inline mr-1" /> Refresh
+                        <RefreshCw size={13} /> Refresh
                     </button>
                 </div>
             </div>
 
             {/* Low Stock Alert Banner */}
             {alertCount > 0 && (
-                <div className="bg-orange-50 border border-orange-200 rounded-xl px-5 py-3 flex items-center justify-between">
+                <div className="bg-orange-50 border border-orange-100 rounded-xl px-4 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <Bell size={18} className="text-orange-500" />
-                        <p className="text-sm text-orange-800 font-medium">
+                        <Bell size={18} className="text-orange-400" />
+                        <p className="text-sm text-orange-700 font-medium">
                             {alertCount} low stock alert(s) — {alerts.map(a => a.variant?.product?.name).join(", ")}
                         </p>
                     </div>
-                    <button onClick={() => dispatch(setLowStockOnly(true))} className="text-xs text-orange-600 hover:underline">
+                    <button onClick={() => dispatch(setLowStockOnly(true))} className="text-xs text-orange-500 hover:underline">
                         View all →
                     </button>
                 </div>
             )}
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-4 gap-4">
-                <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-4 text-white shadow-md">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="bg-white rounded-xl border border-blue-100 p-4">
                     <div className="flex items-center justify-between mb-2">
-                        <p className="text-xs opacity-75 uppercase tracking-wide font-medium">Total SKUs</p>
-                        <Package size={16} className="opacity-60" />
+                        <p className="text-xs text-blue-400 uppercase tracking-wide">Total SKUs</p>
+                        <Package size={16} className="text-blue-300" />
                     </div>
-                    <p className="text-3xl font-bold">{totalSKUs}</p>
-                    <p className="text-xs opacity-60 mt-1">in your shop</p>
+                    <p className="text-3xl font-bold text-blue-700">{totalSKUs}</p>
+                    <p className="text-xs text-gray-400 mt-1">in your shop</p>
                 </div>
-                <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl p-4 text-white shadow-md">
+                <div className="bg-white rounded-xl border border-emerald-100 p-4">
                     <div className="flex items-center justify-between mb-2">
-                        <p className="text-xs opacity-75 uppercase tracking-wide font-medium">Total Units</p>
-                        <TrendingUp size={16} className="opacity-60" />
+                        <p className="text-xs text-emerald-500 uppercase tracking-wide">Total Units</p>
+                        <TrendingUp size={16} className="text-emerald-300" />
                     </div>
-                    <p className="text-3xl font-bold">{totalUnits.toLocaleString()}</p>
-                    <p className="text-xs opacity-60 mt-1">available for sale</p>
+                    <p className="text-3xl font-bold text-emerald-600">{totalUnits.toLocaleString()}</p>
+                    <p className="text-xs text-gray-400 mt-1">available for sale</p>
                 </div>
-                <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-4 text-white shadow-md">
+                <div className="bg-white rounded-xl border border-orange-100 p-4">
                     <div className="flex items-center justify-between mb-2">
-                        <p className="text-xs opacity-75 uppercase tracking-wide font-medium">Low Stock</p>
-                        <AlertTriangle size={16} className="opacity-60" />
+                        <p className="text-xs text-orange-400 uppercase tracking-wide">Low Stock</p>
+                        <AlertTriangle size={16} className="text-orange-300" />
                     </div>
-                    <p className="text-3xl font-bold">{lowStockCount}</p>
-                    <p className="text-xs opacity-60 mt-1">below threshold</p>
+                    <p className="text-3xl font-bold text-orange-600">{lowStockCount}</p>
+                    <p className="text-xs text-gray-400 mt-1">below threshold</p>
                 </div>
-                <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-xl p-4 text-white shadow-md">
+                <div className="bg-white rounded-xl border border-red-100 p-4">
                     <div className="flex items-center justify-between mb-2">
-                        <p className="text-xs opacity-75 uppercase tracking-wide font-medium">Out of Stock</p>
-                        <AlertTriangle size={16} className="opacity-60" />
+                        <p className="text-xs text-red-400 uppercase tracking-wide">Out of Stock</p>
+                        <AlertTriangle size={16} className="text-red-300" />
                     </div>
-                    <p className="text-3xl font-bold">{outOfStockCount}</p>
-                    <p className="text-xs opacity-60 mt-1">needs restock</p>
+                    <p className="text-3xl font-bold text-red-600">{outOfStockCount}</p>
+                    <p className="text-xs text-gray-400 mt-1">needs restock</p>
                 </div>
             </div>
 
@@ -224,13 +224,13 @@ export default function ShopStockTab() {
                         value={search}
                         onChange={(e) => dispatch(setSearch(e.target.value))}
                         placeholder="Search by product name, SKU, or barcode..."
-                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300"
                     />
                     <button
                         onClick={() => dispatch(resetFilters())}
-                        className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 cursor-pointer"
+                        className="flex items-center gap-1.5 px-3 py-2 text-sm text-gray-500 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors"
                     >
-                        <X size={14} /> Clear
+                        <X size={13} /> Clear
                     </button>
                 </div>
                 <div className="flex gap-3 flex-wrap">
@@ -241,12 +241,12 @@ export default function ShopStockTab() {
                             onChange={(e) => dispatch(setLowStockOnly(e.target.checked))}
                             className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                         />
-                        <span className="text-sm text-gray-700">Show low stock only</span>
+                        <span className="text-sm text-gray-600">Show low stock only</span>
                     </label>
                     <select
                         value={pageSize}
                         onChange={(e) => dispatch(setPageSize(Number(e.target.value)))}
-                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 ml-auto cursor-pointer"
+                        className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 ml-auto focus:outline-none focus:ring-2 focus:ring-gray-300 cursor-pointer"
                     >
                         {[10, 20, 50].map(s => <option key={s} value={s}>{s} per page</option>)}
                     </select>
@@ -285,36 +285,36 @@ export default function ShopStockTab() {
             )}
 
             {/* Table */}
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-x-auto">
+            <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
                 <table className="w-full text-sm">
                     <thead className="bg-gray-50 border-b border-gray-100">
                         <tr>
                             <th className="px-4 py-3 w-10">
                                 {stocks.length > 0 && (
-                                    <button onClick={handleSelectAll} className="text-gray-500 hover:text-blue-600">
+                                    <button onClick={handleSelectAll} className="text-gray-500 hover:text-gray-700">
                                         {allSelectedOnPage ? <CheckSquare size={18} /> : someSelected ? <Square size={18} className="text-blue-500" /> : <Square size={18} />}
                                     </button>
                                 )}
                             </th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">Product</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">Barcode</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">Variant</th>
-                            <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500">Available</th>
-                            <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500">Reserved</th>
-                            <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500">In Transit</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">Status</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">Min/Max</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">Suggested</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">Updated</th>
-                            <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500">Actions</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide">Product</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide">Barcode</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide">Variant</th>
+                            <th className="px-4 py-3 text-right text-xs font-semibold text-gray-400 uppercase tracking-wide">Available</th>
+                            <th className="px-4 py-3 text-right text-xs font-semibold text-gray-400 uppercase tracking-wide">Reserved</th>
+                            <th className="px-4 py-3 text-right text-xs font-semibold text-gray-400 uppercase tracking-wide">In Transit</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide">Status</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide">Min/Max</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide">Suggested</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide">Updated</th>
+                            <th className="px-4 py-3 text-center text-xs font-semibold text-gray-400 uppercase tracking-wide">Actions</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
+                    <tbody className="divide-y divide-gray-50">
                         {(isLoading || isFetching) && (
                             <tr>
                                 <td colSpan={12} className="px-4 py-10 text-center">
                                     <div className="flex justify-center">
-                                        <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                                        <div className="w-5 h-5 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
                                     </div>
                                 </td>
                             </tr>
@@ -355,12 +355,12 @@ export default function ShopStockTab() {
                                     <td className="px-4 py-3">
                                         {barcodeValue ? (
                                             <div className="flex items-center gap-2">
-                                                <span className="font-mono text-xs text-gray-700 bg-gray-100 px-2 py-1 rounded">
+                                                <span className="font-mono text-xs text-gray-600 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded">
                                                     {barcodeValue}
                                                 </span>
                                                 <button
                                                     onClick={() => downloadBarcode(barcodeValue, product.name)}
-                                                    className="text-gray-400 hover:text-blue-600 transition-colors"
+                                                    className="text-gray-400 hover:text-gray-700 transition-colors"
                                                     title="Download barcode image"
                                                 >
                                                     <Download size={15} />
@@ -374,16 +374,16 @@ export default function ShopStockTab() {
                                         <p className="text-xs text-gray-700">{variantAttr}</p>
                                     </td>
                                     <td className="px-4 py-3 text-right font-bold text-gray-800">{stock.quantity_available}</td>
-                                    <td className="px-4 py-3 text-right text-gray-600">{stock.quantity_reserved || 0}</td>
-                                    <td className="px-4 py-3 text-right text-gray-600">{stock.quantity_in_transit || 0}</td>
-                                    <td className="px-4 py-3"><span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${status.color}`}>{status.icon} {status.label}</span></td>
+                                    <td className="px-4 py-3 text-right text-gray-500">{stock.quantity_reserved || 0}</td>
+                                    <td className="px-4 py-3 text-right text-gray-500">{stock.quantity_in_transit || 0}</td>
+                                    <td className="px-4 py-3"><span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${status.color}`}>{status.icon} {status.label}</span></td>
                                     <td className="px-4 py-3">
                                         {minLevel && maxLevel ? (
-                                            <span className="text-xs text-gray-700">
+                                            <span className="text-xs text-gray-600">
                                                 {minLevel} / {maxLevel}
                                             </span>
                                         ) : (
-                                            <span className="text-xs text-orange-500">Not set</span>
+                                            <span className="text-xs text-orange-400">Not set</span>
                                         )}
                                     </td>
                                     <td className="px-4 py-3">
@@ -402,14 +402,14 @@ export default function ShopStockTab() {
                                                 <>
                                                     <button 
                                                         onClick={() => dispatch(openQuantityModal(stock))} 
-                                                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg" 
+                                                        className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-gray-100 rounded-md transition-colors" 
                                                         title="Adjust Quantity"
                                                     >
                                                         <Edit2 size={15} />
                                                     </button>
                                                     <button 
                                                         onClick={() => dispatch(openMinMaxModal({ ...stock, min_level: minLevel, max_level: maxLevel }))} 
-                                                        className="p-1.5 text-purple-600 hover:bg-purple-50 rounded-lg" 
+                                                        className="p-1.5 text-gray-400 hover:text-purple-600 hover:bg-gray-100 rounded-md transition-colors" 
                                                         title="Set Min-Max Levels"
                                                     >
                                                         <Target size={15} />
@@ -428,11 +428,11 @@ export default function ShopStockTab() {
             {/* Pagination */}
             {meta.totalPages > 1 && (
                 <div className="flex justify-between items-center bg-white rounded-xl border border-gray-200 px-4 py-3">
-                    <p className="text-sm text-gray-500">Showing {((currentPage - 1) * pageSize) + 1}–{Math.min(currentPage * pageSize, meta.total)} of {meta.total}</p>
-                    <div className="flex gap-2">
-                        <button onClick={() => dispatch(setCurrentPage(currentPage - 1))} disabled={currentPage === 1} className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-40 hover:bg-gray-50">Previous</button>
-                        <span className="px-3 py-1 text-sm text-gray-600">{currentPage} / {meta.totalPages}</span>
-                        <button onClick={() => dispatch(setCurrentPage(currentPage + 1))} disabled={currentPage === meta.totalPages} className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-40 hover:bg-gray-50">Next</button>
+                    <p className="text-xs text-gray-400">Showing {((currentPage - 1) * pageSize) + 1}–{Math.min(currentPage * pageSize, meta.total)} of {meta.total}</p>
+                    <div className="flex gap-1.5">
+                        <button onClick={() => dispatch(setCurrentPage(currentPage - 1))} disabled={currentPage === 1} className="px-3 py-1 text-xs text-gray-500 border border-gray-200 rounded-lg disabled:opacity-40 hover:bg-gray-50 transition-colors">Previous</button>
+                        <span className="px-3 py-1 text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-lg">{currentPage} / {meta.totalPages}</span>
+                        <button onClick={() => dispatch(setCurrentPage(currentPage + 1))} disabled={currentPage === meta.totalPages} className="px-3 py-1 text-xs text-gray-500 border border-gray-200 rounded-lg disabled:opacity-40 hover:bg-gray-50 transition-colors">Next</button>
                     </div>
                 </div>
             )}

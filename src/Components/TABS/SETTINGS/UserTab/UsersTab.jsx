@@ -28,18 +28,34 @@ import UserEditForm from "./UserShared/UserEditForm";
 import { USER_ROLES } from "./UserShared/UserFormBody";
 
 // ── Role badge helper ──────────────────────────────────────────────────────
+const ROLE_BADGE_CLASSES = {
+    SUPER_ADMIN: "bg-purple-50 text-purple-700 border border-purple-200",
+    WH_MANAGER: "bg-blue-50 text-blue-700 border border-blue-200",
+    SHOP_OWNER: "bg-green-50 text-green-700 border border-green-200",
+    SHOP_STOCK_LISTER: "bg-teal-50 text-teal-700 border border-teal-200",
+};
+const ROLE_BADGE_DEFAULT = "bg-gray-100 text-gray-600 border border-gray-200";
+
 const getRoleBadge = (role) => {
     const r = USER_ROLES.find(r => r.value === role);
+    const badgeCls = ROLE_BADGE_CLASSES[role] || ROLE_BADGE_DEFAULT;
     return r
-        ? <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${r.color}`}>{r.label}</span>
+        ? <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${badgeCls}`}>{r.label}</span>
         : <span className="text-xs text-gray-400 font-mono">{role}</span>;
+};
+
+const getRoleBreakdownBadgeClass = (value) => {
+    if (value === "SUPER_ADMIN") return "bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded-full text-xs font-medium";
+    if (value === "WH_MANAGER") return "bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded-full text-xs font-medium";
+    if (value === "SHOP_OWNER") return "bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 rounded-full text-xs font-medium";
+    return "bg-gray-100 text-gray-600 border border-gray-200 px-2 py-0.5 rounded-full text-xs font-medium";
 };
 
 // ── Assigned-to label ──────────────────────────────────────────────────────
 const getAssignedTo = (user) => {
-    if (user.warehouse_id) return <span className="text-xs font-mono text-indigo-600">{user.warehouse_id}</span>;
-    if (user.shop_id) return <span className="text-xs font-mono text-green-600">{user.shop_id}</span>;
-    return <span className="text-xs text-gray-400">—</span>;
+    if (user.warehouse_id) return <span className="font-mono text-xs text-gray-400">{user.warehouse_id}</span>;
+    if (user.shop_id) return <span className="font-mono text-xs text-gray-400">{user.shop_id}</span>;
+    return <span className="font-mono text-xs text-gray-400">—</span>;
 };
 
 export default function UsersTab() {
@@ -100,16 +116,16 @@ export default function UsersTab() {
         <div className="space-y-5">
 
             {/* ── Page Header ─────────────────────────────────────────────────── */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-gray-200">
                 <div>
-                    <h2 className="text-base font-semibold text-gray-800">Users & Roles</h2>
-                    <p className="text-xs text-gray-400 mt-0.5">
+                    <h2 className="text-xl font-semibold text-gray-900">Users & Roles</h2>
+                    <p className="text-sm text-gray-400 mt-0.5">
                         Deactivate users instead of deleting — audit trail must be preserved
                     </p>
                 </div>
                 <button
                     onClick={() => dispatch(openAddForm())}
-                    className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 cursor-pointer"
+                    className="bg-gray-900 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors inline-flex items-center gap-2"
                 >
                     + Add User
                 </button>
@@ -117,24 +133,24 @@ export default function UsersTab() {
 
             {/* ── Summary Cards ───────────────────────────────────────────────── */}
             <div className="grid grid-cols-3 gap-4">
-                <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-4 text-white shadow-md">
-                    <p className="text-xs opacity-80 uppercase tracking-wide">Total Users</p>
-                    <p className="text-3xl font-bold mt-1">{totalItems}</p>
+                <div className="bg-white rounded-xl border border-blue-100 p-4">
+                    <p className="text-xs uppercase tracking-wide font-medium text-blue-400">Total Users</p>
+                    <p className="text-3xl font-bold text-blue-700 mt-1">{totalItems}</p>
                 </div>
-                <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-4 text-white shadow-md">
-                    <p className="text-xs opacity-80 uppercase tracking-wide">Active (this page)</p>
-                    <p className="text-3xl font-bold mt-1">{activeCount}</p>
+                <div className="bg-white rounded-xl border border-green-100 p-4">
+                    <p className="text-xs uppercase tracking-wide font-medium text-green-500">Active (this page)</p>
+                    <p className="text-3xl font-bold text-green-600 mt-1">{activeCount}</p>
                 </div>
-                <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-                    <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">Role Breakdown</p>
+                <div className="bg-white rounded-xl border border-gray-200 p-4">
+                    <p className="text-xs uppercase tracking-wide text-gray-400 mb-3">Role Breakdown</p>
                     <div className="space-y-1">
                         {USER_ROLES.map(r => {
                             const count = users.filter(u => u.role === r.value).length;
                             if (!count) return null;
                             return (
-                                <div key={r.value} className="flex items-center justify-between">
-                                    <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${r.color}`}>{r.label}</span>
-                                    <span className="text-xs font-semibold text-gray-700">{count}</span>
+                                <div key={r.value} className="flex justify-between items-center py-1">
+                                    <span className={getRoleBreakdownBadgeClass(r.value)}>{r.label}</span>
+                                    <span className="text-sm font-semibold text-gray-700">{count}</span>
                                 </div>
                             );
                         })}
@@ -149,11 +165,11 @@ export default function UsersTab() {
                         value={search}
                         onChange={(e) => dispatch(setSearch(e.target.value))}
                         placeholder="Search by name or phone…"
-                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm"
+                        className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300"
                     />
                     <button
                         onClick={() => dispatch(resetFilters())}
-                        className="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 flex items-center gap-2 cursor-pointer"
+                        className="bg-gray-50 border border-gray-200 text-gray-500 text-sm px-3 py-2 rounded-lg hover:bg-gray-100 inline-flex items-center gap-1.5 transition-colors"
                     >
                         <X size={14} /> Clear
                     </button>
@@ -163,7 +179,7 @@ export default function UsersTab() {
                     <select
                         value={roleFilter}
                         onChange={(e) => dispatch(setRoleFilter(e.target.value))}
-                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 cursor-pointer"
+                        className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300"
                     >
                         <option value="">All Roles</option>
                         {USER_ROLES.map(r => (
@@ -175,7 +191,7 @@ export default function UsersTab() {
                     <select
                         value={activeFilter}
                         onChange={(e) => dispatch(setActiveFilter(e.target.value))}
-                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 cursor-pointer"
+                        className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300"
                     >
                         <option value="">All Status</option>
                         <option value="true">Active</option>
@@ -186,7 +202,7 @@ export default function UsersTab() {
                     <select
                         value={pageSize}
                         onChange={(e) => dispatch(setPageSize(Number(e.target.value)))}
-                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 ml-auto cursor-pointer"
+                        className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300 ml-auto"
                     >
                         {[10, 20, 50].map(s => <option key={s} value={s}>{s} per page</option>)}
                     </select>
@@ -203,25 +219,29 @@ export default function UsersTab() {
             )}
 
             {/* ── Table ───────────────────────────────────────────────────────── */}
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
+                <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center">
+                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Users & Roles</span>
+                    <span className="text-xs text-gray-400 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded-full">{totalItems} records</span>
+                </div>
                 <table className="w-full text-sm">
-                    <thead className="bg-gray-50">
+                    <thead className="bg-gray-50 border-b border-gray-100">
                         <tr>
                             {["User", "Phone", "Role", "Assigned To", "Status", "Created", "Actions"].map(h => (
-                                <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                                <th key={h} className="px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide text-left">
                                     {h}
                                 </th>
                             ))}
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
+                    <tbody className="divide-y divide-gray-50">
 
                         {/* Loading rows */}
                         {(isLoading || isFetching) && (
                             <tr>
                                 <td colSpan={7} className="px-4 py-10 text-center">
                                     <div className="flex justify-center">
-                                        <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                                        <div className="w-6 h-6 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
                                     </div>
                                 </td>
                             </tr>
@@ -230,8 +250,11 @@ export default function UsersTab() {
                         {/* Empty state */}
                         {!isLoading && !isFetching && users.length === 0 && (
                             <tr>
-                                <td colSpan={7} className="px-4 py-12 text-center text-gray-400 text-sm">
-                                    No users found
+                                <td colSpan={7} className="px-4 py-12 text-center">
+                                    <svg className="mx-auto h-8 w-8 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                    </svg>
+                                    <p className="mt-2 text-sm text-gray-400">No users found</p>
                                 </td>
                             </tr>
                         )}
@@ -245,18 +268,18 @@ export default function UsersTab() {
                                 {/* User */}
                                 <td className="px-4 py-3">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
                                             {u.name?.charAt(0)?.toUpperCase()}
                                         </div>
                                         <div>
-                                            <p className="font-medium text-gray-800">{u.name}</p>
-                                            <p className="text-xs text-gray-400 font-mono">{u.user_id}</p>
+                                            <p className="text-sm font-semibold text-gray-800">{u.name}</p>
+                                            <p className="font-mono text-xs text-gray-400">{u.user_id}</p>
                                         </div>
                                     </div>
                                 </td>
 
                                 {/* Phone */}
-                                <td className="px-4 py-3 text-xs text-gray-600 font-mono">{u.phone}</td>
+                                <td className="px-4 py-3 text-sm text-gray-500">{u.phone}</td>
 
                                 {/* Role */}
                                 <td className="px-4 py-3">{getRoleBadge(u.role)}</td>
@@ -266,7 +289,7 @@ export default function UsersTab() {
 
                                 {/* Status */}
                                 <td className="px-4 py-3">
-                                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${u.is_active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
+                                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${u.is_active ? "bg-green-50 text-green-700 border border-green-200" : "bg-gray-100 text-gray-500 border border-gray-200"
                                         }`}>
                                         {u.is_active ? "Active" : "Inactive"}
                                     </span>
@@ -281,7 +304,7 @@ export default function UsersTab() {
                                 <td className="px-4 py-3">
                                     <button
                                         onClick={() => dispatch(openEditForm(u))}
-                                        className="text-xs font-medium text-blue-600 hover:text-blue-800 cursor-pointer"
+                                        className="text-xs border border-gray-200 text-gray-600 px-3 py-1 rounded-lg hover:bg-gray-50 transition-colors"
                                     >
                                         Edit
                                     </button>
@@ -295,24 +318,24 @@ export default function UsersTab() {
             {/* ── Pagination ───────────────────────────────────────────────────── */}
             {totalPages > 1 && (
                 <div className="flex justify-between items-center bg-white rounded-xl border border-gray-200 px-4 py-3">
-                    <p className="text-sm text-gray-500">
+                    <p className="text-xs text-gray-400">
                         Showing {((currentPage - 1) * pageSize) + 1}–{Math.min(currentPage * pageSize, totalItems)} of {totalItems}
                     </p>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-center">
                         <button
                             onClick={() => dispatch(setCurrentPage(currentPage - 1))}
                             disabled={currentPage === 1}
-                            className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-40 hover:bg-gray-50"
+                            className="text-xs border border-gray-200 rounded-lg px-3 py-1 hover:bg-gray-50 disabled:opacity-40 transition-colors"
                         >
                             Previous
                         </button>
-                        <span className="px-3 py-1 text-sm text-gray-600">
+                        <span className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-1 text-xs text-gray-500">
                             {currentPage} / {totalPages}
                         </span>
                         <button
                             onClick={() => dispatch(setCurrentPage(currentPage + 1))}
                             disabled={currentPage === totalPages}
-                            className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-40 hover:bg-gray-50"
+                            className="text-xs border border-gray-200 rounded-lg px-3 py-1 hover:bg-gray-50 disabled:opacity-40 transition-colors"
                         >
                             Next
                         </button>

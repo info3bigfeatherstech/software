@@ -1,26 +1,27 @@
-// TABS/PARTIES/PartiesTab.jsx
+// TABS/CASHBANK/CashBankDashboard.jsx
 //
-// Owns the horizontal tab bar for the Parties section.
-// Add new sub-tabs in partiesTabRegistry.js only — nothing here changes.
+// Owns the horizontal tab bar for the Cash & Bank section.
+// Add new sub-tabs in cashbankTabRegistry.js only — nothing here changes.
+// Sub-tabs are filtered by role using filterInternalTabsByRole()
 
 import React, { Suspense } from "react";
 import { useSearchParams } from "react-router-dom";
-import { PARTIES_TAB_REGISTRY } from "./partiesTabRegistry";
+import { CASHBANK_TAB_REGISTRY } from "./cashbankTabRegistry";
 import { filterInternalTabsByRole } from "../../../Components/roles";
 import { useSelector } from "react-redux";
 
-const PartiesTab = () => {
+const CashBankDashboard = () => {
     const [searchParams, setSearchParams] = useSearchParams();
     const { user } = useSelector((state) => state.auth);
     
     // Filter tabs based on user role
-    const filteredTabs = filterInternalTabsByRole("parties", PARTIES_TAB_REGISTRY);
+    const filteredTabs = filterInternalTabsByRole("cashbank", CASHBANK_TAB_REGISTRY);
     
     // If no tabs visible, show nothing
     if (filteredTabs.length === 0) {
         return (
             <div className="text-center py-20 text-gray-400 text-sm">
-                No parties tabs available for your role.
+                No warehouse tabs available for your role.
             </div>
         );
     }
@@ -30,7 +31,7 @@ const PartiesTab = () => {
     const SubComponent = activeConfig?.component ?? null;
 
     const handleTabClick = (tabId) => {
-        setSearchParams({ tab: "parties", ctab: tabId });
+        setSearchParams({ tab: "cashbank", ctab: tabId });
     };
 
     return (
@@ -72,4 +73,4 @@ const PartiesTab = () => {
     );
 };
 
-export default PartiesTab;
+export default CashBankDashboard;

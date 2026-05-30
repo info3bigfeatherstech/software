@@ -97,17 +97,17 @@ export default function WarehouseOverviewTab() {
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 bg-gray-50 min-h-screen px-1 py-1">
 
       {/* ── Page Header ─────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between pb-3 border-b border-gray-200">
         <div>
-          <h2 className="text-base font-semibold text-gray-800">Warehouse Overview</h2>
-          <p className="text-xs text-gray-400 mt-0.5">All warehouse locations and their current status</p>
+          <h2 className="text-xl font-semibold text-gray-900">Warehouse Overview</h2>
+          <p className="text-sm text-gray-400 mt-0.5">All warehouse locations and their current status</p>
         </div>
         <button
           onClick={() => dispatch(openAddForm())}
-          className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 cursor-pointer"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-700 transition-colors"
         >
           + Add Warehouse
         </button>
@@ -115,17 +115,17 @@ export default function WarehouseOverviewTab() {
 
       {/* ── Summary Cards ───────────────────────────────────────────────── */}
       <div className="grid grid-cols-3 gap-4">
-        <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-4 text-white shadow-md">
-          <p className="text-xs opacity-80 uppercase tracking-wide">Total Warehouses</p>
-          <p className="text-3xl font-bold mt-1">{totalItems}</p>
+        <div className="bg-white rounded-xl border border-gray-100 p-4">
+          <p className="text-xs uppercase tracking-wide font-medium text-gray-500">Total Warehouses</p>
+          <p className="text-3xl font-bold text-gray-800 mt-1">{totalItems}</p>
         </div>
-        <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-4 text-white shadow-md">
-          <p className="text-xs opacity-80 uppercase tracking-wide">Active (this page)</p>
-          <p className="text-3xl font-bold mt-1">{activeCount}</p>
+        <div className="bg-white rounded-xl border border-gray-100 p-4">
+          <p className="text-xs uppercase tracking-wide font-medium text-gray-500">Active (this page)</p>
+          <p className="text-3xl font-bold text-gray-800 mt-1">{activeCount}</p>
         </div>
-        <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl p-4 text-white shadow-md">
-          <p className="text-xs opacity-80 uppercase tracking-wide">Cities Covered</p>
-          <p className="text-3xl font-bold mt-1">{uniqueCities.length}</p>
+        <div className="bg-white rounded-xl border border-gray-100 p-4">
+          <p className="text-xs uppercase tracking-wide font-medium text-gray-500">Cities Covered</p>
+          <p className="text-3xl font-bold text-gray-800 mt-1">{uniqueCities.length}</p>
         </div>
       </div>
 
@@ -136,11 +136,11 @@ export default function WarehouseOverviewTab() {
             value={search}
             onChange={(e) => dispatch(setSearch(e.target.value))}
             placeholder="Search by name or code…"
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm"
+            className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300"
           />
           <button
             onClick={() => dispatch(resetFilters())}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 flex items-center gap-2 cursor-pointer"
+            className="inline-flex items-center gap-1 bg-gray-50 border border-gray-200 text-gray-500 text-sm px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
           >
             <X size={14} /> Clear
           </button>
@@ -150,7 +150,7 @@ export default function WarehouseOverviewTab() {
           <select
             value={cityFilter}
             onChange={(e) => dispatch(setCityFilter(e.target.value))}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 cursor-pointer"
+            className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300 cursor-pointer"
           >
             <option value="">All Cities</option>
             {uniqueCities.map(c => <option key={c} value={c}>{c}</option>)}
@@ -160,7 +160,7 @@ export default function WarehouseOverviewTab() {
           <select
             value={activeFilter}
             onChange={(e) => dispatch(setActiveFilter(e.target.value))}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 cursor-pointer"
+            className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300 cursor-pointer"
           >
             <option value="">All Status</option>
             <option value="true">Active</option>
@@ -171,7 +171,7 @@ export default function WarehouseOverviewTab() {
           <select
             value={pageSize}
             onChange={(e) => dispatch(setPageSize(Number(e.target.value)))}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 ml-auto cursor-pointer"
+            className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 ml-auto focus:outline-none focus:ring-2 focus:ring-gray-300 cursor-pointer"
           >
             {[10, 20, 50].map(s => <option key={s} value={s}>{s} per page</option>)}
           </select>
@@ -187,95 +187,107 @@ export default function WarehouseOverviewTab() {
         </div>
       )}
 
-      {/* ── Loading Spinner ──────────────────────────────────────────────── */}
-      {(isLoading || isFetching) && (
-        <div className="flex justify-center py-10">
-          <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+      {/* ── Warehouse Table ──────────────────────────────────────────────── */}
+      <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
+        <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center">
+          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Warehouses</span>
+          <span className="text-xs text-gray-400 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded-full">{warehouses.length} records</span>
         </div>
-      )}
-
-      {/* ── Warehouse Cards Grid ─────────────────────────────────────────── */}
-      {!isLoading && !isFetching && warehouses.length === 0 && (
-        <div className="text-center py-16 text-gray-400 text-sm">No warehouses found</div>
-      )}
-
-      {!isLoading && warehouses.length > 0 && (
-        <div className="grid grid-cols-2 gap-4">
-          {warehouses.map(wh => (
-            <div
-              key={wh.warehouse_id}
-              className="bg-white rounded-xl border-2 border-gray-200 hover:border-blue-300 transition-all shadow-sm hover:shadow-md p-5"
-            >
-              {/* Card Header */}
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <p className="text-xs text-gray-400 font-mono">{wh.warehouse_id}</p>
-                  <p className="text-xs text-gray-400 font-mono">{wh.warehouse_code}</p>
-                  <h3 className="font-semibold text-gray-800 mt-0.5">{wh.warehouse_name}</h3>
-                  <p className="text-xs text-gray-400 mt-0.5">{wh.city} — {wh.address}</p>
-                </div>
-                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                  wh.is_active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
-                }`}>
-                  {wh.is_active ? "Active" : "Inactive"}
-                </span>
-              </div>
-
-              {/* Manager */}
-              {wh.manager_name && (
-                <p className="text-xs text-gray-400 mb-3">
-                  Manager: <span className="text-gray-600 font-medium">{wh.manager_name}</span>
-                </p>
-              )}
-
-              {/* Remarks */}
-              {wh.remarks && (
-                <p className="text-xs text-gray-400 italic mb-3">{wh.remarks}</p>
-              )}
-
-              {/* Action Buttons */}
-              <div className="flex gap-2 mt-3 pt-3 border-t border-gray-100">
-                <button
-                  onClick={() => dispatch(openEditForm(wh))}
-                  className="flex-1 px-3 py-1.5 border border-gray-300 rounded-lg text-xs text-gray-600 hover:bg-gray-50 cursor-pointer"
-                >
-                  Edit
-                </button>
-                {wh.is_active && (
+        <table className="w-full text-sm">
+          <thead className="bg-gray-50 border-b border-gray-100">
+            <tr>
+              <th className="px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide text-left">Warehouse ID</th>
+              <th className="px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide text-left">Code</th>
+              <th className="px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide text-left">Name</th>
+              <th className="px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide text-left">City</th>
+              <th className="px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide text-left">Address</th>
+              <th className="px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide text-left">Manager</th>
+              <th className="px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide text-left">Status</th>
+              <th className="px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide text-center">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-50">
+            {(isLoading || isFetching) && (
+              <tr>
+                <td colSpan={8} className="px-4 py-10 text-center">
+                  <div className="flex justify-center">
+                    <div className="w-5 h-5 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+                  </div>
+                </td>
+              </tr>
+            )}
+            {!isLoading && !isFetching && warehouses.length === 0 && (
+              <tr>
+                <td colSpan={8} className="px-4 py-14 text-center">
+                  <p className="text-sm text-gray-400">No warehouses found</p>
+                </td>
+              </tr>
+            )}
+            {!isLoading && warehouses.map(wh => (
+              <tr key={wh.warehouse_id} className="hover:bg-gray-50 transition-colors">
+                <td className="px-4 py-3 font-mono text-xs text-gray-400">{wh.warehouse_id}</td>
+                <td className="px-4 py-3">
+                  <span className="font-mono text-xs bg-gray-50 borde text-gray-600 border-gray-200 px-2 py-0.5 rounded">{wh.warehouse_code}</span>
+                </td>
+                <td className="px-4 py-3">
+                  <p className="font-semibold text-gray-800 text-sm">{wh.warehouse_name}</p>
+                  {wh.remarks && (
+                    <p className="text-xs text-gray-400 italic mt-0.5">{wh.remarks}</p>
+                  )}
+                </td>
+                <td className="px-4 py-3 text-sm text-gray-500">{wh.city}</td>
+                <td className="px-4 py-3 text-sm text-gray-500">{wh.city} — {wh.address}</td>
+                <td className="px-4 py-3 text-sm text-gray-700">{wh.manager_name || "—"}</td>
+                <td className="px-4 py-3">
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                    wh.is_active ? "bg-green-50 text-green-700 border border-green-200" : "bg-gray-100 text-gray-500 border border-gray-200"
+                  }`}>
+                    {wh.is_active ? "Active" : "Inactive"}
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-center">
                   <button
-                    onClick={() => handleDeactivate(wh.warehouse_id)}
-                    className="flex-1 px-3 py-1.5 border border-red-200 rounded-lg text-xs text-red-500 hover:bg-red-50 cursor-pointer"
+                    onClick={() => dispatch(openEditForm(wh))}
+                    className="text-xs border border-gray-200 text-gray-600 px-3 py-1 rounded-lg hover:bg-gray-50 transition-colors mr-1"
                   >
-                    Deactivate
+                    Edit
                   </button>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+                  {wh.is_active && (
+                    <button
+                      onClick={() => handleDeactivate(wh.warehouse_id)}
+                      className="text-xs border border-red-100 text-red-500 px-3 py-1 rounded-lg hover:bg-red-50 transition-colors"
+                    >
+                      Deactivate
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       {/* ── Pagination ───────────────────────────────────────────────────── */}
       {totalPages > 1 && (
         <div className="flex justify-between items-center bg-white rounded-xl border border-gray-200 px-4 py-3">
-          <p className="text-sm text-gray-500">
+          <p className="text-xs text-gray-400">
             Showing {((currentPage - 1) * pageSize) + 1}–{Math.min(currentPage * pageSize, totalItems)} of {totalItems}
           </p>
-          <div className="flex gap-2">
+          <div className="flex gap-1.5">
             <button
               onClick={() => dispatch(setCurrentPage(currentPage - 1))}
               disabled={currentPage === 1}
-              className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-40 hover:bg-gray-50"
+              className="px-3 py-1 text-xs text-gray-500 border border-gray-200 rounded-lg disabled:opacity-40 hover:bg-gray-50 transition-colors"
             >
               Previous
             </button>
-            <span className="px-3 py-1 text-sm text-gray-600">
+            <span className="px-3 py-1 text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-lg">
               {currentPage} / {totalPages}
             </span>
             <button
               onClick={() => dispatch(setCurrentPage(currentPage + 1))}
               disabled={currentPage === totalPages}
-              className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-40 hover:bg-gray-50"
+              className="px-3 py-1 text-xs text-gray-500 border border-gray-200 rounded-lg disabled:opacity-40 hover:bg-gray-50 transition-colors"
             >
               Next
             </button>

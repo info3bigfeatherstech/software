@@ -34,12 +34,13 @@ import BulkActionModals from "./BulkActionModals";
 import { CURRENT_USER } from "../../../roles";
 
 const STATUS_BADGE = {
-    REQUESTED: "bg-yellow-100 text-yellow-700",
-    APPROVED: "bg-blue-100 text-blue-700",
-    DISPATCHED: "bg-purple-100 text-purple-700",
-    PARTIALLY_RECEIVED: "bg-orange-100 text-orange-700",
-    COMPLETED: "bg-green-100 text-green-700",
-    CANCELLED: "bg-gray-100 text-gray-500",
+    REQUESTED: "bg-yellow-50 text-yellow-700 border border-yellow-200",
+    APPROVED: "bg-blue-50 text-blue-700 border border-blue-200",
+    REJECTED: "bg-red-50 text-red-600 border border-red-200",
+    DISPATCHED: "bg-purple-50 text-purple-700 border border-purple-200",
+    PARTIALLY_RECEIVED: "bg-orange-50 text-orange-700 border border-orange-200",
+    COMPLETED: "bg-green-50 text-green-700 border border-green-200",
+    CANCELLED: "bg-gray-100 text-gray-500 border border-gray-200",
 };
 
 const fmtDate = (iso) => {
@@ -223,59 +224,59 @@ export default function BulkTransferRequestsTab() {
         }));
     };
     
-    const inputCls = (name, errors) => `w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors?.[name] ? "border-red-400" : "border-gray-300"}`;
+    const inputCls = (name, errors) => `w-full px-3 py-2 bg-gray-50 border rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300 ${errors?.[name] ? "border-red-400" : "border-gray-200"}`;
     
     return (
-        <div className="space-y-5">
+        <div className="space-y-5 bg-gray-50 min-h-screen px-1 py-1">
             
             {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-gray-100">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-gray-200">
                 <div>
-                    <h2 className="text-xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
-                        <ClipboardList size={22} className="text-indigo-600" />
+                    <h2 className="text-xl font-semibold text-gray-900 tracking-tight flex items-center gap-2">
+                        <ClipboardList size={20} className="text-gray-400" />
                         Bulk Transfer Requests
                     </h2>
-                    <p className="text-sm text-gray-500 mt-1">
+                    <p className="text-sm text-gray-400 mt-0.5">
                         Create bulk requests with multiple items — Full workflow: Request → Approve → Dispatch → Receive → Complete
                     </p>
                 </div>
-                <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-2">
                     <button
                         onClick={() => dispatch(openCreateModal())}
-                        className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm cursor-pointer"
+                        className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-gray-900 hover:bg-gray-700 rounded-lg transition-colors"
                     >
-                        <Plus size={16} /> New Bulk Request
+                        <Plus size={14} /> New Bulk Request
                     </button>
-                    <button onClick={() => refetch()} className="px-3 py-2 text-sm text-gray-600 border rounded-lg hover:bg-gray-50 flex items-center gap-1">
-                        <RefreshCw size={14} /> Refresh
+                    <button onClick={() => refetch()} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-500 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                        <RefreshCw size={13} /> Refresh
                     </button>
                 </div>
             </div>
             
             {/* Stats */}
-            <div className="grid grid-cols-4 gap-4">
-                <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-4 text-white shadow-md">
-                    <p className="text-xs opacity-75">Total Requests</p>
-                    <p className="text-3xl font-bold">{meta.total}</p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="bg-white rounded-xl border border-gray-200 p-4">
+                    <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Total Requests</p>
+                    <p className="text-3xl font-bold text-gray-800">{meta.total}</p>
                 </div>
-                <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl p-4 text-white shadow-md">
-                    <p className="text-xs opacity-75">Pending (REQUESTED)</p>
-                    <p className="text-3xl font-bold">{requests.filter(r => r.status === "REQUESTED").length}</p>
+                <div className="bg-white rounded-xl border border-yellow-100 p-4">
+                    <p className="text-xs text-yellow-500 uppercase tracking-wide mb-1">Pending</p>
+                    <p className="text-3xl font-bold text-yellow-600">{requests.filter(r => r.status === "REQUESTED").length}</p>
                 </div>
-                <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-4 text-white shadow-md">
-                    <p className="text-xs opacity-75">Dispatched</p>
-                    <p className="text-3xl font-bold">{requests.filter(r => r.status === "DISPATCHED" || r.status === "PARTIALLY_RECEIVED").length}</p>
+                <div className="bg-white rounded-xl border border-purple-100 p-4">
+                    <p className="text-xs text-purple-400 uppercase tracking-wide mb-1">Dispatched</p>
+                    <p className="text-3xl font-bold text-purple-600">{requests.filter(r => r.status === "DISPATCHED" || r.status === "PARTIALLY_RECEIVED").length}</p>
                 </div>
-                <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-4 text-white shadow-md">
-                    <p className="text-xs opacity-75">Completed</p>
-                    <p className="text-3xl font-bold">{requests.filter(r => r.status === "COMPLETED").length}</p>
+                <div className="bg-white rounded-xl border border-green-100 p-4">
+                    <p className="text-xs text-green-500 uppercase tracking-wide mb-1">Completed</p>
+                    <p className="text-3xl font-bold text-green-600">{requests.filter(r => r.status === "COMPLETED").length}</p>
                 </div>
             </div>
             
             {/* Filters */}
-            <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3 text-gray-700">
-                <div className="flex gap-3">
-                    <select value={statusFilter} onChange={(e) => dispatch(setStatusFilter(e.target.value))} className="px-3 py-2 border border-gray-300 rounded-lg text-sm w-48 cursor-pointer">
+            <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+                <div className="flex gap-2 flex-wrap">
+                    <select value={statusFilter} onChange={(e) => dispatch(setStatusFilter(e.target.value))} className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 w-48 focus:outline-none focus:ring-2 focus:ring-gray-300 cursor-pointer">
                         <option value="">All Status</option>
                         <option value="REQUESTED">REQUESTED</option>
                         <option value="APPROVED">APPROVED</option>
@@ -284,38 +285,44 @@ export default function BulkTransferRequestsTab() {
                         <option value="COMPLETED">COMPLETED</option>
                         <option value="CANCELLED">CANCELLED</option>
                     </select>
-                    <select value={pageSize} onChange={(e) => dispatch(setPageSize(Number(e.target.value)))} className="px-3 py-2 border border-gray-300 rounded-lg text-sm ml-auto">
+                    <select value={pageSize} onChange={(e) => dispatch(setPageSize(Number(e.target.value)))} className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 ml-auto focus:outline-none focus:ring-2 focus:ring-gray-300">
                         {[10, 20, 50].map(s => <option key={s} value={s}>{s} per page</option>)}
                     </select>
                 </div>
             </div>
             
             {/* Requests Table */}
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-x-auto">
+            <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
+                <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Bulk Transfer Requests</span>
+                    <span className="text-xs text-gray-400 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded-full">{meta.total} records</span>
+                </div>
                 <table className="w-full text-sm">
-                    <thead className="bg-gray-50">
+                    <thead className="bg-gray-50 border-b border-gray-100">
                         <tr>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">Request #</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">From WH</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">To Shop</th>
-                            <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500">Items</th>
-                            <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500">Total Qty</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">Status</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">Date</th>
-                            <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500">Actions</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide">Request #</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide">From WH</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide">To Shop</th>
+                            <th className="px-4 py-3 text-center text-xs font-semibold text-gray-400 uppercase tracking-wide">Items</th>
+                            <th className="px-4 py-3 text-right text-xs font-semibold text-gray-400 uppercase tracking-wide">Total Qty</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide">Status</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide">Date</th>
+                            <th className="px-4 py-3 text-center text-xs font-semibold text-gray-400 uppercase tracking-wide">Actions</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
+                    <tbody className="divide-y divide-gray-50">
                         {(isLoading) && (
                             <tr>
                                 <td colSpan={8} className="px-4 py-10 text-center">
-                                    <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto" />
+                                    <div className="flex justify-center">
+                                        <div className="w-5 h-5 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+                                    </div>
                                 </td>
                             </tr>
                         )}
                         {!isLoading && requests.length === 0 && (
                             <tr>
-                                <td colSpan={8} className="px-4 py-10 text-center text-gray-400">No bulk transfer requests found</td>
+                                <td colSpan={8} className="px-4 py-14 text-center text-gray-400 text-sm">No bulk transfer requests found</td>
                             </tr>
                         )}
                         {!isLoading && requests.map((req) => {
@@ -323,10 +330,14 @@ export default function BulkTransferRequestsTab() {
                             const actions = getAvailableActions(req);
                             
                             return (
-                                <tr key={req.bulk_request_id} className="hover:bg-gray-50">
-                                    <td className="px-4 py-3 font-mono text-xs text-gray-500">{req.bulk_request_number}</td>
-                                    <td className="px-4 py-3 text-xs text-gray-600">{req.from_warehouse?.warehouse_name || req.from_warehouse_id}</td>
-                                    <td className="px-4 py-3 text-xs text-gray-600">{req.to_shop?.shop_name || req.to_shop_id}</td>
+                                <tr key={req.bulk_request_id} className="hover:bg-gray-50 transition-colors">
+                                    <td className="px-4 py-3">
+                                        <span className="font-mono text-xs text-gray-500 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded">
+                                            {req.bulk_request_number}
+                                        </span>
+                                    </td>
+                                    <td className="px-4 py-3 text-xs text-gray-500">{req.from_warehouse?.warehouse_name || req.from_warehouse_id}</td>
+                                    <td className="px-4 py-3 text-xs text-gray-500">{req.to_shop?.shop_name || req.to_shop_id}</td>
                                     <td className="px-4 py-3 text-center text-gray-500">{req.items_count || 0}</td>
                                     <td className="px-4 py-3 text-right font-semibold text-gray-700">{totalQty}</td>
                                     <td className="px-4 py-3">
@@ -336,12 +347,12 @@ export default function BulkTransferRequestsTab() {
                                     </td>
                                     <td className="px-4 py-3 text-xs text-gray-400">{fmtDate(req.requested_at || req.created_at)}</td>
                                     <td className="px-4 py-3 text-center">
-                                        <div className="flex items-center justify-center gap-1 flex-wrap">
+                                        <div className="flex items-center justify-center gap-1">
                                             {actions.map((action) => (
                                                 <button
                                                     key={action.type}
                                                     onClick={() => handleAction(req, action.type)}
-                                                    className={`p-1.5 ${action.color} hover:bg-gray-100 rounded-lg transition-colors`}
+                                                    className={`p-1.5 ${action.color} hover:bg-gray-100 rounded-md transition-colors`}
                                                     title={action.label}
                                                 >
                                                     {action.icon}
@@ -359,11 +370,13 @@ export default function BulkTransferRequestsTab() {
             {/* Pagination */}
             {meta.totalPages > 1 && (
                 <div className="flex justify-between items-center bg-white rounded-xl border border-gray-200 px-4 py-3">
-                    <p className="text-sm text-gray-500">Showing {((currentPage - 1) * pageSize) + 1}–{Math.min(currentPage * pageSize, meta.total)} of {meta.total}</p>
-                    <div className="flex gap-2">
-                        <button onClick={() => dispatch(setCurrentPage(currentPage - 1))} disabled={currentPage === 1} className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-40 hover:bg-gray-50">Previous</button>
-                        <span className="px-3 py-1 text-sm text-gray-600">{currentPage} / {meta.totalPages}</span>
-                        <button onClick={() => dispatch(setCurrentPage(currentPage + 1))} disabled={currentPage === meta.totalPages} className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-40 hover:bg-gray-50">Next</button>
+                    <p className="text-xs text-gray-400">
+                        Showing {((currentPage - 1) * pageSize) + 1}–{Math.min(currentPage * pageSize, meta.total)} of {meta.total}
+                    </p>
+                    <div className="flex gap-1.5">
+                        <button onClick={() => dispatch(setCurrentPage(currentPage - 1))} disabled={currentPage === 1} className="px-3 py-1 text-xs text-gray-500 border border-gray-200 rounded-lg disabled:opacity-40 hover:bg-gray-50 transition-colors">Previous</button>
+                        <span className="px-3 py-1 text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-lg">{currentPage} / {meta.totalPages}</span>
+                        <button onClick={() => dispatch(setCurrentPage(currentPage + 1))} disabled={currentPage === meta.totalPages} className="px-3 py-1 text-xs text-gray-500 border border-gray-200 rounded-lg disabled:opacity-40 hover:bg-gray-50 transition-colors">Next</button>
                     </div>
                 </div>
             )}
@@ -371,18 +384,18 @@ export default function BulkTransferRequestsTab() {
             {/* Create Bulk Request Modal - Keep existing */}
             {showCreateModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto text-gray-700">
+                    <div className="bg-white rounded-xl border border-gray-200 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
                         <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex justify-between">
                             <div>
-                                <h3 className="text-base font-semibold text-gray-800">Create Bulk Transfer Request</h3>
-                                <p className="text-xs text-gray-400">Add multiple products to a single request</p>
+                                <h3 className="text-base font-semibold text-gray-900">Create Bulk Transfer Request</h3>
+                                <p className="text-xs text-gray-400 mt-0.5">Add multiple products to a single request</p>
                             </div>
-                            <button onClick={() => dispatch(closeCreateModal())} className="text-gray-400"><X size={20} /></button>
+                            <button onClick={() => dispatch(closeCreateModal())} className="text-gray-400 hover:text-gray-600 transition-colors"><X size={20} /></button>
                         </div>
                         <div className="p-6 space-y-4">
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-xs font-medium text-gray-700 mb-1">Source Warehouse <span className="text-red-500">*</span></label>
+                                    <label className="block text-xs text-gray-500 mb-1">Source Warehouse <span className="text-red-400">*</span></label>
                                     <select 
                                         value={createForm.from_warehouse_id} 
                                         onChange={(e) => dispatch(updateCreateForm({ from_warehouse_id: e.target.value, items: [] }))} 
@@ -393,7 +406,7 @@ export default function BulkTransferRequestsTab() {
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-medium text-gray-700 mb-1">Destination Shop <span className="text-red-500">*</span></label>
+                                    <label className="block text-xs text-gray-500 mb-1">Destination Shop <span className="text-red-400">*</span></label>
                                     <select 
                                         value={createForm.to_shop_id} 
                                         onChange={(e) => dispatch(updateCreateForm({ to_shop_id: e.target.value }))} 
@@ -407,17 +420,17 @@ export default function BulkTransferRequestsTab() {
                             
                             {createForm.from_warehouse_id && (
                                 <div>
-                                    <label className="block text-xs font-medium text-gray-700 mb-2">Add Products</label>
+                                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Add Products</label>
                                     <div className="relative mb-3">
                                         <input 
                                             type="text" 
                                             value={searchTerm} 
                                             onChange={(e) => setSearchTerm(e.target.value)} 
                                             placeholder="Search by product name or SKU..." 
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" 
+                                            className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300" 
                                         />
                                     </div>
-                                    <div className="grid grid-cols-3 gap-2 max-h-36 overflow-y-auto border border-gray-100 rounded-lg p-2 bg-gray-50">
+                                    <div className="grid grid-cols-3 gap-2 max-h-36 overflow-y-auto border border-gray-200 rounded-lg p-2 bg-gray-50">
                                         {filteredProducts.length === 0 ? (
                                             <p className="col-span-3 text-center text-xs text-gray-400 py-2">No products available</p>
                                         ) : (
@@ -425,9 +438,9 @@ export default function BulkTransferRequestsTab() {
                                                 <button 
                                                     key={p.stock_id} 
                                                     onClick={() => handleAddToCart(p)} 
-                                                    className="text-left p-2 bg-white hover:bg-blue-50 border rounded-lg text-xs transition-colors"
+                                                    className="text-left p-2 bg-white hover:bg-gray-100 border border-gray-200 rounded-lg text-xs transition-colors"
                                                 >
-                                                    <p className="font-medium truncate">{p.variant?.product?.name}</p>
+                                                    <p className="font-medium text-gray-800 truncate">{p.variant?.product?.name}</p>
                                                     <p className="text-gray-400 text-xs">{p.variant?.sku}</p>
                                                     <p className="text-green-600">Stock: {p.quantity}</p>
                                                 </button>
@@ -439,12 +452,12 @@ export default function BulkTransferRequestsTab() {
                             
                             {createForm.items.length > 0 && (
                                 <div>
-                                    <p className="text-sm font-medium text-gray-700 mb-2">Items ({createForm.items.length})</p>
+                                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Items ({createForm.items.length})</p>
                                     <div className="space-y-2 max-h-60 overflow-y-auto">
                                         {createForm.items.map((item, idx) => (
-                                            <div key={idx} className="flex items-center gap-3 p-2 border rounded-lg">
+                                            <div key={idx} className="flex items-center gap-3 p-2 border border-gray-200 rounded-lg bg-white">
                                                 <div className="flex-1">
-                                                    <p className="font-medium text-sm">{item.product_name}</p>
+                                                    <p className="font-medium text-sm text-gray-800">{item.product_name}</p>
                                                     <p className="text-xs text-gray-400">{item.sku}</p>
                                                 </div>
                                                 <div className="w-24">
@@ -455,10 +468,10 @@ export default function BulkTransferRequestsTab() {
                                                         value={item.quantity} 
                                                         onChange={(e) => dispatch(updateBulkItem({ index: idx, quantity: e.target.value }))} 
                                                         placeholder="Qty" 
-                                                        className="w-full px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" 
+                                                        className="w-full px-2 py-1 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300" 
                                                     />
                                                 </div>
-                                                <button onClick={() => dispatch(removeBulkItem(idx))} className="text-red-500 text-xs hover:text-red-700">Remove</button>
+                                                <button onClick={() => dispatch(removeBulkItem(idx))} className="text-red-400 text-xs hover:text-red-600 transition-colors">Remove</button>
                                             </div>
                                         ))}
                                     </div>
@@ -467,22 +480,22 @@ export default function BulkTransferRequestsTab() {
                             )}
                             
                             <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">Remarks</label>
+                                <label className="block text-xs text-gray-500 mb-1">Remarks</label>
                                 <textarea 
                                     value={createForm.request_remarks} 
                                     onChange={(e) => dispatch(updateCreateForm({ request_remarks: e.target.value }))} 
                                     rows={2} 
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm resize-none" 
+                                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 resize-none focus:outline-none focus:ring-2 focus:ring-gray-300" 
                                     placeholder="Monthly restock notes" 
                                 />
                             </div>
                         </div>
-                        <div className="sticky bottom-0 bg-white border-t border-gray-100 px-6 py-4 flex justify-end gap-3">
-                            <button onClick={() => dispatch(closeCreateModal())} className="px-4 py-2 border rounded-lg text-sm hover:bg-gray-50">Cancel</button>
+                        <div className="sticky bottom-0 bg-white border-t border-gray-100 px-6 py-4 flex justify-end gap-2">
+                            <button onClick={() => dispatch(closeCreateModal())} className="px-4 py-2 text-sm text-gray-500 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors">Cancel</button>
                             <button 
                                 onClick={handleCreateSubmit} 
                                 disabled={createForm.items.length === 0} 
-                                className="px-5 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-60"
+                                className="px-5 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-700 disabled:opacity-50 transition-colors"
                             >
                                 Create Bulk Request
                             </button>
