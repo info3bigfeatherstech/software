@@ -105,8 +105,11 @@ export default function WarehouseAddForm({ formData, formErrors, onSave }) {
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl mx-4 p-6 space-y-5">
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+    <div className="flex items-center justify-center min-h-screen px-4 py-8">
+        <div className="fixed inset-0 bg-black/40" />
+
+            <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-xl mx-4 p-6 space-y-5">
 
                 {/* Header */}
                 <div className="flex items-center justify-between">
@@ -151,6 +154,7 @@ export default function WarehouseAddForm({ formData, formErrors, onSave }) {
                 </div>
 
             </div>
-        </div>
+    </div>
+</div>
     );
 }

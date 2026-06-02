@@ -55,6 +55,13 @@ const fmtDate = (iso) => {
     return new Date(iso).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
 };
 
+// Strips empty strings, null, undefined — for optional fields
+const sanitizePayload = (formData) => {
+    return Object.fromEntries(
+        Object.entries(formData).filter(([_, v]) => v !== "" && v !== null && v !== undefined)
+    );
+};
+
 export default function CustomersTab() {
     const dispatch = useDispatch();
     const { 
@@ -123,7 +130,8 @@ export default function CustomersTab() {
 
         setIsSubmitting(true);
         try {
-            await createCustomer(addForm).unwrap();
+            // await createCustomer(addForm).unwrap();
+            await createCustomer(sanitizePayload(addForm)).unwrap();
             toast.success("Customer created successfully");
             dispatch(closeAddModal());
             refetch();
@@ -152,9 +160,10 @@ export default function CustomersTab() {
 
         setIsSubmitting(true);
         try {
+            const cleanedEdit = sanitizePayload(editForm);
             await updateCustomer({
                 customerId: selectedCustomer.customer_id,
-                ...editForm,
+                ...cleanedEdit,
             }).unwrap();
             toast.success("Customer updated successfully");
             dispatch(closeEditModal());
@@ -357,8 +366,11 @@ export default function CustomersTab() {
                 ADD CUSTOMER MODAL
             ============================================================ */}
             {showAddModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+                <div className="fixed inset-0 z-50 overflow-y-auto">
+    <div className="flex items-center justify-center min-h-screen px-4 py-8">
+        <div className="fixed inset-0 bg-black/40" />
+
+                    <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
                         <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex justify-between">
                             <div>
                                 <h3 className="text-base font-semibold text-gray-800">Add New Customer</h3>
@@ -453,15 +465,19 @@ export default function CustomersTab() {
                             </button>
                         </div>
                     </div>
-                </div>
+    </div>
+</div>
             )}
 
             {/* ============================================================
                 EDIT CUSTOMER MODAL
             ============================================================ */}
             {showEditModal && selectedCustomer && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 text-gray-700">
-                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+                <div className="fixed inset-0 z-50 overflow-y-auto text-gray-700">
+    <div className="flex items-center justify-center min-h-screen px-4 py-8">
+        <div className="fixed inset-0 bg-black/40" />
+
+                    <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
                         <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex justify-between">
                             <div>
                                 <h3 className="text-base font-semibold text-gray-800">Edit Customer</h3>
@@ -553,13 +569,17 @@ export default function CustomersTab() {
                             </button>
                         </div>
                     </div>
-                </div>
+    </div>
+</div>
             )}
 
             {/* View Customer Modal */}
             {showViewModal && selectedCustomer && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 text-gray-700">
-                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+                <div className="fixed inset-0 z-50 overflow-y-auto text-gray-700">
+    <div className="flex items-center justify-center min-h-screen px-4 py-8">
+        <div className="fixed inset-0 bg-black/40" />
+
+                    <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
                         <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex justify-between">
                             <div>
                                 <h3 className="text-base font-semibold text-gray-800">Customer Details</h3>
@@ -624,7 +644,8 @@ export default function CustomersTab() {
                             <button onClick={() => dispatch(closeViewModal())} className="px-4 py-2 bg-gray-100 rounded-lg text-sm hover:bg-gray-200">Close</button>
                         </div>
                     </div>
-                </div>
+    </div>
+</div>
             )}
         </div>
     );

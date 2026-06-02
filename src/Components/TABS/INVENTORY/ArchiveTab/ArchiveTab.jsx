@@ -143,7 +143,7 @@ export default function ArchiveTab() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+      <div className="bg-white rounded-xl border border-gray-200 p-4 text-gray-600 space-y-3">
         <div className="flex gap-3">
           <input
             value={search}

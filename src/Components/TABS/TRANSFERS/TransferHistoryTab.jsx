@@ -340,8 +340,10 @@ export default function TransferHistoryTab() {
             
             {/* Variant Ledger Modal - Shows ONLY the selected variant */}
             {showVariantModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col">
+                <div className="fixed inset-0 z-50 overflow-y-auto">
+                    <div className="flex items-center justify-center min-h-screen px-4 py-8">
+                        <div className="fixed inset-0 bg-black/40" />
+                    <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col">
                         
                         {/* Modal Header */}
                         <div className="flex items-center justify-between p-5 border-b border-gray-100">
@@ -435,8 +437,8 @@ export default function TransferHistoryTab() {
                         </div>
                     </div>
                 </div>
+                </div>
             )}
-            
         </div>
     );
 }

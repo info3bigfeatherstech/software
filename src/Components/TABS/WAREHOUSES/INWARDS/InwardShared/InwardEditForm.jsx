@@ -74,32 +74,43 @@ export default function InwardEditForm({ selectedInward, onSave }) {
     // Loading state
     if (isLoading) {
         return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-                <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl mx-4 p-6 text-center">
+            <div className="fixed inset-0 z-50 overflow-y-auto">
+    <div className="flex items-center justify-center min-h-screen px-4 py-8">
+        <div className="fixed inset-0 bg-black/40" />
+
+                <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-xl mx-4 p-6 text-center">
                     <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto" />
                     <p className="text-sm text-gray-500 mt-3">Loading inward details...</p>
                 </div>
-            </div>
+    </div>
+</div>
         );
     }
 
     // Error state
     if (isError || !inward) {
         return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-                <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl mx-4 p-6">
+            <div className="fixed inset-0 z-50 overflow-y-auto">
+    <div className="flex items-center justify-center min-h-screen px-4 py-8">
+        <div className="fixed inset-0 bg-black/40" />
+
+                <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-xl mx-4 p-6">
                     <p className="text-red-600">Failed to load inward details</p>
                     <button onClick={handleClose} className="mt-4 px-4 py-2 border rounded-lg">
                         Close
                     </button>
                 </div>
-            </div>
+    </div>
+</div>
         );
     }
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+    <div className="flex items-center justify-center min-h-screen px-4 py-8">
+        <div className="fixed inset-0 bg-black/40" />
+
+            <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-xl mx-4 max-h-[90vh] overflow-y-auto">
                 <div className="p-6 space-y-5">
 
                     {/* Header */}
@@ -241,6 +252,7 @@ export default function InwardEditForm({ selectedInward, onSave }) {
 
                 </div>
             </div>
-        </div>
+    </div>
+</div>
     );
 }

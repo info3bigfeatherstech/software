@@ -1,12 +1,13 @@
-// TABS/INVENTORY/ShopStockTab.jsx
+ // TABS/INVENTORY/ShopStockTab.jsx
 //
 // Shop Stock Management for SHOP_OWNER / SHOP_STOCK_LISTER
 // Features: View stock, adjust quantity, bulk update, low stock alerts
-// NEW: Set Min-Max Levels, Bulk Restock Request, Barcode Display & Download
+// NEW: Set Min-Max Levels, Bulk Restock Request, Barcode Display & Download (Modal-based)
+// UPDATED: Each variant has its own checkbox, edit, and min-max buttons
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { X, Package, AlertTriangle, TrendingUp, Layers, Edit2, CheckSquare, Square, RefreshCw, Bell, Truck, Target, Download } from "lucide-react";
+import { X, Package, AlertTriangle, TrendingUp, Layers, Edit2, CheckSquare, Square, RefreshCw, Bell, Truck, Target, ChevronDown, ChevronRight, Barcode } from "lucide-react";
 import { toast } from "react-toastify";
 import { useGetShopStocksQuery, useGetLowStockAlertsQuery, useGetReorderSuggestionsQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/ShopStock_api/shopStockApi";
 import {
@@ -29,7 +30,7 @@ import StockQuantityModal from "./ShopStockShared/StockQuantityModal";
 import StockBulkModal from "./ShopStockShared/StockBulkModal";
 import StockBulkRestockModal from "./ShopStockShared/StockBulkRestockModal";
 import StockMinMaxModal from "./ShopStockShared/StockMinMaxModal";
-import { downloadBarcode } from "./ShopStockShared/downloadBarcode";
+import BarcodeLabelModal from "../ProductShared/Barcode_Compo/BarcodeLabelModal";
 
 const fmtDate = (iso) => {
     if (!iso) return "—";
@@ -40,6 +41,63 @@ const getStockStatus = (quantity, threshold) => {
     if (quantity === 0) return { label: "Out of stock", color: "bg-red-50 text-red-600 border border-red-200", icon: "🔴" };
     if (quantity <= threshold) return { label: "Low stock", color: "bg-orange-50 text-orange-700 border border-orange-200", icon: "⚠️" };
     return { label: "In stock", color: "bg-green-50 text-green-700 border border-green-200", icon: "✅" };
+};
+
+// Group stocks by product_id to detect multi-variant products
+const groupStocksByProduct = (stocks) => {
+    const productMap = new Map();
+    
+    stocks.forEach(stock => {
+        const product = stock.variant?.product || {};
+        const variant = stock.variant || {};
+        const productId = product.product_id;
+        
+        if (!productMap.has(productId)) {
+            productMap.set(productId, {
+                product_id: productId,
+                product_code: product.product_code,
+                name: product.name,
+                stocks: [],
+                variants: [],
+                isMultiVariant: false,
+            });
+        }
+        
+        const group = productMap.get(productId);
+        group.stocks.push(stock);
+        group.variants.push({
+            shop_stock_id: stock.shop_stock_id,
+            variant_id: variant.variant_id,
+            product_code: variant.product_code,
+            sku: variant.sku,
+            system_barcode: variant.system_barcode,
+            special_price: variant.special_price,
+            purchase_price: variant.purchase_price,
+            purchase_code: variant.purchase_code,
+            mrp: variant.mrp,
+            expenses: variant.expenses,
+            quantity_available: stock.quantity_available,
+            quantity_reserved: stock.quantity_reserved || 0,
+            quantity_in_transit: stock.quantity_in_transit || 0,
+            low_stock_threshold: stock.low_stock_threshold,
+            attributes: variant.attributes || [],
+            is_default: variant.is_default,
+        });
+    });
+    
+    // Mark multi-variant products and sort variants
+    const result = Array.from(productMap.values());
+    result.forEach(group => {
+        group.isMultiVariant = group.variants.length > 1;
+        // Sort variants: primary (is_default) first, then by product_code
+        group.variants.sort((a, b) => {
+            if (a.is_default && !b.is_default) return -1;
+            if (!a.is_default && b.is_default) return 1;
+            return a.product_code?.localeCompare(b.product_code) || 0;
+        });
+    });
+    
+    return result;
 };
 
 export default function ShopStockTab() {
@@ -56,6 +114,11 @@ export default function ShopStockTab() {
         showBulkRestockModal,
         showMinMaxModal,
     } = useSelector((state) => state.shopStock);
+
+    // Local state for expandable rows and barcode modal
+    const [expandedProducts, setExpandedProducts] = useState({});
+    const [showBarcodeModal, setShowBarcodeModal] = useState(false);
+    const [selectedVariantsForBarcode, setSelectedVariantsForBarcode] = useState([]);
 
     const isShopOwner = user?.role === "SHOP_OWNER";
     const isShopLister = user?.role === "SHOP_STOCK_LISTER";
@@ -88,6 +151,9 @@ export default function ShopStockTab() {
     const alerts = lowStockAlerts?.alerts || [];
     const alertCount = lowStockAlerts?.count || 0;
 
+    // Group stocks by product for expandable multi-variant display
+    const groupedProducts = React.useMemo(() => groupStocksByProduct(stocks), [stocks]);
+
     // Create a map of variant_id -> min/max levels from suggestions
     const levelsMap = React.useMemo(() => {
         const map = new Map();
@@ -114,16 +180,22 @@ export default function ShopStockTab() {
     const outOfStockCount = stocks.filter(s => s.quantity_available === 0).length;
 
     // ── Selection ───────────────────────────────────────────────────────
-    const allSelectedOnPage = stocks.length > 0 && stocks.every(s => selectedStockIds.includes(s.shop_stock_id));
-    const someSelected = stocks.some(s => selectedStockIds.includes(s.shop_stock_id));
+    // Get all stock IDs on current page (from all variants)
+    const allStockIdsOnPage = groupedProducts.flatMap(group => 
+        group.variants.map(v => v.shop_stock_id).filter(Boolean)
+    );
+    const allSelectedOnPage = allStockIdsOnPage.length > 0 && 
+        allStockIdsOnPage.every(id => selectedStockIds.includes(id));
+    const someSelected = allStockIdsOnPage.some(id => selectedStockIds.includes(id));
 
     const handleSelectAll = () => {
-        const currentStockIds = stocks.map(s => s.shop_stock_id);
         if (allSelectedOnPage) {
-            const remainingIds = selectedStockIds.filter(id => !currentStockIds.includes(id));
+            // Deselect all on current page
+            const remainingIds = selectedStockIds.filter(id => !allStockIdsOnPage.includes(id));
             dispatch(selectAllStocks({ stockIds: remainingIds, isSelected: false }));
         } else {
-            const newIds = [...new Set([...selectedStockIds, ...currentStockIds])];
+            // Select all on current page
+            const newIds = [...new Set([...selectedStockIds, ...allStockIdsOnPage])];
             dispatch(selectAllStocks({ stockIds: newIds, isSelected: true }));
         }
     };
@@ -133,6 +205,78 @@ export default function ShopStockTab() {
         refetchAlerts();
         refetchSuggestions();
         dispatch(clearSelectedStocks());
+    };
+
+    // ── Barcode Handlers (same as InventoryTab) ─────────────────────────
+    const toggleExpand = (productId) => {
+        setExpandedProducts(prev => ({ ...prev, [productId]: !prev[productId] }));
+    };
+
+    const handleSingleVariantBarcode = (variant, productInfo) => {
+        setSelectedVariantsForBarcode([{ 
+            variant, 
+            product: {
+                product_id: productInfo.product_id,
+                name: productInfo.name,
+                product_code: productInfo.product_code,
+                brand_name: productInfo.brand_name || "",
+            }
+        }]);
+        setShowBarcodeModal(true);
+    };
+
+    const handleAllVariantsBarcode = (group) => {
+        const variantsWithProducts = group.variants.map(variant => ({ 
+            variant, 
+            product: {
+                product_id: group.product_id,
+                name: group.name,
+                product_code: group.product_code,
+                brand_name: "",
+            }
+        }));
+        setSelectedVariantsForBarcode(variantsWithProducts);
+        setShowBarcodeModal(true);
+    };
+
+    // ── Variant Action Handlers ─────────────────────────────────────────
+    const handleVariantQuantity = (variant) => {
+        // Create a stock object compatible with StockQuantityModal
+        const stockForModal = {
+            shop_stock_id: variant.shop_stock_id,
+            variant_id: variant.variant_id,
+            quantity_available: variant.quantity_available,
+            low_stock_threshold: variant.low_stock_threshold,
+            variant: {
+                product_code: variant.product_code,
+                sku: variant.sku,
+                product: {
+                    name: variant.product_code,
+                }
+            }
+        };
+        dispatch(openQuantityModal(stockForModal));
+    };
+
+    const handleVariantMinMax = (variant) => {
+        const levels = levelsMap.get(variant.variant_id);
+        const stockForModal = {
+            shop_stock_id: variant.shop_stock_id,
+            variant_id: variant.variant_id,
+            quantity_available: variant.quantity_available,
+            low_stock_threshold: variant.low_stock_threshold,
+            variant: {
+                product_code: variant.product_code,
+                product: {
+                    name: variant.product_code,
+                }
+            }
+        };
+        dispatch(openMinMaxModal({ 
+            ...stockForModal, 
+            min_level: levels?.min_level, 
+            max_level: levels?.max_level 
+        }));
     };
 
     return (
@@ -147,16 +291,6 @@ export default function ShopStockTab() {
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
-                    {/* {canEdit && (
-                        <button
-                            onClick={() => dispatch(openBulkModal())}
-                            className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm cursor-pointer"
-                            disabled={stocks.length === 0}
-                        >
-                            <Layers size={16} /> Bulk Update
-                        </button>
-                    )} */}  
-                     {/* no need because we give them checkbox to select the product and create bulk request in action bar */}
                     <button
                         onClick={handleRefresh}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-500 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
@@ -289,6 +423,7 @@ export default function ShopStockTab() {
                 <table className="w-full text-sm">
                     <thead className="bg-gray-50 border-b border-gray-100">
                         <tr>
+                            <th className="px-4 py-3 w-8"></th>
                             <th className="px-4 py-3 w-10">
                                 {stocks.length > 0 && (
                                     <button onClick={handleSelectAll} className="text-gray-500 hover:text-gray-700">
@@ -297,8 +432,7 @@ export default function ShopStockTab() {
                                 )}
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide">Product</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide">Barcode</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide">Variant</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide">Variant SKU</th>
                             <th className="px-4 py-3 text-right text-xs font-semibold text-gray-400 uppercase tracking-wide">Available</th>
                             <th className="px-4 py-3 text-right text-xs font-semibold text-gray-400 uppercase tracking-wide">Reserved</th>
                             <th className="px-4 py-3 text-right text-xs font-semibold text-gray-400 uppercase tracking-wide">In Transit</th>
@@ -306,119 +440,333 @@ export default function ShopStockTab() {
                             <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide">Min/Max</th>
                             <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide">Suggested</th>
                             <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide">Updated</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide">Barcode</th>
                             <th className="px-4 py-3 text-center text-xs font-semibold text-gray-400 uppercase tracking-wide">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
                         {(isLoading || isFetching) && (
                             <tr>
-                                <td colSpan={12} className="px-4 py-10 text-center">
+                                <td colSpan={13} className="px-4 py-10 text-center">
                                     <div className="flex justify-center">
                                         <div className="w-5 h-5 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
                                     </div>
                                 </td>
                             </tr>
                         )}
-                        {!isLoading && !isFetching && stocks.length === 0 && (
+                        {!isLoading && !isFetching && groupedProducts.length === 0 && (
                             <tr>
-                                <td colSpan={12} className="px-4 py-14 text-center">
+                                <td colSpan={13} className="px-4 py-14 text-center">
                                     <Package size={32} className="text-gray-300 mx-auto mb-2" />
                                     <p className="text-gray-400 text-sm">No stock records found for your shop</p>
                                     <p className="text-xs text-gray-400 mt-1">Products will appear here when stock is added</p>
                                 </td>
                             </tr>
                         )}
-                        {!isLoading && stocks.map((stock) => {
-                            const product = stock.variant?.product || {};
-                            const variant = stock.variant || {};
-                            const levels = levelsMap.get(stock.variant_id);
-                            const minLevel = levels?.min_level;
-                            const maxLevel = levels?.max_level;
-                            const suggestedQty = levels?.suggested_quantity;
-                            const status = getStockStatus(stock.quantity_available, minLevel || stock.low_stock_threshold || 10);
-                            const variantAttr = variant.sku || variant.product_code || variant.system_barcode || "—";
-                            const isSelected = selectedStockIds.includes(stock.shop_stock_id);
-                            const barcodeValue = variant.system_barcode;
-
+                        {!isLoading && groupedProducts.map((group) => {
+                            const isMultiVariant = group.isMultiVariant;
+                            const firstVariant = group.variants[0]; // Primary or first variant for main row
+                            
                             return (
-                                <tr key={stock.shop_stock_id} className={`hover:bg-gray-50 transition-colors ${isSelected ? "bg-blue-50" : ""}`}>
-                                    <td className="px-4 py-3">
-                                        <button onClick={() => dispatch(toggleSelectStock(stock.shop_stock_id))} className="text-gray-400 hover:text-blue-600">
-                                            {isSelected ? <CheckSquare size={18} className="text-blue-600" /> : <Square size={18} />}
-                                        </button>
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <p className="font-semibold text-gray-800">{product.name || "—"}</p>
-                                        <p className="text-xs font-mono text-gray-400">{product.product_code || "—"}</p>
-                                    </td>
-                                    {/* Barcode Column with Download Button */}
-                                    <td className="px-4 py-3">
-                                        {barcodeValue ? (
-                                            <div className="flex items-center gap-2">
-                                                <span className="font-mono text-xs text-gray-600 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded">
-                                                    {barcodeValue}
-                                                </span>
+                                <React.Fragment key={group.product_id}>
+                                    {/* Main Product Row */}
+                                    <tr className="hover:bg-gray-50 transition-colors bg-white">
+                                        {/* Expand button - ONLY for multi-variant */}
+                                        <td className="px-2 py-3">
+                                            {isMultiVariant && (
                                                 <button
-                                                    onClick={() => downloadBarcode(barcodeValue, product.name)}
-                                                    className="text-gray-400 hover:text-gray-700 transition-colors"
-                                                    title="Download barcode image"
+                                                    onClick={() => toggleExpand(group.product_id)}
+                                                    className="p-1 hover:bg-gray-200 rounded transition-colors"
                                                 >
-                                                    <Download size={15} />
+                                                    {expandedProducts[group.product_id] ? (
+                                                        <ChevronDown size={16} className="text-gray-500" />
+                                                    ) : (
+                                                        <ChevronRight size={16} className="text-gray-500" />
+                                                    )}
                                                 </button>
-                                            </div>
-                                        ) : (
-                                            <span className="text-xs text-gray-400">—</span>
-                                        )}
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <p className="text-xs text-gray-700">{variantAttr}</p>
-                                    </td>
-                                    <td className="px-4 py-3 text-right font-bold text-gray-800">{stock.quantity_available}</td>
-                                    <td className="px-4 py-3 text-right text-gray-500">{stock.quantity_reserved || 0}</td>
-                                    <td className="px-4 py-3 text-right text-gray-500">{stock.quantity_in_transit || 0}</td>
-                                    <td className="px-4 py-3"><span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${status.color}`}>{status.icon} {status.label}</span></td>
-                                    <td className="px-4 py-3">
-                                        {minLevel && maxLevel ? (
-                                            <span className="text-xs text-gray-600">
-                                                {minLevel} / {maxLevel}
-                                            </span>
-                                        ) : (
-                                            <span className="text-xs text-orange-400">Not set</span>
-                                        )}
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        {suggestedQty && suggestedQty > 0 ? (
-                                            <span className="text-xs font-semibold text-blue-600">
-                                                {suggestedQty} units
-                                            </span>
-                                        ) : (
-                                            <span className="text-xs text-gray-400">—</span>
-                                        )}
-                                    </td>
-                                    <td className="px-4 py-3 text-xs text-gray-400">{fmtDate(stock.updated_at)}</td>
-                                    <td className="px-4 py-3 text-center">
-                                        <div className="flex items-center justify-center gap-1">
-                                            {canEdit && (
-                                                <>
-                                                    <button 
-                                                        onClick={() => dispatch(openQuantityModal(stock))} 
-                                                        className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-gray-100 rounded-md transition-colors" 
-                                                        title="Adjust Quantity"
-                                                    >
-                                                        <Edit2 size={15} />
-                                                    </button>
-                                                    <button 
-                                                        onClick={() => dispatch(openMinMaxModal({ ...stock, min_level: minLevel, max_level: maxLevel }))} 
-                                                        className="p-1.5 text-gray-400 hover:text-purple-600 hover:bg-gray-100 rounded-md transition-colors" 
-                                                        title="Set Min-Max Levels"
-                                                    >
-                                                        <Target size={15} />
-                                                    </button>
-                                                </>
                                             )}
-                                        </div>
-                                    </td>
-                                </tr>
+                                        </td>
+                                        
+                                        {/* Checkbox for main row - selects all variants? No, keep independent */}
+                                        <td className="px-4 py-3">
+                                            {/* Main row checkbox selects the first variant (or all? Keeping independent for clarity) */}
+                                            {firstVariant && (
+                                                <button 
+                                                    onClick={() => dispatch(toggleSelectStock(firstVariant.shop_stock_id))} 
+                                                    className="text-gray-400 hover:text-blue-600"
+                                                >
+                                                    {selectedStockIds.includes(firstVariant.shop_stock_id) ? 
+                                                        <CheckSquare size={18} className="text-blue-600" /> : 
+                                                        <Square size={18} />
+                                                    }
+                                                </button>
+                                            )}
+                                        </td>
+                                        
+                                        {/* Product */}
+                                        <td className="px-4 py-3">
+                                            <p className="font-semibold text-gray-800">{group.name || "—"}</p>
+                                            <p className="text-xs font-mono text-gray-400">{group.product_code || "—"}</p>
+                                        </td>
+                                        
+                                        {/* Variant SKU */}
+                                        <td className="px-4 py-3">
+                                            <p className="text-xs text-gray-700 font-mono">
+                                                {firstVariant?.product_code || firstVariant?.sku || "—"}
+                                            </p>
+                                        </td>
+                                        
+                                        {/* Available */}
+                                        <td className="px-4 py-3 text-right font-bold text-gray-800">
+                                            {firstVariant?.quantity_available || 0}
+                                        </td>
+                                        
+                                        {/* Reserved */}
+                                        <td className="px-4 py-3 text-right text-gray-500">
+                                            {firstVariant?.quantity_reserved || 0}
+                                        </td>
+                                        
+                                        {/* In Transit */}
+                                        <td className="px-4 py-3 text-right text-gray-500">
+                                            {firstVariant?.quantity_in_transit || 0}
+                                        </td>
+                                        
+                                        {/* Status */}
+                                        <td className="px-4 py-3">
+                                            {(() => {
+                                                const levels = levelsMap.get(firstVariant?.variant_id);
+                                                const minLevel = levels?.min_level || firstVariant?.low_stock_threshold || 10;
+                                                const status = getStockStatus(firstVariant?.quantity_available, minLevel);
+                                                return (
+                                                    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${status.color}`}>
+                                                        {status.icon} {status.label}
+                                                    </span>
+                                                );
+                                            })()}
+                                        </td>
+                                        
+                                        {/* Min/Max */}
+                                        <td className="px-4 py-3">
+                                            {(() => {
+                                                const levels = levelsMap.get(firstVariant?.variant_id);
+                                                return levels?.min_level && levels?.max_level ? (
+                                                    <span className="text-xs text-gray-600">
+                                                        {levels.min_level} / {levels.max_level}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-xs text-orange-400">Not set</span>
+                                                );
+                                            })()}
+                                        </td>
+                                        
+                                        {/* Suggested */}
+                                        <td className="px-4 py-3">
+                                            {(() => {
+                                                const levels = levelsMap.get(firstVariant?.variant_id);
+                                                return levels?.suggested_quantity > 0 ? (
+                                                    <span className="text-xs font-semibold text-blue-600">
+                                                        {levels.suggested_quantity} units
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-xs text-gray-400">—</span>
+                                                );
+                                            })()}
+                                        </td>
+                                        
+                                        {/* Updated */}
+                                        <td className="px-4 py-3 text-xs text-gray-400">
+                                            {fmtDate(firstVariant?.updated_at)}
+                                        </td>
+                                        
+                                        {/* Barcode Action */}
+                                        <td className="px-4 py-3">
+                                            {isMultiVariant ? (
+                                                <button
+                                                    onClick={() => handleAllVariantsBarcode(group)}
+                                                    className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors"
+                                                    title="Generate barcode labels for all variants"
+                                                >
+                                                    <Barcode size={14} />
+                                                    Get Labels
+                                                </button>
+                                            ) : (
+                                                firstVariant && (
+                                                    <button
+                                                        onClick={() => handleSingleVariantBarcode(firstVariant, {
+                                                            product_id: group.product_id,
+                                                            name: group.name,
+                                                            product_code: group.product_code,
+                                                        })}
+                                                        className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors"
+                                                        title="Generate barcode label"
+                                                    >
+                                                        <Barcode size={14} />
+                                                        Get Barcode
+                                                    </button>
+                                                )
+                                            )}
+                                        </td>
+                                        
+                                        {/* Actions */}
+                                        <td className="px-4 py-3 text-center">
+                                            <div className="flex items-center justify-center gap-1">
+                                                {canEdit && firstVariant && (
+                                                    <>
+                                                        <button 
+                                                            onClick={() => handleVariantQuantity(firstVariant)} 
+                                                            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-gray-100 rounded-md transition-colors" 
+                                                            title="Adjust Quantity"
+                                                        >
+                                                            <Edit2 size={15} />
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => handleVariantMinMax(firstVariant)} 
+                                                            className="p-1.5 text-gray-400 hover:text-purple-600 hover:bg-gray-100 rounded-md transition-colors" 
+                                                            title="Set Min-Max Levels"
+                                                        >
+                                                            <Target size={15} />
+                                                        </button>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </td>
+                                    </tr>
+
+                                    {/* Expanded Row - ALL Variants with full capabilities */}
+                                    {expandedProducts[group.product_id] && isMultiVariant && group.variants.length > 0 && (
+                                        <tr>
+                                            <td colSpan={13} className="px-0 py-0 bg-gray-50">
+                                                <div className="p-4 pl-16 border-t border-gray-100">
+                                                    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                                                        <table className="w-full text-sm">
+                                                            <thead className="bg-gray-50">
+                                                                <tr>
+                                                                    <th className="px-4 py-2 w-8"></th>
+                                                                    <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500">Variant SKU</th>
+                                                                    <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500">Barcode</th>
+                                                                    <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500">Special Price</th>
+                                                                    <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500">Purchase Price</th>
+                                                                    <th className="px-4 py-2 text-right text-xs font-semibold text-gray-500">Available</th>
+                                                                    <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500">Status</th>
+                                                                    <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500">Min/Max</th>
+                                                                    <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500">Barcode Action</th>
+                                                                    <th className="px-4 py-2 text-center text-xs font-semibold text-gray-500">Actions</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody className="divide-y divide-gray-100">
+                                                            {group.variants.slice(1).map((variant) => {
+                                                                    const variantLevels = levelsMap.get(variant.variant_id);
+                                                                    const variantMinLevel = variantLevels?.min_level || variant.low_stock_threshold || 10;
+                                                                    const variantStatus = getStockStatus(variant.quantity_available, variantMinLevel);
+                                                                    const isVariantSelected = selectedStockIds.includes(variant.shop_stock_id);
+                                                                    
+                                                                    return (
+                                                                        <tr key={variant.variant_id} className="hover:bg-gray-50">
+                                                                            {/* Checkbox for this variant */}
+                                                                            <td className="px-4 py-2 w-8">
+                                                                                <button 
+                                                                                    onClick={() => dispatch(toggleSelectStock(variant.shop_stock_id))} 
+                                                                                    className="text-gray-400 hover:text-blue-600"
+                                                                                >
+                                                                                    {isVariantSelected ? 
+                                                                                        <CheckSquare size={16} className="text-blue-600" /> : 
+                                                                                        <Square size={16} />
+                                                                                    }
+                                                                                </button>
+                                                                            </td>
+                                                                            
+                                                                            <td className="px-4 py-2">
+                                                                                <span className="font-mono text-xs text-gray-600">
+                                                                                    {variant.product_code || variant.sku || "—"}
+                                                                                </span>
+                                                                            </td>
+                                                                            
+                                                                            <td className="px-4 py-2">
+                                                                                <span className="font-mono text-xs text-gray-500">
+                                                                                    {variant.system_barcode || "—"}
+                                                                                </span>
+                                                                            </td>
+                                                                            
+                                                                            <td className="px-4 py-2">
+                                                                                <span className="text-sm font-semibold text-blue-600">
+                                                                                    ₹{variant.special_price?.toLocaleString() || "—"}
+                                                                                </span>
+                                                                            </td>
+                                                                            
+                                                                            <td className="px-4 py-2">
+                                                                                <span className="text-sm font-semibold text-green-600">
+                                                                                    ₹{variant.purchase_price?.toLocaleString() || "—"}
+                                                                                </span>
+                                                                            </td>
+                                                                            
+                                                                            <td className="px-4 py-2 text-right font-bold text-gray-800">
+                                                                                {variant.quantity_available || 0}
+                                                                            </td>
+                                                                            
+                                                                            <td className="px-4 py-2">
+                                                                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${variantStatus.color}`}>
+                                                                                    {variantStatus.icon} {variantStatus.label}
+                                                                                </span>
+                                                                            </td>
+                                                                            
+                                                                            {/* Min/Max for this variant */}
+                                                                            <td className="px-4 py-2">
+                                                                                {variantLevels?.min_level && variantLevels?.max_level ? (
+                                                                                    <span className="text-xs text-gray-600">
+                                                                                        {variantLevels.min_level} / {variantLevels.max_level}
+                                                                                    </span>
+                                                                                ) : (
+                                                                                    <span className="text-xs text-orange-400">Not set</span>
+                                                                                )}
+                                                                            </td>
+                                                                            
+                                                                            <td className="px-4 py-2">
+                                                                                <button
+                                                                                    onClick={() => handleSingleVariantBarcode(variant, {
+                                                                                        product_id: group.product_id,
+                                                                                        name: group.name,
+                                                                                        product_code: group.product_code,
+                                                                                    })}
+                                                                                    className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-purple-600 bg-purple-50 hover:bg-purple-100 rounded transition-colors"
+                                                                                >
+                                                                                    <Barcode size={12} />
+                                                                                    Get Barcode
+                                                                                </button>
+                                                                             </td>
+                                                                            
+                                                                            <td className="px-4 py-2 text-center">
+                                                                                <div className="flex items-center justify-center gap-1">
+                                                                                    {canEdit && (
+                                                                                        <>
+                                                                                            <button 
+                                                                                                onClick={() => handleVariantQuantity(variant)} 
+                                                                                                className="p-1 text-gray-400 hover:text-blue-600 hover:bg-gray-100 rounded-md transition-colors" 
+                                                                                                title="Adjust Quantity"
+                                                                                            >
+                                                                                                <Edit2 size={14} />
+                                                                                            </button>
+                                                                                            <button 
+                                                                                                onClick={() => handleVariantMinMax(variant)} 
+                                                                                                className="p-1 text-gray-400 hover:text-purple-600 hover:bg-gray-100 rounded-md transition-colors" 
+                                                                                                title="Set Min-Max Levels"
+                                                                                            >
+                                                                                                <Target size={14} />
+                                                                                            </button>
+                                                                                        </>
+                                                                                    )}
+                                                                                </div>
+                                                                             </td>
+                                                                         </tr>
+                                                                    );
+                                                                })}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                </div>
+                                             </td>
+                                         </tr>
+                                    )}
+                                </React.Fragment>
                             );
                         })}
                     </tbody>
@@ -442,6 +790,16 @@ export default function ShopStockTab() {
             {showMinMaxModal && <StockMinMaxModal onSuccess={handleRefresh} />}
             {showBulkModal && <StockBulkModal onSuccess={handleRefresh} stocks={stocks} selectedStockIds={selectedStockIds} />}
             {showBulkRestockModal && <StockBulkRestockModal onSuccess={handleRefresh} stocks={stocks} selectedStockIds={selectedStockIds} />}
+
+            {/* Barcode Label Modal */}
+            <BarcodeLabelModal
+                isOpen={showBarcodeModal}
+                onClose={() => {
+                    setShowBarcodeModal(false);
+                    setSelectedVariantsForBarcode([]);
+                }}
+                variantsWithProducts={selectedVariantsForBarcode}
+            />
         </div>
     );
 }

@@ -162,13 +162,6 @@ export default function CategoriesTab({ onClose }) {
         <div className="p-6">
             {/* Master Dropdown Button */}
             <div className="relative inline-block">
-                {/* <button
-                    onClick={() => document.getElementById("categoryDropdown").classList.toggle("hidden")}
-                    className="px-4 py-2 bg-white border border-gray-300 rounded-lg flex items-center gap-2 hover:bg-gray-50"
-                >
-                    All Categories
-                    <ChevronDown size={16} />
-                </button> */}
 
                 {/* Dropdown Menu */}
                 <div id="categoryDropdown" className="hidden absolute top-full left-0 mt-1 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
@@ -205,8 +198,11 @@ export default function CategoriesTab({ onClose }) {
 
             {/* Manage Categories Modal */}
             {showModal && (
-                <div className="fixed inset-0 z-50 flex text-gray-700 items-center justify-center bg-black/50">
-                    <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+                <div className="fixed inset-0 z-50 overflow-y-auto text-gray-700">
+    <div className="flex items-center justify-center min-h-screen px-4 py-8">
+        <div className="fixed inset-0 bg-black/50" />
+
+                    <div className="relative bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
                         {/* Header */}
                         <div className="flex items-center justify-between p-4 border-b border-gray-200">
                             <h2 className="text-lg font-semibold">
@@ -391,7 +387,8 @@ export default function CategoriesTab({ onClose }) {
                             </button>
                         </div>
                     </div>
-                </div>
+    </div>
+</div>
             )}
         </div>
     );

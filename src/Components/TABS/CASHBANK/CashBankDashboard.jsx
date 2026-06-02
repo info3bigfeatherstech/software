@@ -21,7 +21,7 @@ const CashBankDashboard = () => {
     if (filteredTabs.length === 0) {
         return (
             <div className="text-center py-20 text-gray-400 text-sm">
-                No warehouse tabs available for your role.
+                No CashBank tabs available for your role.
             </div>
         );
     }

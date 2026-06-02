@@ -207,8 +207,11 @@ const handleReceive = async () => {
         const approveTotalQty = items.reduce((s, i) => s + i.quantity, 0);
         
         return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 text-gray-700">
-                <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="fixed inset-0 z-50 overflow-y-auto text-gray-700">
+    <div className="flex items-center justify-center min-h-screen px-4 py-8">
+        <div className="fixed inset-0 bg-black/40" />
+
+                <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
                     <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex justify-between">
                         <div>
                             <h3 className="text-base font-semibold text-gray-800 flex items-center gap-2">
@@ -295,7 +298,8 @@ const handleReceive = async () => {
                         </button>
                     </div>
                 </div>
-            </div>
+    </div>
+</div>
         );
     }
 
@@ -306,8 +310,11 @@ const handleReceive = async () => {
         const dispatchTotalQty = selectedRequest.items?.reduce((s, i) => s + i.quantity, 0) || 0;
         
         return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 text-gray-700">
-                <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4">
+            <div className="fixed inset-0 z-50 overflow-y-auto text-gray-700">
+    <div className="flex items-center justify-center min-h-screen px-4 py-8">
+        <div className="fixed inset-0 bg-black/40" />
+
+                <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md mx-4">
                     <div className="px-6 py-4 border-b border-gray-100 flex justify-between">
                         <div>
                             <h3 className="text-base font-semibold text-gray-800 flex items-center gap-2">
@@ -354,7 +361,8 @@ const handleReceive = async () => {
                         </button>
                     </div>
                 </div>
-            </div>
+    </div>
+</div>
         );
     }
 
@@ -363,8 +371,11 @@ const handleReceive = async () => {
     // ============================================================
     if (showReceiveModal && selectedRequest) {
         return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 text-gray-700">
-                <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4">
+            <div className="fixed inset-0 z-50 overflow-y-auto text-gray-700">
+    <div className="flex items-center justify-center min-h-screen px-4 py-8">
+        <div className="fixed inset-0 bg-black/40" />
+
+                <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md mx-4">
                     <div className="px-6 py-4 border-b border-gray-100 flex justify-between">
                         <div>
                             <h3 className="text-base font-semibold text-gray-800 flex items-center gap-2">
@@ -417,7 +428,8 @@ const handleReceive = async () => {
                         </button>
                     </div>
                 </div>
-            </div>
+    </div>
+</div>
         );
     }
 
@@ -426,8 +438,11 @@ const handleReceive = async () => {
     // ============================================================
     if (showCancelModal && selectedRequest) {
         return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-                <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4">
+            <div className="fixed inset-0 z-50 overflow-y-auto">
+    <div className="flex items-center justify-center min-h-screen px-4 py-8">
+        <div className="fixed inset-0 bg-black/40" />
+
+                <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md mx-4">
                     <div className="px-6 py-4 border-b border-gray-100 flex justify-between">
                         <div>
                             <h3 className="text-base font-semibold text-gray-800 flex items-center gap-2">
@@ -464,7 +479,8 @@ const handleReceive = async () => {
                         </button>
                     </div>
                 </div>
-            </div>
+    </div>
+</div>
         );
     }
 
@@ -476,8 +492,11 @@ const handleReceive = async () => {
         const status = selectedRequest.status;
         
         return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 text-gray-700">
-                <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="fixed inset-0 z-50 overflow-y-auto text-gray-700">
+    <div className="flex items-center justify-center min-h-screen px-4 py-8">
+        <div className="fixed inset-0 bg-black/40" />
+
+                <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
                     <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex justify-between">
                         <div>
                             <h3 className="text-base font-semibold text-gray-800 flex items-center gap-2">
@@ -576,7 +595,8 @@ const handleReceive = async () => {
                         <button onClick={() => dispatch(closeViewModal())} className="px-4 py-2 bg-gray-100 rounded-lg text-sm hover:bg-gray-200">Close</button>
                     </div>
                 </div>
-            </div>
+    </div>
+</div>
         );
     }
 

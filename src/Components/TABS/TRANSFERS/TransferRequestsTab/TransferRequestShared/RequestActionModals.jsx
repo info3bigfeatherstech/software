@@ -314,8 +314,11 @@ export default function RequestActionModals({ onSuccess }) {
         const selectedVariant = stocks.find(s => s.variant_id === createForm.variant_id);
 
         return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-                <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto text-gray-700">
+            <div className="fixed inset-0 z-50 overflow-y-auto">
+    <div className="flex items-center justify-center min-h-screen px-4 py-8">
+        <div className="fixed inset-0 bg-black/40" />
+
+                <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto text-gray-700">
                     <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex justify-between">
                         <div>
                             <h3 className="text-base font-semibold text-gray-800">
@@ -462,7 +465,8 @@ export default function RequestActionModals({ onSuccess }) {
                         </button>
                     </div>
                 </div>
-            </div>
+    </div>
+</div>
         );
     }
 
@@ -473,8 +477,11 @@ export default function RequestActionModals({ onSuccess }) {
         const isEmergencyRequest = selectedRequest.priority === "HIGH";
         
         return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 text-gray-700">
-                <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4">
+            <div className="fixed inset-0 z-50 overflow-y-auto text-gray-700">
+    <div className="flex items-center justify-center min-h-screen px-4 py-8">
+        <div className="fixed inset-0 bg-black/40" />
+
+                <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md mx-4">
                     <div className="px-6 py-4 border-b border-gray-100 flex justify-between">
                         <div>
                             <h3 className="text-base font-semibold text-gray-800">
@@ -540,7 +547,8 @@ export default function RequestActionModals({ onSuccess }) {
                         </button>
                     </div>
                 </div>
-            </div>
+    </div>
+</div>
         );
     }
 
@@ -549,8 +557,11 @@ export default function RequestActionModals({ onSuccess }) {
     // ─────────────────────────────────────────────────────────────
     if (showDispatchModal && selectedRequest) {
         return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 text-gray-700">
-                <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4">
+            <div className="fixed inset-0 z-50 overflow-y-auto text-gray-700">
+    <div className="flex items-center justify-center min-h-screen px-4 py-8">
+        <div className="fixed inset-0 bg-black/40" />
+
+                <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md mx-4">
                     <div className="px-6 py-4 border-b border-gray-100 flex justify-between">
                         <div><h3 className="text-base font-semibold text-gray-800">Dispatch Goods</h3><p className="text-xs text-gray-400">{selectedRequest.request_number}</p></div>
                         <button onClick={() => dispatch(closeDispatchModal())} className="text-gray-400"><X size={20} /></button>
@@ -578,7 +589,8 @@ export default function RequestActionModals({ onSuccess }) {
                         <button onClick={handleDispatch} disabled={isSubmitting} className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-60">{isSubmitting ? "Processing..." : "Dispatch"}</button>
                     </div>
                 </div>
-            </div>
+    </div>
+</div>
         );
     }
 
@@ -588,8 +600,11 @@ export default function RequestActionModals({ onSuccess }) {
     if (showReceiveModal && selectedRequest) {
         const remaining = selectedRequest.quantity - (selectedRequest.received_quantity || 0);
         return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 text-gray-700">
-                <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4">
+            <div className="fixed inset-0 z-50 overflow-y-auto text-gray-700">
+    <div className="flex items-center justify-center min-h-screen px-4 py-8">
+        <div className="fixed inset-0 bg-black/40" />
+
+                <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md mx-4">
                     <div className="px-6 py-4 border-b border-gray-100 flex justify-between">
                         <div><h3 className="text-base font-semibold text-gray-800">Receive Goods</h3><p className="text-xs text-gray-400">{selectedRequest.request_number}</p></div>
                         <button onClick={() => dispatch(closeReceiveModal())} className="text-gray-400"><X size={20} /></button>
@@ -616,7 +631,8 @@ export default function RequestActionModals({ onSuccess }) {
                         <button onClick={handleReceive} disabled={isSubmitting} className="px-5 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-60">{isSubmitting ? "Processing..." : "Receive"}</button>
                     </div>
                 </div>
-            </div>
+    </div>
+</div>
         );
     }
 
@@ -625,8 +641,11 @@ export default function RequestActionModals({ onSuccess }) {
     // ─────────────────────────────────────────────────────────────
     if (showCancelModal && selectedRequest) {
         return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-                <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4">
+            <div className="fixed inset-0 z-50 overflow-y-auto">
+    <div className="flex items-center justify-center min-h-screen px-4 py-8">
+        <div className="fixed inset-0 bg-black/40" />
+
+                <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md mx-4">
                     <div className="px-6 py-4 border-b border-gray-100 flex justify-between">
                         <div><h3 className="text-base font-semibold text-gray-800">Cancel Request</h3><p className="text-xs text-gray-400">{selectedRequest.request_number}</p></div>
                         <button onClick={() => dispatch(closeCancelModal())} className="text-gray-400"><X size={20} /></button>
@@ -647,7 +666,8 @@ export default function RequestActionModals({ onSuccess }) {
                         <button onClick={handleCancel} disabled={isSubmitting} className="px-5 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-60">{isSubmitting ? "Processing..." : "Confirm Cancel"}</button>
                     </div>
                 </div>
-            </div>
+    </div>
+</div>
         );
     }
 

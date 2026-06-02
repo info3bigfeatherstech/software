@@ -1,8 +1,10 @@
+
 // TABS/SALES/BillingTab_Compo/ProductPicker.jsx
 //
 // Product grid for billing - shows products from shop-stocks API
 // Single variant → add directly, multiple variants → open picker
 // FIXED: Quantity increment on multiple scans, garbage barcode filtering
+// UPDATED: Default price_type to "SPECIAL" to match backend
 
 import React, { useState, useRef } from "react";
 import { useDispatch } from "react-redux";
@@ -71,16 +73,17 @@ export default function ProductPicker({ shop_id, cart = [] }) {
                     }));
                     toast.success(`${result.name} quantity increased to ${newQuantity}`);
                 } else {
-                    // Add new item to cart
+                    // Add new item to cart - UPDATED: default price_type to "SPECIAL"
                     const cartItem = {
                         variant_id: result.variant_id,
                         product_name: result.name,
                         system_barcode: result.system_barcode || barcode,
                         quantity: 1,
-                        price_type: "RETAIL",
+                        price_type: "SPECIAL",  // UPDATED: from "RETAIL" to "SPECIAL"
                         unit_price: toNumber(result.retail_price),
                         retail_price: toNumber(result.retail_price),
                         wholesale_price: toNumber(result.wholesale_price),
+                        special_price: toNumber(result.retail_price),
                         mrp: toNumber(result.mrp),
                         online_price: toNumber(result.online_price),
                         gst_percent: toNumber(result.gst_percent),
@@ -126,16 +129,17 @@ export default function ProductPicker({ shop_id, cart = [] }) {
             }));
             toast.success(`${product?.name} quantity increased to ${newQuantity}`);
         } else {
-            // Add new item
+            // Add new item - UPDATED: default price_type to "SPECIAL"
             const cartItem = {
                 variant_id: variant.variant_id,
                 product_name: product?.name || "Unknown",
                 system_barcode: variant.system_barcode,
                 quantity: 1,
-                price_type: "RETAIL",
+                price_type: "SPECIAL",  // UPDATED: from "RETAIL" to "SPECIAL"
                 unit_price: toNumber(variant.retail_price),
                 retail_price: toNumber(variant.retail_price),
                 wholesale_price: toNumber(variant.wholesale_price),
+                special_price: toNumber(variant.retail_price),
                 mrp: toNumber(variant.mrp),
                 online_price: toNumber(variant.online_price),
                 gst_percent: toNumber(variant.gst_percent),
@@ -244,16 +248,17 @@ export default function ProductPicker({ shop_id, cart = [] }) {
         </div>
     );
 }
-
+// down code is old use upper code they have update prices handling 
 // // TABS/SALES/BillingTab_Compo/ProductPicker.jsx
 // //
 // // Product grid for billing - shows products from shop-stocks API
 // // Single variant → add directly, multiple variants → open picker
+// // FIXED: Quantity increment on multiple scans, garbage barcode filtering
 
-// import React, { useState } from "react";
-// import { useDispatch, useSelector } from "react-redux";
+// import React, { useState, useRef } from "react";
+// import { useDispatch } from "react-redux";
 // import { useGetShopStocksQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/ShopStock_api/shopStockApi";
-// import { addToCart, openVariantPicker } from "../../../../REDUX_FEATURES/REDUX_SLICES/Billing_api/billingSlice";
+// import { addToCart, updateCartQty } from "../../../../REDUX_FEATURES/REDUX_SLICES/Billing_api/billingSlice";
 // import BarcodeScanner from "./BarcodeScanner";
 // import { useLazyGetProductByBarcodeQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/Product_api/productApi";
 // import { toast } from "react-toastify";
@@ -263,47 +268,87 @@ export default function ProductPicker({ shop_id, cart = [] }) {
 //     return isNaN(num) ? defaultValue : num;
 // };
 
-// export default function ProductPicker({ shop_id }) {
+// // Valid barcode pattern: alphanumeric, dash, underscore, min 3 chars
+// const isValidBarcode = (barcode) => {
+//     if (!barcode || typeof barcode !== 'string') return false;
+//     if (barcode.length < 3) return false;
+//     // Allow alphanumeric, dash, underscore, colon (EAN-13 uses numbers only)
+//     return /^[a-zA-Z0-9\-_:]+$/.test(barcode);
+// };
+
+// export default function ProductPicker({ shop_id, cart = [] }) {
 //     const dispatch = useDispatch();
 //     const [searchTerm, setSearchTerm] = useState("");
 //     const [showScanner, setShowScanner] = useState(false);
 //     const [triggerBarcodeSearch] = useLazyGetProductByBarcodeQuery();
+//     const lastScanTimeRef = useRef(0);
+//     const lastSuccessfulBarcodeRef = useRef(null);
 
-//     const { data, isLoading, isFetching } = useGetShopStocksQuery({
+//     const { data, isLoading, isFetching, refetch } = useGetShopStocksQuery({
 //         shop_id,
 //         limit: 100,
 //     });
 
 //     const stocks = data?.stocks || [];
 
-//     // Handle barcode scan result
+//     // Handle barcode scan result - WITH QUANTITY INCREMENT ON SAME PRODUCT
 //     const handleBarcodeScan = async (barcode) => {
+//         // Debounce: ignore scans within 500ms
+//         const now = Date.now();
+//         if (now - lastScanTimeRef.current < 500) {
+//             console.log("Ignoring duplicate scan within 500ms");
+//             return;
+//         }
+//         lastScanTimeRef.current = now;
+
+//         // Validate barcode format
+//         if (!isValidBarcode(barcode)) {
+//             console.warn("Invalid barcode ignored:", barcode);
+//             return; // Silently ignore garbage scans
+//         }
+
 //         try {
 //             const result = await triggerBarcodeSearch(barcode).unwrap();
 //             if (result) {
-//                 // Check if product has multiple variants
-//                 // For now, assume single variant and add directly
-//                 const cartItem = {
-//                     variant_id: result.variant_id,
-//                     product_name: result.product_name,
-//                     system_barcode: result.system_barcode || barcode,
-//                     quantity: 1,
-//                     price_type: "RETAIL",
-//                     unit_price: toNumber(result.retail_price),
-//                     retail_price: toNumber(result.retail_price),
-//                     wholesale_price: toNumber(result.wholesale_price),
-//                     mrp: toNumber(result.mrp),
-//                     online_price: toNumber(result.online_price),
-//                     gst_percent: toNumber(result.gst_percent),
-//                     quantity_available: 999999, // Barcode scan doesn't give stock
-//                 };
-//                 dispatch(addToCart(cartItem));
-//                 toast.success(`${result.product_name} added to cart`);
+//                 // Check if product already exists in cart
+//                 const existingItem = cart.find(item => item.variant_id === result.variant_id);
+                
+//                 if (existingItem) {
+//                     // INCREMENT QUANTITY - don't add duplicate
+//                     const newQuantity = existingItem.quantity + 1;
+//                     dispatch(updateCartQty({ 
+//                         variant_id: result.variant_id, 
+//                         quantity: newQuantity 
+//                     }));
+//                     toast.success(`${result.name} quantity increased to ${newQuantity}`);
+//                 } else {
+//                     // Add new item to cart
+//                     const cartItem = {
+//                         variant_id: result.variant_id,
+//                         product_name: result.name,
+//                         system_barcode: result.system_barcode || barcode,
+//                         quantity: 1,
+//                         price_type: "RETAIL",
+//                         unit_price: toNumber(result.retail_price),
+//                         retail_price: toNumber(result.retail_price),
+//                         wholesale_price: toNumber(result.wholesale_price),
+//                         mrp: toNumber(result.mrp),
+//                         online_price: toNumber(result.online_price),
+//                         gst_percent: toNumber(result.gst_percent),
+//                         quantity_available: 999999,
+//                         line_total: toNumber(result.retail_price),
+//                         gst_amount: (toNumber(result.retail_price) * toNumber(result.gst_percent)) / 100,
+//                     };
+//                     dispatch(addToCart(cartItem));
+//                     toast.success(`${result.name} added to cart`);
+//                 }
+//                 lastSuccessfulBarcodeRef.current = barcode;
 //             } else {
-//                 toast.error("Product not found");
+//                 console.warn("Product not found for barcode:", barcode);
 //             }
 //         } catch (err) {
-//             toast.error("Product not found");
+//             // Silently fail for garbage scans - don't show error toast
+//             console.warn("Barcode search failed for:", barcode, err?.status);
 //         }
 //     };
 
@@ -320,22 +365,38 @@ export default function ProductPicker({ shop_id, cart = [] }) {
 //         const variant = stock.variant;
 //         const product = variant?.product;
         
-//         const cartItem = {
-//             variant_id: variant.variant_id,
-//             product_name: product?.name || "Unknown",
-//             system_barcode: variant.system_barcode,
-//             quantity: 1,
-//             price_type: "RETAIL",
-//             unit_price: toNumber(variant.retail_price),
-//             retail_price: toNumber(variant.retail_price),
-//             wholesale_price: toNumber(variant.wholesale_price),
-//             mrp: toNumber(variant.mrp),
-//             online_price: toNumber(variant.online_price),
-//             gst_percent: toNumber(variant.gst_percent),
-//             quantity_available: toNumber(stock.quantity_available),
-//         };
+//         // Check if product already exists in cart
+//         const existingItem = cart.find(item => item.variant_id === variant.variant_id);
         
-//         dispatch(addToCart(cartItem));
+//         if (existingItem) {
+//             // INCREMENT QUANTITY
+//             const newQuantity = existingItem.quantity + 1;
+//             dispatch(updateCartQty({ 
+//                 variant_id: variant.variant_id, 
+//                 quantity: newQuantity 
+//             }));
+//             toast.success(`${product?.name} quantity increased to ${newQuantity}`);
+//         } else {
+//             // Add new item
+//             const cartItem = {
+//                 variant_id: variant.variant_id,
+//                 product_name: product?.name || "Unknown",
+//                 system_barcode: variant.system_barcode,
+//                 quantity: 1,
+//                 price_type: "RETAIL",
+//                 unit_price: toNumber(variant.retail_price),
+//                 retail_price: toNumber(variant.retail_price),
+//                 wholesale_price: toNumber(variant.wholesale_price),
+//                 mrp: toNumber(variant.mrp),
+//                 online_price: toNumber(variant.online_price),
+//                 gst_percent: toNumber(variant.gst_percent),
+//                 quantity_available: toNumber(stock.quantity_available),
+//                 line_total: toNumber(variant.retail_price),
+//                 gst_amount: (toNumber(variant.retail_price) * toNumber(variant.gst_percent)) / 100,
+//             };
+//             dispatch(addToCart(cartItem));
+//             toast.success(`${product?.name} added to cart`);
+//         }
 //     };
 
 //     if (isLoading || isFetching) {
@@ -367,6 +428,14 @@ export default function ProductPicker({ shop_id, cart = [] }) {
 //                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500"
 //                 />
 //             </div>
+
+//             {/* Refresh button for stock */}
+//             <button
+//                 onClick={() => refetch()}
+//                 className="text-xs text-blue-500 text-right mb-2 hover:text-blue-700"
+//             >
+//                 ↻ Refresh stock
+//             </button>
 
 //             {/* Product Grid */}
 //             <div className="grid grid-cols-3 gap-2 overflow-y-auto flex-1 pr-1">

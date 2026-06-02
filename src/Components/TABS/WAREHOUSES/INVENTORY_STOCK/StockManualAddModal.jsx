@@ -152,8 +152,11 @@ export default function StockManualAddModal({ onSuccess }) {
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 text-gray-700">
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 overflow-y-auto text-gray-700">
+    <div className="flex items-center justify-center min-h-screen px-4 py-8">
+        <div className="fixed inset-0 bg-black/40" />
+
+            <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
 
                 {/* Header */}
                 <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between">
@@ -272,9 +275,11 @@ export default function StockManualAddModal({ onSuccess }) {
                                 <option value="">Select variant</option>
                                 {selectedProduct.variants?.map(variant => (
                                     <option key={variant.variant_id} value={variant.variant_id}>
-                                        {variant.sku || variant.system_barcode || variant.product_code}
-                                        {variant.attributes ? ` - ${Object.entries(variant.attributes).map(([k, v]) => `${k}: ${v}`).join(", ")}` : ""}
-                                    </option>
+                                    {variant.sku || variant.system_barcode || variant.product_code}
+                                    {variant.attributes?.length
+                                        ? ` - ${variant.attributes.map(a => `${a.key}: ${a.value}`).join(", ")}`
+                                        : ""}
+                                </option>
                                 ))}
                             </select>
                             {errorMsg("variant_id")}
@@ -410,6 +415,7 @@ export default function StockManualAddModal({ onSuccess }) {
                 </div>
 
             </div>
-        </div>
+    </div>
+</div>
     );
 }

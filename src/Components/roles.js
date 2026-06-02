@@ -59,17 +59,29 @@ export const SUB_TAB_PERMISSIONS = {
 
     // Inventory internal horizontal tabs (from inventoryTabRegistry.js)
     "inventory.internal.products": ["SUPER_ADMIN", "WH_MANAGER", "WH_STOCK_LISTER",],
-    "inventory.internal.shopstock": ["SUPER_ADMIN", "SHOP_OWNER", "SHOP_STOCK_LISTER"],
+    "inventory.internal.shopstock": ["SHOP_OWNER", "SHOP_STOCK_LISTER"],
     "inventory.internal.inventorystock": ["SUPER_ADMIN", "WH_MANAGER", "WH_STOCK_LISTER"],
 
     // Cash & Bank internal horizontal tabs (from cashbankTabRegistry.js)
-    // "cashbank.internal.bank-statement": ["SUPER_ADMIN", "WH_MANAGER", "WH_STOCK_LISTER"],
-    // "cashbank.internal.cash-in-hand": ["SUPER_ADMIN", "WH_MANAGER", "WH_STOCK_LISTER"],
-    // "cashbank.internal.cheques": ["SUPER_ADMIN", "WH_MANAGER", "WH_STOCK_LISTER"],
-    // "cashbank.internal.loan-account": ["SUPER_ADMIN", "WH_MANAGER", "WH_STOCK_LISTER"],
+    "cashbank.internal.bank-statement": ["SUPER_ADMIN", "WH_MANAGER", "WH_STOCK_LISTER" ,"SHOP_OWNER"],
+    "cashbank.internal.cash-in-hand": ["SUPER_ADMIN", "WH_MANAGER", "WH_STOCK_LISTER","SHOP_OWNER"],
+    "cashbank.internal.cheques": ["SUPER_ADMIN", "WH_MANAGER", "WH_STOCK_LISTER","SHOP_OWNER"],
+    "cashbank.internal.loan-account": ["SUPER_ADMIN", "WH_MANAGER", "WH_STOCK_LISTER","SHOP_OWNER"],
 
+    // Team Members internal horizontal tabs (from teamMembersTabRegistry.js)
+    "teammembers.internal.teammembers": ["SUPER_ADMIN","WH_MANAGER", "WH_STOCK_LISTER", "SHOP_OWNER", "SHOP_STOCK_LISTER"],
+    "teammembers.internal.teammembers": ["SUPER_ADMIN","WH_MANAGER", "WH_STOCK_LISTER", "SHOP_OWNER", "SHOP_STOCK_LISTER"],
+    "teammembers.internal.teammembers": ["SUPER_ADMIN","WH_MANAGER", "WH_STOCK_LISTER", "SHOP_OWNER", "SHOP_STOCK_LISTER"],
 
+    // Backup internal horizontal tabs (from backupTabRegistry.js)
+    "backup.internal.autobackup": ["SUPER_ADMIN", "WH_MANAGER", "WH_STOCK_LISTER"],
+    "backup.internal.backuptocomputer": ["SUPER_ADMIN", "WH_MANAGER", "WH_STOCK_LISTER"],
+    "backup.internal.backuptodrive": ["SUPER_ADMIN", "WH_MANAGER", "WH_STOCK_LISTER"],
+    "backup.internal.restorebackup": ["SUPER_ADMIN", "WH_MANAGER", "WH_STOCK_LISTER"],
 
+    // Utilities internal horizontal tabs (from utilitiesTabRegistry.js)
+    "utilities.internal.importitems": ["SUPER_ADMIN", "WH_MANAGER", "WH_STOCK_LISTER"],
+    "utilities.internal.setUpbillperforma": ["SUPER_ADMIN", "WH_MANAGER", "WH_STOCK_LISTER"],
 };
 
 /**
@@ -222,15 +234,15 @@ export const syncCurrentUserFromAuth = (user) => {
 
 // Role permissions for tabs (controls which tabs appear in sidebar)
 export const ROLE_PERMISSIONS = {
-    [ROLES.SUPER_ADMIN]: ["dashboard", "sales", "purchase", "inventory", "archive", "transfers", "warehouses", "parties", "reports", "settings", "vendors", "cashbank"],
+    [ROLES.SUPER_ADMIN]: ["dashboard", "sales", "purchase", "inventory", "archive", "transfers", "warehouses", "parties", "reports", "settings", "vendors", "cashbank", "teammembers", "backup", "utilities"],
     [ROLES.ACCOUNTANT]: ["dashboard", "sales", "purchase", "parties", "reports", "cashbank"],
     [ROLES.BILLING_STAFF]: ["dashboard", "sales", "parties", "transfers", "cashbank"],
     [ROLES.STOCK_LISTER]: ["dashboard", "inventory", "transfers", "cashbank"],
     [ROLES.CASHIER]: ["dashboard", "sales", "cashbank"],
-    [ROLES.WH_MANAGER]: ["dashboard", "warehouses", "transfers", "inventory", "archive", "purchase", "parties", "settings", "vendors", "reports", "sales", "cashbank"],
-    [ROLES.WH_STOCK_LISTER]: ["dashboard", "warehouses", "transfers", "inventory", "purchase", "parties", "settings", "vendors", "reports", "sales", "cashbank"],
-    [ROLES.SHOP_OWNER]: ["dashboard", "sales", "purchase", "inventory", "transfers", "parties", "reports", "cashbank"],
-    [ROLES.SHOP_STOCK_LISTER]: ["dashboard", "sales", "purchase", "inventory", "transfers", "parties", "reports", "cashbank"],
+    [ROLES.WH_MANAGER]: ["dashboard", "warehouses", "transfers", "inventory", "archive", "purchase", "parties", "settings", "vendors", "reports", "sales", "cashbank", "teammembers", "backup", "utilities"],
+    [ROLES.WH_STOCK_LISTER]: ["dashboard", "warehouses", "transfers", "inventory", "purchase", "parties", "settings", "vendors", "reports", "sales", "cashbank", "teammembers", "backup", "utilities"],
+    [ROLES.SHOP_OWNER]: ["dashboard", "sales", "purchase", "inventory", "transfers", "parties", "reports", "cashbank", "teammembers", "backup", "utilities"],
+    [ROLES.SHOP_STOCK_LISTER]: ["dashboard", "sales", "purchase", "inventory", "transfers", "parties", "reports", "cashbank", "teammembers", "backup", "utilities"],
 };
 
 export const ROLE_LABELS = {

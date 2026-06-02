@@ -122,8 +122,11 @@ export default function CreateFromSearchModal({ onSuccess, initialIsEmergency = 
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 text-gray-700">
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 overflow-y-auto text-gray-700">
+    <div className="flex items-center justify-center min-h-screen px-4 py-8">
+        <div className="fixed inset-0 bg-black/40" />
+
+            <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
                 <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex justify-between">
                     <div>
                         <h3 className="text-base font-semibold text-gray-800">
@@ -280,6 +283,7 @@ export default function CreateFromSearchModal({ onSuccess, initialIsEmergency = 
                     </button>
                 </div>
             </div>
-        </div>
+    </div>
+</div>
     );
 }

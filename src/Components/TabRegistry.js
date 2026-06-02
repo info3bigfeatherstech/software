@@ -13,11 +13,14 @@ const PurchaseTab = lazy(() => import("./TABS/PURCHASE/PurchaseTab"));
 const InventoryDashboard = lazy(() => import("./TABS/INVENTORY/InventoryDashboard"));
 const PartiesTab = lazy(() => import("./TABS/PARTIES/PartiesTab"));
 const ReportsTab = lazy(() => import("./TABS/REPORTS/ReportsTab"));
+const TeamMembersTab = lazy(() => import("./TABS/TeamMembersTab/TeamMembersTab"));
 const TransfersDashboard = lazy(() => import("./TABS/TRANSFERS/TransfersDashboard"));
 const TransferRequestsTab = lazy(() => import("./TABS/TRANSFERS/TransferRequestsTab/TransferRequestsTab"));
 const WarehousesDashboard = lazy(() => import("./TABS/WAREHOUSES/WarehousesDashboard"));
 const SettingsDashboard = lazy(() => import("./TABS/SETTINGS/SettingsDashboard"));
 const VendorsTab = lazy(() => import("./TABS/VENDOR/VendorsTab"));
+const BackupDashboard = lazy(() => import("./TABS/BACKUP/BackupDashboard"));
+const UtilitiesDashboard = lazy(() => import("./TABS/UtilitiesTab/UtilitiesDahboard"));
 const ArchiveTab = lazy(() => import("./TABS/INVENTORY/ArchiveTab/ArchiveTab"));
 const CashBankDashboard = lazy(() => import("./TABS/CASHBANK/CashBankDashboard"));
 const CompanyDetailsTab = lazy(() => import("./TABS/SETTINGS/CompanyDetailsTab/CompanyDetailsTab"));
@@ -38,7 +41,7 @@ export const TAB_REGISTRY = [
         subItems: [
             { id: "billing", label: "Billing Counter", icon: "M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 11h.01M12 11h.01M15 11h.01M4 19h16a2 2 0 002-2V7a2 2 0 00-2-2H4a2 2 0 00-2 2v10a2 2 0 002 2z" },
             { id: "customers", label: "Customers", icon: "M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2m8-10a4 4 0 100-8 4 4 0 000 8zm7-3a3 3 0 010 6M21 21v-2a4 4 0 00-3-3.87" },
-            { id: "creditnote",  label: "Returns / Credit Notes", icon: "M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" },
+            { id: "creditnote", label: "Returns / Credit Notes", icon: "M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" },
         ],
     },
     {
@@ -72,16 +75,16 @@ export const TAB_REGISTRY = [
         component: TransfersDashboard,
         subItems: [
             {
-              id: "transfer-requests",
-              label: "Transfer Requests",
-              icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2",
-      
-          },
-    {
-        id: "bulk-requests",
-        label: "Bulk Requests",
-        icon: "M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10",
-    },
+                id: "transfer-requests",
+                label: "Transfer Requests",
+                icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2",
+
+            },
+            {
+                id: "bulk-requests",
+                label: "Bulk Requests",
+                icon: "M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10",
+            },
             // { id: "transferrequests", label: "Transfer Requests", icon: "M17 11l4-4m0 0l-4-4m4 4H3m4 6l-4 4m0 0l4 4m-4-4h18", component: TransferRequestsTab }
         ],
     },
@@ -109,8 +112,26 @@ export const TAB_REGISTRY = [
     {
         id: "reports",
         label: "Reports",
-        icon: "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z",
+        icon: "M3 3v18h18M18.7 8l-5.1 5.2-2.8-2.7L7 14.3",
         component: ReportsTab,
+    },
+    {
+        id: "teammembers",
+        label: "Team Members",
+        icon: "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8z",
+        component: TeamMembersTab,
+    },
+    {
+        id: "backup",
+        label: "Backup",
+        icon: "M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83",
+        component: BackupDashboard,
+    },
+    {
+        id: "utilities",
+        label: "Utilities",
+        icon: "M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 2.18L8.6 12.6a1 1 0 0 0 0 1.4l1.4 1.4a1 1 0 0 0 1.4 0l4.87-4.87a6 6 0 0 1-2.18 7.94l-3.77-3.77a1 1 0 0 0-1.4 0l-1.6 1.6a1 1 0 0 0 0 1.4L12.4 21",
+        component: UtilitiesDashboard,
     },
     {
         id: "vendors",
@@ -127,8 +148,8 @@ export const TAB_REGISTRY = [
             { id: "users", label: "Users & Roles", icon: "M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" },
             { id: "shops", label: "Shops", icon: "M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" },
             { id: "vendors", label: "Vendors", icon: "M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" },
-            { id: "companydetails", label: "Company Details", icon: "M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z", component: CompanyDetailsTab },
-            { id: "bankdetails", label: "Bank Details", icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z", component: BankDetailsTab },
+            { id: "companydetails", label: "Company Details", icon: "M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" },
+            { id: "bankdetails", label: "Bank Details", icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" },
         ],
     },
 ];

@@ -1,3 +1,4 @@
+
 // TABS/INVENTORY/ProductShared/ProductAddForm.jsx
 
 import React from "react";
@@ -16,9 +17,16 @@ import {
   openVariantModalForEdit,
   removeVariantFromList,
   setSubmitting,
+  saveVariantToList,
+  updateVariantInList,
 } from "../../../../REDUX_FEATURES/REDUX_SLICES/Product_api/productSlice";
 import ProductFormBody from "./ProductFormBody";
 import VariantModal from "./VariantModal";
+
+const toNumber = (val, defaultVal = 0) => {
+  const num = Number(val);
+  return isNaN(num) ? defaultVal : num;
+};
 
 // Helper to check if any images exist (product-level or any variant)
 const hasAnyImages = (formData, variants) => {
@@ -29,23 +37,37 @@ const hasAnyImages = (formData, variants) => {
 
 // ── Build complete variants array (main variant + extra variants) ─────────────
 const buildCompleteVariantsArray = (formData, extraVariants) => {
+  // Main variant (variant 0) - prices from formData
   const mainVariant = {
     attributes: [],
-    mrp: Number(formData.mrp),
-    wholesale_price: Number(formData.wholesale_price),
-    retail_price: Number(formData.retail_price),
-    online_price: formData.online_price ? Number(formData.online_price) : undefined,
-    purchase_cost: formData.purchase_cost ? Number(formData.purchase_cost) : undefined,
-    weight: formData.weight ? Number(formData.weight) : undefined,
-    length: formData.length ? Number(formData.length) : undefined,
-    width: formData.width ? Number(formData.width) : undefined,
-    height: formData.height ? Number(formData.height) : undefined,
-    low_stock_threshold: formData.low_stock_threshold ? Number(formData.low_stock_threshold) : 10,
+    mrp: toNumber(formData.mrp),
+    special_price: toNumber(formData.special_price),
+    purchase_price: toNumber(formData.purchase_price),
+    expenses: toNumber(formData.expenses),
+    online_price: formData.online_price ? toNumber(formData.online_price) : undefined,
+    purchase_cost: formData.purchase_cost ? toNumber(formData.purchase_cost) : undefined,
+    weight: formData.weight ? toNumber(formData.weight) : undefined,
+    length: formData.length ? toNumber(formData.length) : undefined,
+    width: formData.width ? toNumber(formData.width) : undefined,
+    height: formData.height ? toNumber(formData.height) : undefined,
+    low_stock_threshold: formData.low_stock_threshold ? toNumber(formData.low_stock_threshold) : 10,
     remarks: formData.remarks?.trim() || undefined,
     is_active: formData.is_active !== false,
   };
   
-  const cleanedExtraVariants = extraVariants.map(({ newImages, imagesToKeep, imagesToDelete, ...rest }) => rest);
+  const cleanedExtraVariants = extraVariants.map(({ newImages, imagesToKeep, imagesToDelete, ...rest }) => ({
+    ...rest,
+    mrp: toNumber(rest.mrp),
+    special_price: toNumber(rest.special_price),
+    purchase_price: toNumber(rest.purchase_price),
+    expenses: toNumber(rest.expenses),
+    online_price: rest.online_price ? toNumber(rest.online_price) : undefined,
+    purchase_cost: rest.purchase_cost ? toNumber(rest.purchase_cost) : undefined,
+    weight: rest.weight ? toNumber(rest.weight) : undefined,
+    length: rest.length ? toNumber(rest.length) : undefined,
+    width: rest.width ? toNumber(rest.width) : undefined,
+    height: rest.height ? toNumber(rest.height) : undefined,
+  }));
   
   return [mainVariant, ...cleanedExtraVariants];
 };
@@ -59,7 +81,7 @@ const buildBasePayload = (formData, extraVariants) => {
     primary_vendor_id: formData.primary_vendor_id,
     category_id: formData.category_id,
     hsn_code: formData.hsn_code.trim(),
-    gst_percent: Number(formData.gst_percent),
+    gst_percent: toNumber(formData.gst_percent),
     gst_type: formData.gst_type,
     unit_of_measure: formData.unit_of_measure,
   };
@@ -116,12 +138,14 @@ export default function ProductAddForm({ formData, formErrors, variants, showVar
     if (!formData.category_id)               errors.category_id = "Category is required";
     if (!formData.hsn_code?.trim())          errors.hsn_code = "HSN code is required";
     if (!formData.unit_of_measure)           errors.unit_of_measure = "Unit of measure is required";
-    if (!formData.mrp || Number(formData.mrp) <= 0)
+    if (!formData.mrp || toNumber(formData.mrp) <= 0)
       errors.mrp = "MRP is required and must be > 0";
-    if (!formData.wholesale_price || Number(formData.wholesale_price) <= 0)
-      errors.wholesale_price = "Wholesale price is required";
-    if (!formData.retail_price || Number(formData.retail_price) <= 0)
-      errors.retail_price = "Retail price is required";
+    if (!formData.special_price || toNumber(formData.special_price) <= 0)
+      errors.special_price = "Special price is required";
+    if (!formData.purchase_price || toNumber(formData.purchase_price) <= 0)
+      errors.purchase_price = "Purchase price is required";
+    if (!formData.expenses || toNumber(formData.expenses) < 0)
+      errors.expenses = "Expenses is required";
     return errors;
   };
 
@@ -195,10 +219,22 @@ export default function ProductAddForm({ formData, formErrors, variants, showVar
     }
   };
 
+
+  const handleVariantModalSave = (variantPayload) => {
+    if (editingVariantIndex !== null && editingVariantIndex >= 0) {
+      dispatch(updateVariantInList({ index: editingVariantIndex, variant: variantPayload }));
+    } else {
+      dispatch(saveVariantToList(variantPayload));
+    }
+  };
+
   return (
     <>
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-        <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl mx-4 p-6 space-y-6 max-h-[90vh] overflow-y-auto">
+      <div className="fixed inset-0 z-50 overflow-y-auto">
+    <div className="flex items-center justify-center min-h-screen px-4 py-8">
+        <div className="fixed inset-0 bg-black/40" />
+
+        <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-3xl mx-4 p-6 space-y-6 max-h-[90vh] overflow-y-auto">
 
           <div className="flex items-center justify-between">
             <div>
@@ -254,7 +290,7 @@ export default function ProductAddForm({ formData, formErrors, variants, showVar
                           </p>
                         )}
                         <p className="text-xs text-gray-500 mt-0.5">
-                          MRP ₹{v.mrp} · WS ₹{v.wholesale_price} · Retail ₹{v.retail_price}
+                          MRP ₹{v.mrp} · SP ₹{v.special_price} · PP ₹{v.purchase_price} · Exp ₹{v.expenses}
                         </p>
                         {v.weight && (
                           <p className="text-xs text-gray-400 mt-0.5">
@@ -299,19 +335,23 @@ export default function ProductAddForm({ formData, formErrors, variants, showVar
           </div>
 
         </div>
-      </div>
+    </div>
+</div>
 
       {showVariantModal && (
         <VariantModal
           variantForm={variantForm}
           variantErrors={variantErrors}
           editingVariantIndex={editingVariantIndex}
+          onSaveOverride={handleVariantModalSave}
         />
       )}
     </>
   );
 }
+// upper code get upadted by the new price updates 
 
+// // TABS/INVENTORY/ProductShared/ProductAddForm.jsx
 
 // import React from "react";
 // import { useDispatch, useSelector } from "react-redux";
@@ -335,36 +375,77 @@ export default function ProductAddForm({ formData, formErrors, variants, showVar
 
 // // Helper to check if any images exist (product-level or any variant)
 // const hasAnyImages = (formData, variants) => {
-//   if ((formData.images || []).length > 0) return true;
-//   return (variants || []).some(v => (v.images || []).length > 0);
+//   const productHasImages = (formData.newImages || []).length > 0;
+//   const variantHasImages = (variants || []).some(v => (v.newImages || []).length > 0);
+//   return productHasImages || variantHasImages;
+// };
+
+// // ── Build complete variants array (main variant + extra variants) ─────────────
+// const buildCompleteVariantsArray = (formData, extraVariants) => {
+//   const mainVariant = {
+//     attributes: [],
+//     mrp: Number(formData.mrp),
+//     wholesale_price: Number(formData.wholesale_price),
+//     retail_price: Number(formData.retail_price),
+//     online_price: formData.online_price ? Number(formData.online_price) : undefined,
+//     purchase_cost: formData.purchase_cost ? Number(formData.purchase_cost) : undefined,
+//     weight: formData.weight ? Number(formData.weight) : undefined,
+//     length: formData.length ? Number(formData.length) : undefined,
+//     width: formData.width ? Number(formData.width) : undefined,
+//     height: formData.height ? Number(formData.height) : undefined,
+//     low_stock_threshold: formData.low_stock_threshold ? Number(formData.low_stock_threshold) : 10,
+//     remarks: formData.remarks?.trim() || undefined,
+//     is_active: formData.is_active !== false,
+//   };
+  
+//   const cleanedExtraVariants = extraVariants.map(({ newImages, imagesToKeep, imagesToDelete, ...rest }) => rest);
+  
+//   return [mainVariant, ...cleanedExtraVariants];
+// };
+
+// // Build Base Payload (same for JSON or FormData)
+// const buildBasePayload = (formData, extraVariants) => {
+//   const base = {
+//     product_code: formData.product_code.trim().toUpperCase(),
+//     name: formData.name.trim(),
+//     title: formData.title?.trim() || undefined,
+//     primary_vendor_id: formData.primary_vendor_id,
+//     category_id: formData.category_id,
+//     hsn_code: formData.hsn_code.trim(),
+//     gst_percent: Number(formData.gst_percent),
+//     gst_type: formData.gst_type,
+//     unit_of_measure: formData.unit_of_measure,
+//   };
+  
+//   if (formData.description?.trim())  base.description = formData.description.trim();
+//   if (formData.brand_name?.trim())   base.brand_name = formData.brand_name.trim();
+//   if (formData.remarks?.trim())      base.remarks = formData.remarks.trim();
+//   base.is_active = formData.is_active;
+  
+//   base.variants = buildCompleteVariantsArray(formData, extraVariants);
+  
+//   return base;
 // };
 
 // // Build FormData for multipart request
-// const buildMultipartFormData = (formData, variants, basePayload) => {
+// const buildMultipartFormData = (formData, extraVariants, basePayload) => {
 //   const multipartForm = new FormData();
   
-//   // Add the JSON data field
 //   multipartForm.append("data", JSON.stringify(basePayload));
   
-//   // Add product-level images (variant index 0)
-//   const productImages = formData.images || [];
+//   const productImages = formData.newImages || [];
 //   productImages.forEach((file) => {
 //     if (file instanceof File) {
 //       multipartForm.append("variant_images_0", file);
-//     } else if (file?.file instanceof File) {
-//       multipartForm.append("variant_images_0", file.file);
 //     }
 //   });
   
-//   // Add variant images (index 1, 2, 3...)
-//   (variants || []).forEach((variant, idx) => {
-//     const variantIndex = idx + 1; // variant 0 = product, variant 1+ = extra
-//     const variantImages = variant.images || [];
+//   extraVariants.forEach((variant, idx) => {
+//     const variantIndex = idx + 1;
+//     const variantImages = variant.newImages || [];
 //     variantImages.forEach((img) => {
 //       if (img instanceof File) {
 //         multipartForm.append(`variant_images_${variantIndex}`, img);
-//       } else if (img?.file instanceof File) {
-//         multipartForm.append(`variant_images_${variantIndex}`, img.file);
 //       }
 //     });
 //   });
@@ -380,7 +461,6 @@ export default function ProductAddForm({ formData, formErrors, variants, showVar
   
 //   const isLoading = isLoadingJson || isLoadingMulti;
 
-//   // ── Validation ─────────────────────────────────────────────────────────────
 //   const validate = () => {
 //     const errors = {};
 //     if (!formData.product_code?.trim())      errors.product_code = "Product code is required";
@@ -398,38 +478,6 @@ export default function ProductAddForm({ formData, formErrors, variants, showVar
 //     return errors;
 //   };
 
-//   // ── Build Base Payload (same for JSON or FormData) ────────────────────────
-//   const buildBasePayload = () => {
-//     const base = {
-//       product_code: formData.product_code.trim().toUpperCase(),
-//       name: formData.name.trim(),
-//       primary_vendor_id: formData.primary_vendor_id,
-//       category_id: formData.category_id,
-//       hsn_code: formData.hsn_code.trim(),
-//       gst_percent: Number(formData.gst_percent),
-//       gst_type: formData.gst_type,
-//       unit_of_measure: formData.unit_of_measure,
-//       mrp: Number(formData.mrp),
-//       wholesale_price: Number(formData.wholesale_price),
-//       retail_price: Number(formData.retail_price),
-//     };
-    
-//     if (formData.description?.trim())  base.description = formData.description.trim();
-//     if (formData.brand_name?.trim())   base.brand_name = formData.brand_name.trim();
-//     if (formData.online_price)         base.online_price = Number(formData.online_price);
-//     if (formData.purchase_cost)        base.purchase_cost = Number(formData.purchase_cost);
-//     if (formData.remarks?.trim())      base.remarks = formData.remarks.trim();
-//     base.is_active = formData.is_active;
-    
-//     // Multi-variant: attach variants array (strip images — handled separately)
-//     if (variants.length > 0) {
-//       base.variants = variants.map(({ images, ...rest }) => rest);
-//     }
-    
-//     return base;
-//   };
-
-//   // ── Submit ─────────────────────────────────────────────────────────────────
 //   const handleSave = async () => {
 //     dispatch(clearFormErrors());
 //     const errors = validate();
@@ -441,29 +489,24 @@ export default function ProductAddForm({ formData, formErrors, variants, showVar
 //     dispatch(setSubmitting(true));
     
 //     try {
-//       const basePayload = buildBasePayload();
+//       const basePayload = buildBasePayload(formData, variants);
 //       const hasImages = hasAnyImages(formData, variants);
       
 //       let created;
       
 //       if (hasImages) {
-//         // ── Use Multipart (images in same request) ────────────────────────
 //         const multipartForm = buildMultipartFormData(formData, variants, basePayload);
 //         created = await createProductMulti({ formData: multipartForm }).unwrap();
 //       } else {
-//         // ── Use JSON only ──────────────────────────────────────────────────
 //         created = await createProductJson(basePayload).unwrap();
 //       }
       
-//       // ── If we used JSON-only but have images (should not happen), upload separately
-//       if (!hasImages && (formData.images?.length > 0 || variants.some(v => v.images?.length > 0))) {
-//         // Upload images for product-level (variant 0 / first variant)
-//         const productImages = formData.images || [];
+//       if (!hasImages && ((formData.newImages || []).length > 0 || variants.some(v => (v.newImages || []).length > 0))) {
+//         const productImages = formData.newImages || [];
 //         if (productImages.length > 0 && created?.variants?.[0]?.variant_id) {
 //           const fd = new FormData();
 //           productImages.forEach(f => {
-//             const file = f instanceof File ? f : f?.file;
-//             if (file instanceof File) fd.append("images", file);
+//             if (f instanceof File) fd.append("images", f);
 //           });
 //           await uploadVariantImages({
 //             productId: created.product_id,
@@ -472,16 +515,14 @@ export default function ProductAddForm({ formData, formErrors, variants, showVar
 //           }).unwrap().catch(() => {});
 //         }
         
-//         // Upload images for extra variants
 //         if (variants.length > 0) {
 //           for (let i = 0; i < variants.length; i++) {
-//             const imgs = variants[i].images || [];
-//             const variantId = created?.variants?.[i]?.variant_id;
+//             const imgs = variants[i].newImages || [];
+//             const variantId = created?.variants?.[i + 1]?.variant_id;
 //             if (imgs.length > 0 && variantId) {
 //               const fd = new FormData();
 //               imgs.forEach(img => {
-//                 const file = img instanceof File ? img : img?.file;
-//                 if (file instanceof File) fd.append("images", file);
+//                 if (img instanceof File) fd.append("images", img);
 //               });
 //               await uploadVariantImages({
 //                 productId: created.product_id,
@@ -512,7 +553,6 @@ export default function ProductAddForm({ formData, formErrors, variants, showVar
 //       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
 //         <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl mx-4 p-6 space-y-6 max-h-[90vh] overflow-y-auto">
 
-//           {/* Header */}
 //           <div className="flex items-center justify-between">
 //             <div>
 //               <h3 className="text-base font-semibold text-gray-800">Add New Product</h3>
@@ -521,21 +561,18 @@ export default function ProductAddForm({ formData, formErrors, variants, showVar
 //             <button onClick={() => dispatch(closeAddForm())} className="text-gray-400 hover:text-gray-600 text-lg cursor-pointer">✕</button>
 //           </div>
 
-//           {/* General error */}
 //           {formErrors?.general && (
 //             <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-2">
 //               <p className="text-sm text-red-600">{formErrors.general}</p>
 //             </div>
 //           )}
 
-//           {/* Form Body */}
 //           <ProductFormBody
 //             formData={formData}
 //             onChange={(data) => dispatch(updateFormData(data))}
 //             formErrors={formErrors}
 //           />
 
-//           {/* ── Variants Section ──────────────────────────────────────────── */}
 //           <div className="border-t border-gray-100 pt-4">
 //             <div className="flex items-center justify-between mb-3">
 //               <div>
@@ -553,7 +590,6 @@ export default function ProductAddForm({ formData, formErrors, variants, showVar
 //               </button>
 //             </div>
 
-//             {/* Variants list */}
 //             {variants.length === 0 ? (
 //               <div className="text-center py-6 border border-dashed border-gray-200 rounded-xl text-xs text-gray-400">
 //                 No extra variants — product will be created as single variant
@@ -573,6 +609,11 @@ export default function ProductAddForm({ formData, formErrors, variants, showVar
 //                         <p className="text-xs text-gray-500 mt-0.5">
 //                           MRP ₹{v.mrp} · WS ₹{v.wholesale_price} · Retail ₹{v.retail_price}
 //                         </p>
+//                         {v.weight && (
+//                           <p className="text-xs text-gray-400 mt-0.5">
+//                             Shipping: {v.weight}kg · {v.length}x{v.width}x{v.height}cm
+//                           </p>
+//                         )}
 //                       </div>
 //                     </div>
 //                     <div className="flex gap-3">
@@ -597,7 +638,6 @@ export default function ProductAddForm({ formData, formErrors, variants, showVar
 //             )}
 //           </div>
 
-//           {/* Actions */}
 //           <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
 //             <button onClick={() => dispatch(closeAddForm())} className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 cursor-pointer">
 //               Cancel
@@ -614,7 +654,6 @@ export default function ProductAddForm({ formData, formErrors, variants, showVar
 //         </div>
 //       </div>
 
-//       {/* VariantModal rendered at z-60 so it sits above this modal */}
 //       {showVariantModal && (
 //         <VariantModal
 //           variantForm={variantForm}
