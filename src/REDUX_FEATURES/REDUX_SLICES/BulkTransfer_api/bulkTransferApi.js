@@ -89,6 +89,21 @@ export const bulkTransferApi = createApi({
             transformResponse: (response) => response.data,
         }),
 
+        // PATCH /bulk-transfer-requests/:id/reject
+        rejectBulkTransferRequest: builder.mutation({
+            query: ({ bulkRequestId, rejection_reason, idempotencyKey }) => ({
+                url: `/bulk-transfer-requests/${bulkRequestId}/reject`,
+                method: "PATCH",
+                data: { rejection_reason },
+                headers: { "Idempotency-Key": idempotencyKey },
+            }),
+            invalidatesTags: (result, error, { bulkRequestId }) => [
+                { type: "BulkTransfer", id: bulkRequestId },
+                { type: "BulkTransfer", id: "LIST" },
+            ],
+            transformResponse: (response) => response.data,
+        }),
+
         // PATCH /bulk-transfer-requests/:id/dispatch — dispatch bulk request
         dispatchBulkTransferRequest: builder.mutation({
             query: ({ bulkRequestId, tracking_number, expected_delivery, idempotencyKey }) => ({
@@ -142,6 +157,7 @@ export const {
     useGetBulkTransferRequestsQuery,
     useGetBulkTransferRequestByIdQuery,
     useApproveBulkTransferRequestMutation,
+    useRejectBulkTransferRequestMutation,
     useDispatchBulkTransferRequestMutation,
     useReceiveBulkTransferRequestMutation,
     useCancelBulkTransferRequestMutation,

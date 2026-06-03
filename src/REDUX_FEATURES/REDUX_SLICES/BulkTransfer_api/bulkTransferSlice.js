@@ -14,6 +14,7 @@ const initialState = {
     // Modals
     showCreateModal: false,
     showApproveModal: false,
+    showRejectModal: false,
     showDispatchModal: false,
     showReceiveModal: false,
     showCancelModal: false,
@@ -37,6 +38,7 @@ const initialState = {
     receiveQuantity: "",
     receiveRemarks: "",
     cancelReason: "",
+    rejectReason: "",
 
     // Errors
     createErrors: {},
@@ -137,6 +139,23 @@ const bulkTransferSlice = createSlice({
             state.approveType = "full";
             state.actionErrors = {};
         },
+
+        openRejectModal: (state, action) => {
+            state.showRejectModal = true;
+            state.selectedRequest = action.payload;
+            state.rejectReason = "";
+            state.actionErrors = {};
+        },
+        closeRejectModal: (state) => {
+            state.showRejectModal = false;
+            state.selectedRequest = null;
+            state.rejectReason = "";
+            state.actionErrors = {};
+        },
+        setRejectReason: (state, action) => {
+            state.rejectReason = action.payload;
+        },
+
         setApproveType: (state, action) => {
             state.approveType = action.payload;
         },
@@ -251,6 +270,9 @@ export const {
     setCreateErrors,
     openApproveModal,
     closeApproveModal,
+    openRejectModal,
+    closeRejectModal,
+    setRejectReason,
     setApproveType,
     setApproveItem,
     openDispatchModal,

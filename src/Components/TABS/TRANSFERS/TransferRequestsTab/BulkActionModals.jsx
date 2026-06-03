@@ -9,6 +9,7 @@ import { X, AlertTriangle, Package, Truck, CheckCircle, XCircle, Eye } from "luc
 import { toast } from "react-toastify";
 import {
     useApproveBulkTransferRequestMutation,
+    useRejectBulkTransferRequestMutation,
     useDispatchBulkTransferRequestMutation,
     useReceiveBulkTransferRequestMutation,
     useCancelBulkTransferRequestMutation,
@@ -16,6 +17,8 @@ import {
 } from "../../../../REDUX_FEATURES/REDUX_SLICES/BulkTransfer_api/bulkTransferApi";
 import {
     closeApproveModal,
+    closeRejectModal,
+    setRejectReason,
     closeDispatchModal,
     closeReceiveModal,
     closeCancelModal,
@@ -38,7 +41,15 @@ const STATUS_BADGE = {
     PARTIALLY_RECEIVED: "bg-orange-100 text-orange-700",
     COMPLETED: "bg-green-100 text-green-700",
     CANCELLED: "bg-gray-100 text-gray-500",
+    REJECTED: "bg-red-100 text-red-600",
 };
+
+const bulkDestLabel = (req) =>
+    req?.request_type === "WH_TO_WH" ? "To Warehouse" : "To Shop";
+const bulkDestName = (req) =>
+    req?.request_type === "WH_TO_WH"
+        ? req?.to_warehouse?.warehouse_name || req?.to_warehouse_id
+        : req?.to_shop?.shop_name || req?.to_shop_id;
 
 const fmtDate = (iso) => {
     if (!iso) return "—";
@@ -50,6 +61,7 @@ export default function BulkActionModals({ onSuccess }) {
     const { user } = useSelector((state) => state.auth);
     const {
         showApproveModal,
+        showRejectModal,
         showDispatchModal,
         showReceiveModal,
         showCancelModal,
@@ -62,12 +74,14 @@ export default function BulkActionModals({ onSuccess }) {
         receiveQuantity,
         receiveRemarks,
         cancelReason,
+        rejectReason,
         actionErrors,
     } = useSelector((state) => state.bulkTransfer);
 
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const [approveBulkRequest] = useApproveBulkTransferRequestMutation();
+    const [rejectBulkRequest] = useRejectBulkTransferRequestMutation();
     const [dispatchBulkRequest] = useDispatchBulkTransferRequestMutation();
     const [receiveBulkRequest] = useReceiveBulkTransferRequestMutation();
     const [cancelBulkRequest] = useCancelBulkTransferRequestMutation();
@@ -107,6 +121,28 @@ export default function BulkActionModals({ onSuccess }) {
             if (onSuccess) onSuccess();
         } catch (err) {
             toast.error(err?.data?.message || "Failed to approve");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleReject = async () => {
+        if (!rejectReason?.trim()) {
+            dispatch(setActionErrors({ rejection_reason: "Rejection reason is required" }));
+            return;
+        }
+        setIsSubmitting(true);
+        try {
+            await rejectBulkRequest({
+                bulkRequestId: selectedRequest.bulk_request_id,
+                rejection_reason: rejectReason.trim(),
+                idempotencyKey: generateBulkIdempotencyKey(),
+            }).unwrap();
+            toast.success("Bulk request rejected");
+            dispatch(closeRejectModal());
+            if (onSuccess) onSuccess();
+        } catch (err) {
+            toast.error(err?.data?.message || "Failed to reject");
         } finally {
             setIsSubmitting(false);
         }
@@ -225,7 +261,7 @@ const handleReceive = async () => {
                     <div className="p-6 space-y-4">
                         <div className="bg-gray-50 rounded-lg p-3 text-sm">
                             <p><strong>From Warehouse:</strong> {selectedRequest.from_warehouse?.warehouse_name || selectedRequest.from_warehouse_id}</p>
-                            <p><strong>To Shop:</strong> {selectedRequest.to_shop?.shop_name || selectedRequest.to_shop_id}</p>
+                            <p><strong>{bulkDestLabel(selectedRequest)}:</strong> {bulkDestName(selectedRequest)}</p>
                             <p><strong>Total Items:</strong> {items.length} | <strong>Total Quantity:</strong> {approveTotalQty} units</p>
                         </div>
                         
@@ -304,6 +340,56 @@ const handleReceive = async () => {
     }
 
     // ============================================================
+    // REJECT MODAL
+    // ============================================================
+    if (showRejectModal && selectedRequest) {
+        const rejectTotalQty = selectedRequest.items?.reduce((s, i) => s + i.quantity, 0) || 0;
+        return (
+            <div className="fixed inset-0 z-50 overflow-y-auto text-gray-700">
+                <div className="flex items-center justify-center min-h-screen px-4 py-8">
+                    <div className="fixed inset-0 bg-black/40" />
+                    <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md mx-4">
+                        <div className="px-6 py-4 border-b border-gray-100 flex justify-between">
+                            <div>
+                                <h3 className="text-base font-semibold text-gray-800 flex items-center gap-2">
+                                    <XCircle size={18} className="text-red-600" />
+                                    Reject Bulk Request
+                                </h3>
+                                <p className="text-xs text-gray-400">{selectedRequest.bulk_request_number}</p>
+                            </div>
+                            <button onClick={() => dispatch(closeRejectModal())} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <div className="bg-gray-50 rounded-lg p-3 text-sm">
+                                <p><strong>From Warehouse:</strong> {selectedRequest.from_warehouse?.warehouse_name || selectedRequest.from_warehouse_id}</p>
+                                <p><strong>{bulkDestLabel(selectedRequest)}:</strong> {bulkDestName(selectedRequest)}</p>
+                                <p><strong>Total Quantity:</strong> {rejectTotalQty} units</p>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">Rejection Reason <span className="text-red-500">*</span></label>
+                                <textarea
+                                    value={rejectReason}
+                                    onChange={(e) => dispatch(setRejectReason(e.target.value))}
+                                    rows={3}
+                                    className={inputCls("rejection_reason", actionErrors)}
+                                    placeholder="Why is this request being rejected?"
+                                />
+                                {actionErrors.rejection_reason && <p className="text-xs text-red-500 mt-1">{actionErrors.rejection_reason}</p>}
+                            </div>
+                        </div>
+                        <div className="border-t border-gray-100 px-6 py-4 flex justify-end gap-3">
+                            <button onClick={() => dispatch(closeRejectModal())} className="px-4 py-2 border rounded-lg text-sm hover:bg-gray-50">Cancel</button>
+                            <button onClick={handleReject} disabled={isSubmitting} className="px-5 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-60">
+                                {isSubmitting ? "Processing..." : "Confirm Reject"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // ============================================================
     // DISPATCH MODAL
     // ============================================================
     if (showDispatchModal && selectedRequest) {
@@ -327,7 +413,7 @@ const handleReceive = async () => {
                     </div>
                     <div className="p-6 space-y-4">
                         <div className="bg-gray-50 rounded-lg p-3 text-sm">
-                            <p><strong>To Shop:</strong> {selectedRequest.to_shop?.shop_name || selectedRequest.to_shop_id}</p>
+                            <p><strong>{bulkDestLabel(selectedRequest)}:</strong> {bulkDestName(selectedRequest)}</p>
                             <p><strong>Total Items:</strong> {selectedRequest.items?.length || 0}</p>
                             <p><strong>Total Quantity:</strong> {dispatchTotalQty} units</p>
                         </div>
@@ -521,10 +607,17 @@ const handleReceive = async () => {
                                 <p className="font-medium text-gray-800">{selectedRequest.from_warehouse?.warehouse_name || selectedRequest.from_warehouse_id}</p>
                             </div>
                             <div>
-                                <p className="text-xs text-gray-500">Destination Shop</p>
-                                <p className="font-medium text-gray-800">{selectedRequest.to_shop?.shop_name || selectedRequest.to_shop_id}</p>
+                                <p className="text-xs text-gray-500">{bulkDestLabel(selectedRequest)}</p>
+                                <p className="font-medium text-gray-800">{bulkDestName(selectedRequest)}</p>
                             </div>
                         </div>
+
+                        {status === "REJECTED" && selectedRequest.rejection_reason && (
+                            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                                <p className="text-xs font-medium text-red-800">Rejection Reason</p>
+                                <p className="text-sm text-red-700 mt-1">{selectedRequest.rejection_reason}</p>
+                            </div>
+                        )}
                         
                         <div>
                             <p className="text-sm font-medium text-gray-700 mb-2">Items ({selectedRequest.items?.length || 0})</p>

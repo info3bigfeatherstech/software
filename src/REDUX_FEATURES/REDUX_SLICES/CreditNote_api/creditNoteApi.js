@@ -41,11 +41,25 @@ export const creditNoteApi = createApi({
 
         // GET /credit-notes — list credit notes with filters
         getCreditNotes: builder.query({
-            query: ({ page = 1, limit = 20, status = "", shop_id = "", customer_id = "", from_date = "", to_date = "" }) => {
+            query: ({
+                page = 1,
+                limit = 20,
+                status = "",
+                shop_id = "",
+                redeemable_at_shop = "",
+                customer_id = "",
+                customer_mobile = "",
+                credit_note_number = "",
+                from_date = "",
+                to_date = "",
+            }) => {
                 const params = { page, limit };
                 if (status) params.status = status;
                 if (shop_id) params.shop_id = shop_id;
-                if (customer_id) params.customer_id = customer_id;  // ← ADD THIS
+                if (redeemable_at_shop) params.redeemable_at_shop = redeemable_at_shop;
+                if (customer_id) params.customer_id = customer_id;
+                if (customer_mobile) params.customer_mobile = customer_mobile;
+                if (credit_note_number) params.credit_note_number = credit_note_number;
                 if (from_date) params.from_date = from_date;
                 if (to_date) params.to_date = to_date;
                 return { url: "/credit-notes", method: "GET", params };
@@ -65,13 +79,31 @@ export const creditNoteApi = createApi({
             }),
         }),
 
+        // GET /credit-notes/lookup — search by number (cross-shop)
+        lookupCreditNote: builder.query({
+            query: ({ credit_note_number, redeeming_shop_id }) => ({
+                url: "/credit-notes/lookup",
+                method: "GET",
+                params: { credit_note_number, redeeming_shop_id },
+            }),
+            transformResponse: (response) => response.data,
+        }),
+
         // GET /credit-notes/:creditNoteId — get credit note details
         getCreditNoteById: builder.query({
-            query: (creditNoteId) => ({
-                url: `/credit-notes/${creditNoteId}`,
-                method: "GET",
-            }),
-            providesTags: (result, error, creditNoteId) => [{ type: "CreditNote", id: creditNoteId }],
+            query: (arg) => {
+                const creditNoteId = typeof arg === "string" ? arg : arg?.creditNoteId;
+                const redeeming_shop_id = typeof arg === "object" ? arg?.redeeming_shop_id : undefined;
+                return {
+                    url: `/credit-notes/${creditNoteId}`,
+                    method: "GET",
+                    params: redeeming_shop_id ? { redeeming_shop_id } : undefined,
+                };
+            },
+            providesTags: (result, error, arg) => {
+                const id = typeof arg === "string" ? arg : arg?.creditNoteId;
+                return [{ type: "CreditNote", id }];
+            },
             transformResponse: (response) => response.data,
         }),
 
@@ -140,6 +172,8 @@ export const creditNoteApi = createApi({
 export const {
     useCreateCreditNoteMutation,
     useGetCreditNotesQuery,
+    useLookupCreditNoteQuery,
+    useLazyLookupCreditNoteQuery,
     useGetCreditNoteByIdQuery,
     useLazyGetCreditNoteByIdQuery,
     useRedeemCreditNoteMutation,

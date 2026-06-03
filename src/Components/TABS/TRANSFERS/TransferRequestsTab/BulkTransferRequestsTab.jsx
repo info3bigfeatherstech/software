@@ -25,6 +25,7 @@ import {
     clearBulkItems,
     setCreateErrors,
     openApproveModal,
+    openRejectModal,
     openDispatchModal,
     openReceiveModal,
     openCancelModal,
@@ -86,8 +87,7 @@ export default function BulkTransferRequestsTab() {
         page: currentPage,
         limit: pageSize,
         status: statusFilter,
-        to_shop_id: userShopId || undefined,
-        to_warehouse_id: userWarehouseId || undefined,
+        ...(userShopId ? { to_shop_id: userShopId } : {}),
     });
     
     const [createBulkRequest] = useCreateBulkTransferRequestMutation();
@@ -241,7 +241,7 @@ export default function BulkTransferRequestsTab() {
                 actions.push({ type: "approve", label: "Approve", icon: <CheckCircle size={14} />, color: "text-green-600" });
                 actions.push({ type: "reject", label: "Reject", icon: <XCircle size={14} />, color: "text-red-600" });
             }
-            if (isDestShop || isSuperAdmin) {
+            if (isDestShop || isDestWH || isSuperAdmin) {
                 actions.push({ type: "cancel", label: "Cancel", icon: <Ban size={14} />, color: "text-gray-600" });
             }
         }
@@ -250,7 +250,7 @@ export default function BulkTransferRequestsTab() {
             if (isSourceWH || isSuperAdmin) {
                 actions.push({ type: "dispatch", label: "Dispatch", icon: <Truck size={14} />, color: "text-blue-600" });
             }
-            if (isDestShop || isSuperAdmin) {
+            if (isDestShop || isDestWH || isSuperAdmin) {
                 actions.push({ type: "cancel", label: "Cancel", icon: <Ban size={14} />, color: "text-gray-600" });
             }
         }
@@ -278,7 +278,7 @@ export default function BulkTransferRequestsTab() {
                 } else if (actionType === "approve") {
                     dispatch(openApproveModal(fullRequest));
                 } else if (actionType === "reject") {
-                    dispatch(openApproveModal(fullRequest));
+                    dispatch(openRejectModal(fullRequest));
                 } else if (actionType === "dispatch") {
                     dispatch(openDispatchModal(fullRequest));
                 } else if (actionType === "receive") {
@@ -434,6 +434,7 @@ export default function BulkTransferRequestsTab() {
                         <option value="DISPATCHED">DISPATCHED</option>
                         <option value="PARTIALLY_RECEIVED">PARTIALLY_RECEIVED</option>
                         <option value="COMPLETED">COMPLETED</option>
+                        <option value="REJECTED">REJECTED</option>
                         <option value="CANCELLED">CANCELLED</option>
                     </select>
                     <select value={pageSize} onChange={(e) => dispatch(setPageSize(Number(e.target.value)))} className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 ml-auto focus:outline-none focus:ring-2 focus:ring-gray-300">

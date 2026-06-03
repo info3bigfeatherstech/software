@@ -89,10 +89,24 @@ export default function CreditNoteViewModal({ creditNote, onClose }) {
                                 <p className="font-medium text-gray-800 font-mono">{cn.original_bill?.bill_number || cn.original_bill_id}</p>
                             </div>
                             <div>
-                                <p className="text-xs text-gray-500">Shop</p>
+                                <p className="text-xs text-gray-500">Issued at shop</p>
                                 <p className="font-medium text-gray-800">{cn.shop?.shop_name || "—"}</p>
                             </div>
                         </div>
+
+                        {cn.last_redemption && (
+                            <div className="bg-purple-50 rounded-lg p-3 text-sm">
+                                <p className="text-xs font-medium text-purple-800 mb-1">Last used</p>
+                                <p className="text-gray-700">
+                                    {cn.last_redemption.shop_name ? `At ${cn.last_redemption.shop_name}` : "—"}
+                                    {cn.last_redemption.amount != null && ` · ₹${toNumber(cn.last_redemption.amount).toFixed(2)}`}
+                                    {cn.last_redemption.bill_number && ` · Bill ${cn.last_redemption.bill_number}`}
+                                </p>
+                                {cn.last_redemption.redeemed_at && (
+                                    <p className="text-xs text-gray-500 mt-1">{fmtDateTime(cn.last_redemption.redeemed_at)}</p>
+                                )}
+                            </div>
+                        )}
 
                         {/* FIXED: Customer display using root level fields */}
                         <div className="bg-green-50 rounded-lg p-3">
@@ -158,13 +172,16 @@ export default function CreditNoteViewModal({ creditNote, onClose }) {
                             <div>
                                 <p className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2"><Receipt size={14} /> Redemption History</p>
                                 <div className="space-y-2">
-                                    {cn.redemptions.map((red, idx) => (
-                                        <div key={idx} className="bg-gray-50 rounded-lg p-2 text-sm text-gray-700">
+                                    {cn.redemptions.map((red) => (
+                                        <div key={red.redemption_id || red.redeemed_at} className="bg-gray-50 rounded-lg p-2 text-sm text-gray-700">
                                             <div className="flex justify-between">
                                                 <span className="font-medium">₹{toNumber(red.amount).toFixed(2)}</span>
                                                 <span className="text-xs text-gray-500">{fmtDateTime(red.redeemed_at)}</span>
                                             </div>
-                                            <p className="text-xs text-gray-500">Against Bill: {red.against_bill?.bill_number || red.against_bill_id}</p>
+                                            <p className="text-xs text-gray-500">
+                                                {red.redeemed_at_shop?.shop_name ? `At ${red.redeemed_at_shop.shop_name}` : ""}
+                                                {red.against_bill?.bill_number ? ` · Bill ${red.against_bill.bill_number}` : ""}
+                                            </p>
                                         </div>
                                     ))}
                                 </div>

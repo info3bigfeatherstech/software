@@ -9,10 +9,10 @@
 
 import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Printer, Download, PlusCircle, Eye, X, Receipt, CheckCircle } from "lucide-react";
+import { Printer, Download, PlusCircle, Eye, X, Receipt, CheckCircle, Search } from "lucide-react";
 import { toast } from "react-toastify";
 import { useCreateBillMutation, useLazyGetBillPdfQuery, useGetBillByIdQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/Billing_api/billingApi";
-import { useGetCreditNotesQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/CreditNote_api/creditNoteApi";
+import { useGetCreditNotesQuery, useLazyLookupCreditNoteQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/CreditNote_api/creditNoteApi";
 import {
     clearCart,
     clearSelectedCustomer,
@@ -113,25 +113,37 @@ export default function CheckoutPanel({ shop_id }) {
 
     // Credit Note States
     const [selectedCreditNoteIds, setSelectedCreditNoteIds] = useState([]);
+    const [searchedCreditNotes, setSearchedCreditNotes] = useState([]);
+    const [creditNoteSearchInput, setCreditNoteSearchInput] = useState("");
     const [showCreditAlert, setShowCreditAlert] = useState(false);
     const [dismissedCredit, setDismissedCredit] = useState(false);
 
-    // Fetch available credit notes for the customer (when customer is selected)
+    const [lookupCreditNote, { isFetching: isLookingUpCn }] = useLazyLookupCreditNoteQuery();
+
+    // Org-wide pool: customer's credit notes redeemable at this shop counter
     const { data: creditNotesData, refetch: refetchCreditNotes } = useGetCreditNotesQuery({
-        status: "ACTIVE",
-        shop_id: shop_id,
+        redeemable_at_shop: shop_id,
         customer_id: selectedCustomer?.customer_id,
         page: 1,
         limit: 50,
     }, {
-        skip: !selectedCustomer?.customer_id,
+        skip: !selectedCustomer?.customer_id || !shop_id,
     });
 
     const availableCreditNotes = creditNotesData?.creditNotes || [];
-    // FIXED: Changed `remaining_amount` to `balance` to match backend API
-    const totalCreditAvailable = availableCreditNotes.reduce((sum, cn) => sum + toNumber(cn.balance || cn.credit_amount || cn.amount), 0);
-    const totalSelectedCredit = availableCreditNotes
-        .filter(cn => selectedCreditNoteIds.includes(cn.credit_note_id))
+    const mergedCreditNotes = [
+        ...availableCreditNotes,
+        ...searchedCreditNotes.filter(
+            (s) => !availableCreditNotes.some((a) => a.credit_note_id === s.credit_note_id)
+        ),
+    ];
+
+    const totalCreditAvailable = mergedCreditNotes.reduce(
+        (sum, cn) => sum + toNumber(cn.balance || cn.credit_amount || cn.amount),
+        0
+    );
+    const totalSelectedCredit = mergedCreditNotes
+        .filter((cn) => selectedCreditNoteIds.includes(cn.credit_note_id))
         .reduce((sum, cn) => sum + toNumber(cn.balance || cn.credit_amount || cn.amount), 0);
 
     // Auto-show credit alert when customer is selected and has credit
@@ -144,9 +156,41 @@ export default function CheckoutPanel({ shop_id }) {
     // Reset credit selection when customer changes
     useEffect(() => {
         setSelectedCreditNoteIds([]);
+        setSearchedCreditNotes([]);
+        setCreditNoteSearchInput("");
         setShowCreditAlert(false);
         setDismissedCredit(false);
     }, [selectedCustomer]);
+
+    const handleSearchCreditNote = async () => {
+        const number = creditNoteSearchInput.trim();
+        if (!number) {
+            toast.error("Enter a credit note number");
+            return;
+        }
+        try {
+            const cn = await lookupCreditNote({
+                credit_note_number: number,
+                redeeming_shop_id: shop_id,
+            }).unwrap();
+            if (!cn.redeemable) {
+                toast.error(`Credit note not usable (status: ${cn.status}, balance: ₹${toNumber(cn.balance).toFixed(2)})`);
+                return;
+            }
+            setSearchedCreditNotes((prev) => {
+                if (prev.some((p) => p.credit_note_id === cn.credit_note_id)) return prev;
+                return [...prev, cn];
+            });
+            setSelectedCreditNoteIds((prev) =>
+                prev.includes(cn.credit_note_id) ? prev : [...prev, cn.credit_note_id]
+            );
+            toast.success(
+                `Credit note found — ₹${toNumber(cn.balance).toFixed(2)} from ${cn.origin_shop?.shop_name || cn.shop?.shop_name || "origin shop"}`
+            );
+        } catch (err) {
+            toast.error(err?.data?.message || "Credit note not found");
+        }
+    };
 
     // Fetch bill details for viewing
     const { data: billDetails, refetch: refetchBill } = useGetBillByIdQuery(viewBillId, { skip: !viewBillId });
@@ -203,6 +247,8 @@ export default function CheckoutPanel({ shop_id }) {
             dispatch(clearCart());
             dispatch(clearSelectedCustomer());
             setSelectedCreditNoteIds([]);
+            setSearchedCreditNotes([]);
+            setCreditNoteSearchInput("");
             refetchCreditNotes();
         } catch (err) {
             console.error("Bill creation error:", err);
@@ -244,12 +290,14 @@ export default function CheckoutPanel({ shop_id }) {
         setCreatedBillData(null);
         dispatch(clearLastCreatedBill());
         setSelectedCreditNoteIds([]);
+        setSearchedCreditNotes([]);
+        setCreditNoteSearchInput("");
         setShowCreditAlert(false);
         setDismissedCredit(false);
     };
 
     const handleApplyAllCredit = () => {
-        const allIds = availableCreditNotes.map(cn => cn.credit_note_id);
+        const allIds = mergedCreditNotes.map((cn) => cn.credit_note_id);
         setSelectedCreditNoteIds(allIds);
         setShowCreditAlert(false);
         toast.info(`Applied ₹${totalCreditAvailable.toFixed(2)} credit to this bill`);
@@ -289,6 +337,45 @@ export default function CheckoutPanel({ shop_id }) {
 
     return (
         <div className="mt-4 pt-3 border-t border-gray-200">
+            <div className="mb-3 border border-gray-200 rounded-lg p-3">
+                <p className="text-xs font-medium text-gray-700 mb-2 flex items-center gap-1">
+                    <Search size={14} /> Search credit note (any shop)
+                </p>
+                <div className="flex gap-2">
+                    <input
+                        type="text"
+                        value={creditNoteSearchInput}
+                        onChange={(e) => setCreditNoteSearchInput(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && handleSearchCreditNote()}
+                        placeholder="e.g. CN-20260603-0001"
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono"
+                    />
+                    <button
+                        type="button"
+                        onClick={handleSearchCreditNote}
+                        disabled={isLookingUpCn}
+                        className="px-3 py-2 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 disabled:opacity-60"
+                    >
+                        {isLookingUpCn ? "..." : "Find"}
+                    </button>
+                </div>
+                {searchedCreditNotes.length > 0 && (
+                    <div className="mt-2 space-y-1">
+                        {searchedCreditNotes.map((cn) => (
+                            <div
+                                key={cn.credit_note_id}
+                                className="flex justify-between items-center text-xs bg-purple-50 border border-purple-100 rounded px-2 py-1.5"
+                            >
+                                <span className="font-mono text-purple-800">{cn.credit_note_number}</span>
+                                <span className="text-purple-600">
+                                    ₹{toNumber(cn.balance).toFixed(2)} · {cn.origin_shop?.shop_name || cn.shop?.shop_name}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+
             {showCreditAlert && totalCreditAvailable > 0 && (
                 <div className="mb-3 p-3 bg-purple-50 border border-purple-200 rounded-lg flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -305,7 +392,7 @@ export default function CheckoutPanel({ shop_id }) {
                 </div>
             )}
 
-            {selectedCustomer && availableCreditNotes.length > 0 && totalSelectedCredit === 0 && !showCreditAlert && (
+            {selectedCustomer && mergedCreditNotes.length > 0 && totalSelectedCredit === 0 && !showCreditAlert && (
                 <div className="mb-3 border border-gray-200 rounded-lg p-3">
                     <div className="flex items-center gap-2 mb-2 cursor-pointer" onClick={() => setShowCreditAlert(true)}>
                         <Receipt size={14} className="text-purple-600" />
