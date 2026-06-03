@@ -657,7 +657,7 @@ export default function RequestActionModals({ onSuccess }) {
                         </div>
                         <div>
                             <label className="block text-xs font-medium text-gray-700 mb-1">Cancellation Reason <span className="text-red-500">*</span></label>
-                            <textarea value={cancelReason} onChange={(e) => dispatch(setCancelReason(e.target.value))} rows={2} className={inputCls("cancel_reason", actionErrors)} placeholder="Why is this request being cancelled?" />
+                            <textarea value={cancelReason} onChange={(e) => dispatch(setCancelReason(e.target.value))} rows={2} className={inputCls("cancel_reason", actionErrors)} text-gray-700 placeholder="Why is this request being cancelled?" />
                             {actionErrors.cancel_reason && <p className="text-xs text-red-500 mt-1">{actionErrors.cancel_reason}</p>}
                         </div>
                     </div>

@@ -140,7 +140,8 @@ export default function TeamMembersTab() {
                     <button
                         type="button"
                         onClick={() => dispatch(openAddForm())}
-                        className="bg-gray-900 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors inline-flex items-center gap-2"
+                        className="bg-gray-900 hidden text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors inline-flex items-center gap-2"
+                        //we use action permission to show this button rember it 
                     >
                         + Add Member
                     </button>
