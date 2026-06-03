@@ -3,13 +3,14 @@
 // Complete Bulk Transfer Requests - Create, Approve, Dispatch, Receive
 // FIXED: Fetch details for view, dispatch, receive actions
 
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { X, Plus, RefreshCw, Package, Truck, CheckCircle, XCircle, Ban, Eye, ClipboardList } from "lucide-react";
 import { toast } from "react-toastify";
 import { useGetWarehousesQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/Warehouse_api/warehouseApi";
 import { useGetShopsQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/Shop_api/shopApi";
-import { useGetProductStocksQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/Stock_api/stockApi";
+import { useLazyGetWarehouseStockCatalogQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/ShopWarehouseCatalog_api/shopWarehouseCatalogApi";
+import VariantCatalogPicker from "./TransferRequestShared/VariantCatalogPicker";
 import { useGetBulkTransferRequestsQuery, useCreateBulkTransferRequestMutation, useLazyGetBulkTransferRequestByIdQuery, generateBulkIdempotencyKey } from "../../../../REDUX_FEATURES/REDUX_SLICES/BulkTransfer_api/bulkTransferApi";
 import {
     setStatusFilter,
@@ -17,11 +18,9 @@ import {
     setPageSize,
     resetFilters,
     openCreateModal,
+    openCreateModalWithPrefill,
     closeCreateModal,
     updateCreateForm,
-    addBulkItem,
-    removeBulkItem,
-    updateBulkItem,
     clearBulkItems,
     setCreateErrors,
     openApproveModal,
@@ -53,7 +52,9 @@ export default function BulkTransferRequestsTab() {
     const { user } = useSelector((state) => state.auth);
     const { statusFilter, currentPage, pageSize, showCreateModal, createForm, createErrors } = useSelector((state) => state.bulkTransfer);
     
-    const [searchTerm, setSearchTerm] = useState("");
+    const [catalogMode, setCatalogMode] = useState("all");
+    const [catalogSearch, setCatalogSearch] = useState("");
+    const [catalogSelection, setCatalogSelection] = useState({});
     
     const userShopId = user?.shop_id || "";
     const userWarehouseId = user?.warehouse_id || "";
@@ -61,7 +62,9 @@ export default function BulkTransferRequestsTab() {
     
     const { data: warehousesData } = useGetWarehousesQuery({ page: 1, limit: 50, is_active: "true" });
     const { data: shopsData } = useGetShopsQuery({ page: 1, limit: 50, is_active: "true" });
-    const { data: stocksData } = useGetProductStocksQuery({ page: 1, limit: 50, warehouse_id: createForm.from_warehouse_id || userWarehouseId });
+    const catalogShopId = createForm.to_shop_id || userShopId;
+    const [fetchCatalog, { data: catalogData, isFetching: catalogLoading }] =
+        useLazyGetWarehouseStockCatalogQuery();
     const { data: bulkRequestsData, isLoading, refetch } = useGetBulkTransferRequestsQuery({
         page: currentPage,
         limit: pageSize,
@@ -74,18 +77,90 @@ export default function BulkTransferRequestsTab() {
     
     const warehouses = warehousesData?.warehouses || [];
     const shops = shopsData?.shops || [];
-    const stocks = stocksData?.stocks || [];
     const requests = bulkRequestsData?.requests || [];
     const meta = bulkRequestsData?.meta || { total: 0, page: 1, limit: 20, totalPages: 1 };
-    
-    const availableProducts = createForm.from_warehouse_id
-        ? stocks.filter(s => s.warehouse_id === createForm.from_warehouse_id && s.quantity > 0)
-        : [];
-    
-    const filteredProducts = availableProducts.filter(p =>
-        p.variant?.product?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.variant?.sku?.toLowerCase().includes(searchTerm.toLowerCase())
+
+    useEffect(() => {
+        if (!showCreateModal) {
+            setCatalogSelection({});
+            return;
+        }
+        const sel = {};
+        for (const item of createForm.items || []) {
+            sel[item.variant_id] = {
+                selected: true,
+                quantity: String(item.quantity || ""),
+                product_name: item.product_name,
+                sku: item.sku,
+                product_code: item.product_code,
+                available_stock: item.available_stock,
+            };
+        }
+        setCatalogSelection(sel);
+    }, [showCreateModal]);
+
+    useEffect(() => {
+        if (!showCreateModal || !createForm.from_warehouse_id || !catalogShopId) return;
+        fetchCatalog({
+            shopId: catalogShopId,
+            warehouse_id: createForm.from_warehouse_id,
+            mode: catalogMode,
+            search: catalogSearch.trim(),
+            page: 1,
+            limit: 100,
+        });
+    }, [
+        showCreateModal,
+        createForm.from_warehouse_id,
+        catalogShopId,
+        catalogMode,
+        catalogSearch,
+        fetchCatalog,
+    ]);
+
+    const selectedCatalogItems = useMemo(
+        () =>
+            Object.entries(catalogSelection)
+                .filter(([, s]) => s.selected)
+                .map(([variantId, s]) => ({
+                    variant_id: variantId,
+                    product_name: s.product_name,
+                    sku: s.sku,
+                    product_code: s.product_code,
+                    quantity: s.quantity,
+                    available_stock: s.available_stock,
+                })),
+        [catalogSelection]
     );
+
+    const handleCatalogSelectionChange = (variantId, patch) => {
+        setCatalogSelection((prev) => ({
+            ...prev,
+            [variantId]: { ...prev[variantId], ...patch },
+        }));
+    };
+
+    const handleSelectAllProduct = (product, selectAll) => {
+        setCatalogSelection((prev) => {
+            const next = { ...prev };
+            for (const v of product.variants || []) {
+                if (!v.selectable) continue;
+                if (selectAll) {
+                    next[v.variant_id] = {
+                        selected: true,
+                        quantity: String(v.suggested_quantity || Math.min(1, v.warehouse_available)),
+                        product_name: product.name,
+                        sku: v.sku,
+                        product_code: v.product_code,
+                        available_stock: v.warehouse_available,
+                    };
+                } else {
+                    next[v.variant_id] = { ...next[v.variant_id], selected: false };
+                }
+            }
+            return next;
+        });
+    };
     
     // Get available actions based on user role and request status
     const getAvailableActions = (request) => {
@@ -163,7 +238,7 @@ export default function BulkTransferRequestsTab() {
         const errors = {};
         if (!createForm.from_warehouse_id) errors.from_warehouse_id = "Source warehouse is required";
         if (!createForm.to_shop_id) errors.to_shop_id = "Destination shop is required";
-        if (createForm.items.length === 0) errors.items = "At least one item is required";
+        if (selectedCatalogItems.length === 0) errors.items = "At least one variant is required";
         return errors;
     };
     
@@ -175,9 +250,14 @@ export default function BulkTransferRequestsTab() {
             return;
         }
         
-        const invalidItems = createForm.items.filter(item => !item.quantity || parseInt(item.quantity) <= 0);
+        const invalidItems = selectedCatalogItems.filter(
+            (item) =>
+                !item.quantity ||
+                parseInt(item.quantity, 10) <= 0 ||
+                parseInt(item.quantity, 10) > (item.available_stock ?? 0)
+        );
         if (invalidItems.length > 0) {
-            toast.error("Please enter valid quantity for all items");
+            toast.error("Please enter valid quantity for all selected variants (within warehouse stock)");
             return;
         }
         
@@ -187,9 +267,9 @@ export default function BulkTransferRequestsTab() {
                 from_warehouse_id: createForm.from_warehouse_id,
                 request_type: "WH_TO_SHOP",
                 request_remarks: createForm.request_remarks?.trim() || null,
-                items: createForm.items.map(item => ({
+                items: selectedCatalogItems.map((item) => ({
                     variant_id: item.variant_id,
-                    quantity: parseInt(item.quantity),
+                    quantity: parseInt(item.quantity, 10),
                 })),
             };
             
@@ -207,21 +287,6 @@ export default function BulkTransferRequestsTab() {
                 toast.error(err?.data?.message || "Failed to create bulk request");
             }
         }
-    };
-    
-    const handleAddToCart = (stock) => {
-        const existing = createForm.items.find(i => i.variant_id === stock.variant_id);
-        if (existing) {
-            toast.info("Item already added");
-            return;
-        }
-        dispatch(addBulkItem({
-            variant_id: stock.variant_id,
-            product_name: stock.variant?.product?.name,
-            sku: stock.variant?.sku,
-            quantity: "",
-            available_stock: stock.quantity,
-        }));
     };
     
     const inputCls = (name, errors) => `w-full px-3 py-2 bg-gray-50 border rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300 ${errors?.[name] ? "border-red-400" : "border-gray-200"}`;
@@ -242,7 +307,11 @@ export default function BulkTransferRequestsTab() {
                 </div>
                 <div className="flex items-center gap-2">
                     <button
-                        onClick={() => dispatch(openCreateModal())}
+                        onClick={() =>
+                            userShopId
+                                ? dispatch(openCreateModalWithPrefill({ to_shop_id: userShopId }))
+                                : dispatch(openCreateModal())
+                        }
                         className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-gray-900 hover:bg-gray-700 rounded-lg transition-colors"
                     >
                         <Plus size={14} /> New Bulk Request
@@ -401,7 +470,10 @@ export default function BulkTransferRequestsTab() {
                                     <label className="block text-xs text-gray-500 mb-1">Source Warehouse <span className="text-red-400">*</span></label>
                                     <select 
                                         value={createForm.from_warehouse_id} 
-                                        onChange={(e) => dispatch(updateCreateForm({ from_warehouse_id: e.target.value, items: [] }))} 
+                                        onChange={(e) => {
+                                            dispatch(updateCreateForm({ from_warehouse_id: e.target.value, items: [] }));
+                                            setCatalogSelection({});
+                                        }} 
                                         className={inputCls("from_warehouse_id", createErrors)}
                                     >
                                         <option value="">Select warehouse</option>
@@ -421,65 +493,55 @@ export default function BulkTransferRequestsTab() {
                                 </div>
                             </div>
                             
-                            {createForm.from_warehouse_id && (
-                                <div>
-                                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Add Products</label>
-                                    <div className="relative mb-3">
-                                        <input 
-                                            type="text" 
-                                            value={searchTerm} 
-                                            onChange={(e) => setSearchTerm(e.target.value)} 
-                                            placeholder="Search by product name or SKU..." 
-                                            className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300" 
-                                        />
+                            {createForm.from_warehouse_id && catalogShopId && (
+                                <div className="space-y-3">
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="block text-xs text-gray-500 mb-1">Catalog mode</label>
+                                            <select
+                                                value={catalogMode}
+                                                onChange={(e) => {
+                                                    setCatalogMode(e.target.value);
+                                                    setCatalogSelection({});
+                                                }}
+                                                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm"
+                                            >
+                                                <option value="all">All with WH stock</option>
+                                                <option value="existing">Existing at shop</option>
+                                                <option value="new">New at shop</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs text-gray-500 mb-1">Search</label>
+                                            <input
+                                                type="text"
+                                                value={catalogSearch}
+                                                onChange={(e) => setCatalogSearch(e.target.value)}
+                                                placeholder="Name, code, SKU..."
+                                                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm"
+                                            />
+                                        </div>
                                     </div>
-                                    <div className="grid grid-cols-3 gap-2 max-h-36 overflow-y-auto border border-gray-200 rounded-lg p-2 bg-gray-50">
-                                        {filteredProducts.length === 0 ? (
-                                            <p className="col-span-3 text-center text-xs text-gray-400 py-2">No products available</p>
-                                        ) : (
-                                            filteredProducts.map(p => (
-                                                <button 
-                                                    key={p.stock_id} 
-                                                    onClick={() => handleAddToCart(p)} 
-                                                    className="text-left p-2 bg-white hover:bg-gray-100 border border-gray-200 rounded-lg text-xs transition-colors"
-                                                >
-                                                    <p className="font-medium text-gray-800 truncate">{p.variant?.product?.name}</p>
-                                                    <p className="text-gray-400 text-xs">{p.variant?.sku}</p>
-                                                    <p className="text-green-600">Stock: {p.quantity}</p>
-                                                </button>
-                                            ))
-                                        )}
-                                    </div>
+                                    <VariantCatalogPicker
+                                        products={catalogData?.products || []}
+                                        selection={catalogSelection}
+                                        onSelectionChange={handleCatalogSelectionChange}
+                                        onSelectAllProduct={handleSelectAllProduct}
+                                        isLoading={catalogLoading}
+                                        emptyMessage="No products in catalog for this warehouse and mode."
+                                    />
+                                    {createErrors.items && (
+                                        <p className="text-xs text-red-500">{createErrors.items}</p>
+                                    )}
+                                    {selectedCatalogItems.length > 0 && (
+                                        <p className="text-xs text-gray-500">
+                                            {selectedCatalogItems.length} variant(s) selected for this request
+                                        </p>
+                                    )}
                                 </div>
                             )}
-                            
-                            {createForm.items.length > 0 && (
-                                <div>
-                                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Items ({createForm.items.length})</p>
-                                    <div className="space-y-2 max-h-60 overflow-y-auto">
-                                        {createForm.items.map((item, idx) => (
-                                            <div key={idx} className="flex items-center gap-3 p-2 border border-gray-200 rounded-lg bg-white">
-                                                <div className="flex-1">
-                                                    <p className="font-medium text-sm text-gray-800">{item.product_name}</p>
-                                                    <p className="text-xs text-gray-400">{item.sku}</p>
-                                                </div>
-                                                <div className="w-24">
-                                                    <input 
-                                                        type="number" 
-                                                        min="1" 
-                                                        max={item.available_stock} 
-                                                        value={item.quantity} 
-                                                        onChange={(e) => dispatch(updateBulkItem({ index: idx, quantity: e.target.value }))} 
-                                                        placeholder="Qty" 
-                                                        className="w-full px-2 py-1 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300" 
-                                                    />
-                                                </div>
-                                                <button onClick={() => dispatch(removeBulkItem(idx))} className="text-red-400 text-xs hover:text-red-600 transition-colors">Remove</button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    {createErrors.items && <p className="text-xs text-red-500 mt-1">{createErrors.items}</p>}
-                                </div>
+                            {createForm.from_warehouse_id && !catalogShopId && (
+                                <p className="text-xs text-amber-600">Select destination shop to load variant catalog.</p>
                             )}
                             
                             <div>
@@ -497,7 +559,7 @@ export default function BulkTransferRequestsTab() {
                             <button onClick={() => dispatch(closeCreateModal())} className="px-4 py-2 text-sm text-gray-500 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors">Cancel</button>
                             <button 
                                 onClick={handleCreateSubmit} 
-                                disabled={createForm.items.length === 0} 
+                                disabled={selectedCatalogItems.length === 0} 
                                 className="px-5 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-700 disabled:opacity-50 transition-colors"
                             >
                                 Create Bulk Request

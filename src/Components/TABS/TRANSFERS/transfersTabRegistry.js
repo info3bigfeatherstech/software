@@ -8,6 +8,7 @@ import { lazy } from "react";
 const TransferHistoryTab = lazy(() => import("./TransferHistoryTab"));
 const TransferRequestsTab = lazy(() => import("./TransferRequestsTab/TransferRequestsTab"));
 const BulkTransferRequestsTab = lazy(() => import("./TransferRequestsTab/BulkTransferRequestsTab"));
+const ShopStockRequestTab = lazy(() => import("./TransferRequestsTab/ShopStockRequestTab"));
 // const ReorderSuggestionsTab = lazy(() => import("./TransferRequestsTab/ReorderSuggestionsTab"));
 const StockSearchTab = lazy(() => import("./TransferRequestsTab/StockSearchTab"));
 
@@ -18,6 +19,12 @@ export const TRANSFERS_TAB_REGISTRY = [
     //     icon: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z",
     //     component: StockSearchTab,
     // },
+    {
+        id: "shop-stock-request",
+        label: "Request Stock",
+        icon: "M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4",
+        component: ShopStockRequestTab,
+    },
      {
         id: "transfer-requests",
         label: "Transfer Requests",

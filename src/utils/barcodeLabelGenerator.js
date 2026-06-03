@@ -100,7 +100,9 @@ export async function generateBarcodeLabel(variant, product, options = {}) {
             // const purchaseCode = calculatePurchaseCode();
             // const purchaseCode = variant.purchase_code
            // In barcodeLabelGenerator.js
-const purchaseCode = variant.purchase_code || (variant.purchase_price + variant.expenses + 1986);     // NOT GOOD 
+           // const purchaseCode = variant.purchase_code || (variant.purchase_price + variant.expenses + 1986);     // NOT GOOD 
+           const purchaseCode = variant.purchase_code ;     // NOT GOOD 
+
             ctx.font = `bold ${config.text.fontSize.xlarge}px ${config.text.fontFamily}`;
             ctx.fillStyle = "#000000";
             ctx.textAlign = "center";

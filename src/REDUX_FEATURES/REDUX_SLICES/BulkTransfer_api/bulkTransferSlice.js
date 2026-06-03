@@ -76,6 +76,22 @@ const bulkTransferSlice = createSlice({
             };
             state.createErrors = {};
         },
+        openCreateModalWithPrefill: (state, action) => {
+            const {
+                from_warehouse_id = "",
+                to_shop_id = "",
+                request_remarks = "",
+                items = [],
+            } = action.payload || {};
+            state.showCreateModal = true;
+            state.createForm = {
+                from_warehouse_id,
+                to_shop_id,
+                request_remarks,
+                items,
+            };
+            state.createErrors = {};
+        },
         closeCreateModal: (state) => {
             state.showCreateModal = false;
             state.createForm = initialState.createForm;
@@ -222,6 +238,7 @@ export const {
     setPageSize,
     resetFilters,
     openCreateModal,
+    openCreateModalWithPrefill,
     closeCreateModal,
     updateCreateForm,
     addBulkItem,

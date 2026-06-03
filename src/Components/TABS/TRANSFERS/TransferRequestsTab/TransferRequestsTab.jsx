@@ -6,7 +6,8 @@
 
 import React, { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { X, Plus, Eye, RefreshCw, CheckCircle, XCircle, Truck, Package, Ban, Search, MapPin, Warehouse, Store, Info } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
+import { X, Plus, Eye, RefreshCw, CheckCircle, XCircle, Truck, Package, Ban, Search, MapPin, Warehouse, Store, Info, ShoppingCart } from "lucide-react";
 import { toast } from "react-toastify";
 import { useGetTransferRequestsQuery, useLazyGetTransferRequestByIdQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/TransferRequest_api/transferRequestApi";
 import { useLazySearchStockQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/StockSearch_api/stockSearchApi";
@@ -31,6 +32,7 @@ import { CURRENT_USER, isAdmin } from "../../../roles";
 import RequestActionModals from "./TransferRequestShared/RequestActionModals";
 import CreateFromSearchModal from "./TransferRequestShared/CreateFromSearchModal";
 import ViewRequestModal from "./ViewRequestModal";
+import { openCreateModalWithPrefill } from "../../../../REDUX_FEATURES/REDUX_SLICES/BulkTransfer_api/bulkTransferSlice";
 
 const STATUS_BADGE = {
     REQUESTED: "bg-yellow-50 text-yellow-700 border border-yellow-200",
@@ -62,6 +64,7 @@ const fmtDate = (iso) => {
 
 export default function TransferRequestsTab() {
     const dispatch = useDispatch();
+    const [, setUrlSearchParams] = useSearchParams();
     const { user } = useSelector((state) => state.auth);
     const {
         statusFilter,
@@ -118,6 +121,9 @@ export default function TransferRequestsTab() {
             params[searchParams.searchType] = searchParams.searchValue.trim();
             if (searchParams.city) params.city = searchParams.city;
             if (searchParams.nearby_only) params.nearby_only = true;
+            if (userRole === "WH_MANAGER" || userRole === "WH_STOCK_LISTER") {
+                params.request_type = "WH_TO_WH";
+            }
 
             const result = await triggerSearch(params).unwrap();
             setSearchResults(result);
@@ -166,6 +172,32 @@ export default function TransferRequestsTab() {
 
         dispatch(setPrefilledRequestData(prefilledData));
         dispatch(openCreateFromSearchModal());
+    };
+
+    const handleAddToBulkCart = (warehouse, product, variant) => {
+        if (!userShopId) {
+            toast.error("Link a shop to your account to use bulk requests");
+            return;
+        }
+        dispatch(
+            openCreateModalWithPrefill({
+                from_warehouse_id: warehouse.warehouse_id,
+                to_shop_id: userShopId,
+                request_remarks: `From stock search: ${product?.name || ""}`,
+                items: [
+                    {
+                        variant_id: variant.variant_id,
+                        product_name: product.name,
+                        product_code: variant.product_code || product.product_code,
+                        sku: variant.sku,
+                        quantity: "1",
+                        available_stock: warehouse.stock_quantity,
+                    },
+                ],
+            })
+        );
+        setUrlSearchParams({ tab: "transfers", ctab: "bulk-requests" });
+        toast.info("Added to bulk request — review variants and submit");
     };
 
     const handleAction = async (request, actionType) => {
@@ -395,12 +427,24 @@ export default function TransferRequestsTab() {
                                                     </div>
                                                 </div>
                                             </div>
-                                            <button
-                                                onClick={() => handleRequestClick(wh, product, variant, false)}
-                                                className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors"
-                                            >
-                                                Create Request
-                                            </button>
+                                            <div className="flex items-center gap-2">
+                                                {userShopId && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleAddToBulkCart(wh, product, variant)}
+                                                        className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
+                                                    >
+                                                        <ShoppingCart size={12} /> Add to bulk
+                                                    </button>
+                                                )}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleRequestClick(wh, product, variant, false)}
+                                                    className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors"
+                                                >
+                                                    Create Request
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 ))}

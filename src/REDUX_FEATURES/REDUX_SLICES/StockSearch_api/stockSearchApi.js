@@ -35,7 +35,8 @@ export const stockSearchApi = createApi({
                 sku = "", 
                 barcode = "", 
                 city = "", 
-                nearby_only = false 
+                nearby_only = false,
+                request_type = "",
             }) => {
                 const params = {};
                 if (variant_id) params.variant_id = variant_id;
@@ -44,6 +45,7 @@ export const stockSearchApi = createApi({
                 if (barcode) params.barcode = barcode;
                 if (city) params.city = city;
                 if (nearby_only) params.nearby_only = true;
+                if (request_type) params.request_type = request_type;
                 return { url: "/stock/search", method: "GET", params };
             },
             providesTags: ["StockSearch"],

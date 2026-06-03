@@ -145,7 +145,9 @@ export default function TransferHistoryTab() {
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-base font-semibold text-gray-800">Transfer & Movement History</h2>
-                    <p className="text-xs text-gray-400 mt-0.5">Complete audit trail of all stock movements</p>
+                    <p className="text-xs text-gray-400 mt-0.5 max-w-xl">
+                        Stock ledger: one row per variant movement. A bulk request with 2 variants shows 2 rows (20 + 10 qty) — same bulk request ID in Reference. View the combined request under Bulk Requests.
+                    </p>
                 </div>
                 <div className="flex gap-2">
                     <button 
@@ -273,8 +275,14 @@ export default function TransferHistoryTab() {
                                         </span>
                                     </td>
                                     <td className="px-4 py-3">
-                                        <p className="font-mono text-xs text-gray-500">{entry.product_id?.slice(-8)}</p>
-                                        <p className="font-mono text-xs text-gray-400 mt-0.5">{entry.variant_id?.slice(-8)}</p>
+                                        <p className="text-sm text-gray-800">
+                                            {entry.product_name || entry.product_id?.slice(-8)}
+                                        </p>
+                                        <p className="text-xs text-gray-400 mt-0.5">
+                                            {entry.variant_product_code || entry.variant_sku
+                                                ? `${entry.variant_product_code || ""}${entry.variant_product_code && entry.variant_sku ? " · " : ""}${entry.variant_sku || ""}`
+                                                : entry.variant_id?.slice(-8)}
+                                        </p>
                                     </td>
                                     <td className="px-4 py-3 text-right">
                                         <span className={`font-semibold ${entry.quantity > 0 ? "text-green-600" : "text-red-500"}`}>
@@ -288,9 +296,15 @@ export default function TransferHistoryTab() {
                                         {entry.to_warehouse_id?.slice(-8) || entry.to_shop_id?.slice(-8) || "—"}
                                     </td>
                                     <td className="px-4 py-3">
-                                        <span className="text-xs text-gray-400">{entry.reference_type || "—"}</span>
+                                        <span className="text-xs text-gray-500">
+                                            {entry.reference_type === "BULK_TRANSFER_REQUEST"
+                                                ? "Bulk request"
+                                                : entry.reference_type?.replace(/_/g, " ") || "—"}
+                                        </span>
                                         {entry.reference_id && (
-                                            <p className="text-xs text-gray-400 font-mono mt-0.5">{entry.reference_id?.slice(-8)}</p>
+                                            <p className="text-xs text-gray-400 font-mono mt-0.5" title={entry.reference_id}>
+                                                {entry.reference_id?.slice(-12)}
+                                            </p>
                                         )}
                                     </td>
                                     <td className="px-4 py-3 text-xs text-gray-400">
