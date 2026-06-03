@@ -10,6 +10,7 @@ import { toast } from "react-toastify";
 import { useGetWarehousesQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/Warehouse_api/warehouseApi";
 import { useGetShopsQuery, useGetMyShopQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/Shop_api/shopApi";
 import { useLazyGetWarehouseStockCatalogQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/ShopWarehouseCatalog_api/shopWarehouseCatalogApi";
+import { useLazyGetPeerStockCatalogQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/WarehousePeerCatalog_api/warehousePeerCatalogApi";
 import VariantCatalogPicker from "./TransferRequestShared/VariantCatalogPicker";
 import { useGetBulkTransferRequestsQuery, useCreateBulkTransferRequestMutation, useLazyGetBulkTransferRequestByIdQuery, generateBulkIdempotencyKey } from "../../../../REDUX_FEATURES/REDUX_SLICES/BulkTransfer_api/bulkTransferApi";
 import {
@@ -59,9 +60,11 @@ export default function BulkTransferRequestsTab() {
     const userShopId = user?.shop_id || "";
     const userWarehouseId = user?.warehouse_id || "";
     const userRole = user?.role || "";
-    const canCreateBulk = userRole === "SHOP_OWNER" || userRole === "SUPER_ADMIN";
-    const isShopOwnerFlow = userRole === "SHOP_OWNER" && !!userShopId;
     const isWarehouseStaff = userRole === "WH_MANAGER" || userRole === "WH_STOCK_LISTER";
+    const isWhBulkFlow = isWarehouseStaff && !!userWarehouseId;
+    const isShopOwnerFlow = userRole === "SHOP_OWNER" && !!userShopId;
+    const canCreateBulk =
+        userRole === "SUPER_ADMIN" || isShopOwnerFlow || isWhBulkFlow;
     
     const { data: warehousesData } = useGetWarehousesQuery(
         { page: 1, limit: 50, is_active: "true" },
@@ -73,20 +76,30 @@ export default function BulkTransferRequestsTab() {
     );
     const { data: myShopData } = useGetMyShopQuery(undefined, { skip: !isShopOwnerFlow });
     const catalogShopId = createForm.to_shop_id || userShopId;
-    const [fetchCatalog, { data: catalogData, isFetching: catalogLoading }] =
+    const [fetchShopCatalog, { data: shopCatalogData, isFetching: shopCatalogLoading }] =
         useLazyGetWarehouseStockCatalogQuery();
+    const [fetchPeerCatalog, { data: peerCatalogData, isFetching: peerCatalogLoading }] =
+        useLazyGetPeerStockCatalogQuery();
+    const catalogData = isWhBulkFlow ? peerCatalogData : shopCatalogData;
+    const catalogLoading = isWhBulkFlow ? peerCatalogLoading : shopCatalogLoading;
     const { data: bulkRequestsData, isLoading, refetch } = useGetBulkTransferRequestsQuery({
         page: currentPage,
         limit: pageSize,
         status: statusFilter,
-        to_shop_id: userShopId,
+        to_shop_id: userShopId || undefined,
+        to_warehouse_id: userWarehouseId || undefined,
     });
     
     const [createBulkRequest] = useCreateBulkTransferRequestMutation();
     const [fetchBulkRequestDetail] = useLazyGetBulkTransferRequestByIdQuery();
     
     const warehouses = warehousesData?.warehouses || [];
+    const peerWarehouses = warehouses.filter((w) => w.warehouse_id !== userWarehouseId);
     const shops = shopsData?.shops || [];
+    const myWarehouseLabel = useMemo(() => {
+        const mine = warehouses.find((w) => w.warehouse_id === userWarehouseId);
+        return mine ? `${mine.warehouse_name} — ${mine.city}` : "Your warehouse";
+    }, [warehouses, userWarehouseId]);
     const myShopLabel = useMemo(() => {
         if (myShopData?.shop_name) {
             return `${myShopData.shop_name}${myShopData.city ? ` — ${myShopData.city}` : ""}`;
@@ -117,23 +130,49 @@ export default function BulkTransferRequestsTab() {
         setCatalogSelection(sel);
     }, [showCreateModal]);
 
+    const catalogProducts = useMemo(() => {
+        const products = catalogData?.products || [];
+        if (!isWhBulkFlow) return products;
+        return products.map((p) => ({
+            ...p,
+            variants: (p.variants || []).map((v) => ({
+                ...v,
+                shop_available: v.dest_available,
+            })),
+        }));
+    }, [catalogData, isWhBulkFlow]);
+
     useEffect(() => {
-        if (!showCreateModal || !createForm.from_warehouse_id || !catalogShopId) return;
-        fetchCatalog({
-            shopId: catalogShopId,
-            warehouse_id: createForm.from_warehouse_id,
-            mode: catalogMode,
-            search: catalogSearch.trim(),
-            page: 1,
-            limit: 100,
-        });
+        if (!showCreateModal || !createForm.from_warehouse_id) return;
+        if (isWhBulkFlow && userWarehouseId) {
+            fetchPeerCatalog({
+                destWarehouseId: userWarehouseId,
+                from_warehouse_id: createForm.from_warehouse_id,
+                mode: catalogMode,
+                search: catalogSearch.trim(),
+                page: 1,
+                limit: 100,
+            });
+        } else if (catalogShopId) {
+            fetchShopCatalog({
+                shopId: catalogShopId,
+                warehouse_id: createForm.from_warehouse_id,
+                mode: catalogMode,
+                search: catalogSearch.trim(),
+                page: 1,
+                limit: 100,
+            });
+        }
     }, [
         showCreateModal,
         createForm.from_warehouse_id,
         catalogShopId,
         catalogMode,
         catalogSearch,
-        fetchCatalog,
+        isWhBulkFlow,
+        userWarehouseId,
+        fetchPeerCatalog,
+        fetchShopCatalog,
     ]);
 
     const selectedCatalogItems = useMemo(
@@ -187,8 +226,10 @@ export default function BulkTransferRequestsTab() {
         
         const requestFromWarehouseId = request.from_warehouse?.warehouse_id || request.from_warehouse_id;
         const requestToShopId = request.to_shop?.shop_id || request.to_shop_id;
+        const requestToWarehouseId = request.to_warehouse?.warehouse_id || request.to_warehouse_id;
         
         const isSourceWH = userWarehouseId && (requestFromWarehouseId === userWarehouseId);
+        const isDestWH = userWarehouseId && (requestToWarehouseId === userWarehouseId);
         const isDestShop = userShopId && (requestToShopId === userShopId);
         const isSuperAdmin = userRole === "SUPER_ADMIN";
         
@@ -215,7 +256,7 @@ export default function BulkTransferRequestsTab() {
         }
         
         if (status === "DISPATCHED" || status === "PARTIALLY_RECEIVED") {
-            if (isDestShop || isSuperAdmin) {
+            if (isDestShop || isDestWH || isSuperAdmin) {
                 actions.push({ type: "receive", label: "Receive", icon: <Package size={14} />, color: "text-green-600" });
             }
         }
@@ -255,7 +296,11 @@ export default function BulkTransferRequestsTab() {
     const validateCreate = () => {
         const errors = {};
         if (!createForm.from_warehouse_id) errors.from_warehouse_id = "Source warehouse is required";
-        if (!createForm.to_shop_id) errors.to_shop_id = "Destination shop is required";
+        if (isWhBulkFlow) {
+            if (!userWarehouseId) errors.to_warehouse_id = "Your warehouse is required";
+        } else if (!createForm.to_shop_id) {
+            errors.to_shop_id = "Destination shop is required";
+        }
         if (selectedCatalogItems.length === 0) errors.items = "At least one variant is required";
         return errors;
     };
@@ -280,16 +325,27 @@ export default function BulkTransferRequestsTab() {
         }
         
         try {
-            const payload = {
-                to_shop_id: createForm.to_shop_id,
-                from_warehouse_id: createForm.from_warehouse_id,
-                request_type: "WH_TO_SHOP",
-                request_remarks: createForm.request_remarks?.trim() || null,
-                items: selectedCatalogItems.map((item) => ({
-                    variant_id: item.variant_id,
-                    quantity: parseInt(item.quantity, 10),
-                })),
-            };
+            const payload = isWhBulkFlow
+                ? {
+                      request_type: "WH_TO_WH",
+                      from_warehouse_id: createForm.from_warehouse_id,
+                      to_warehouse_id: userWarehouseId,
+                      request_remarks: createForm.request_remarks?.trim() || null,
+                      items: selectedCatalogItems.map((item) => ({
+                          variant_id: item.variant_id,
+                          quantity: parseInt(item.quantity, 10),
+                      })),
+                  }
+                : {
+                      to_shop_id: createForm.to_shop_id,
+                      from_warehouse_id: createForm.from_warehouse_id,
+                      request_type: "WH_TO_SHOP",
+                      request_remarks: createForm.request_remarks?.trim() || null,
+                      items: selectedCatalogItems.map((item) => ({
+                          variant_id: item.variant_id,
+                          quantity: parseInt(item.quantity, 10),
+                      })),
+                  };
             
             await createBulkRequest({ idempotencyKey: generateBulkIdempotencyKey(), ...payload }).unwrap();
             toast.success("Bulk transfer request created successfully");
@@ -320,19 +376,23 @@ export default function BulkTransferRequestsTab() {
                         Bulk Transfer Requests
                     </h2>
                     <p className="text-sm text-gray-400 mt-0.5">
-                        {isWarehouseStaff
-                            ? "Approve and dispatch shop bulk requests (WH → Shop). To request stock from another warehouse, use Transfer Requests."
-                            : "Create bulk requests with multiple items — Request → Approve → Dispatch → Receive → Complete"}
+                        {isWhBulkFlow
+                            ? "WH → WH bulk requests — or use Request from WH tab. Approve/dispatch when you are the source warehouse."
+                            : "WH → Shop bulk — Request → Approve → Dispatch → Receive → Complete"}
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
                     {canCreateBulk && (
                     <button
-                        onClick={() =>
-                            userShopId
-                                ? dispatch(openCreateModalWithPrefill({ to_shop_id: userShopId }))
-                                : dispatch(openCreateModal())
-                        }
+                        onClick={() => {
+                            if (isWhBulkFlow) {
+                                dispatch(openCreateModalWithPrefill({ to_warehouse_id: userWarehouseId }));
+                            } else if (userShopId) {
+                                dispatch(openCreateModalWithPrefill({ to_shop_id: userShopId }));
+                            } else {
+                                dispatch(openCreateModal());
+                            }
+                        }}
                         className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-gray-900 hover:bg-gray-700 rounded-lg transition-colors"
                     >
                         <Plus size={14} /> New Bulk Request
@@ -344,13 +404,6 @@ export default function BulkTransferRequestsTab() {
                 </div>
             </div>
 
-            {isWarehouseStaff && (
-                <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
-                    <strong>Warehouse staff:</strong> Bulk requests here are <em>warehouse → shop</em> (shops create them).
-                    Need stock from another warehouse into yours? Open <strong>Transfer Requests</strong>, search stock, and create a <strong>WH → WH</strong> request.
-                </div>
-            )}
-            
             {/* Stats */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div className="bg-white rounded-xl border border-gray-200 p-4">
@@ -400,7 +453,7 @@ export default function BulkTransferRequestsTab() {
                         <tr>
                             <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide">Request #</th>
                             <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide">From WH</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide">To Shop</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide">To</th>
                             <th className="px-4 py-3 text-center text-xs font-semibold text-gray-400 uppercase tracking-wide">Items</th>
                             <th className="px-4 py-3 text-right text-xs font-semibold text-gray-400 uppercase tracking-wide">Total Qty</th>
                             <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide">Status</th>
@@ -435,7 +488,11 @@ export default function BulkTransferRequestsTab() {
                                         </span>
                                     </td>
                                     <td className="px-4 py-3 text-xs text-gray-500">{req.from_warehouse?.warehouse_name || req.from_warehouse_id}</td>
-                                    <td className="px-4 py-3 text-xs text-gray-500">{req.to_shop?.shop_name || req.to_shop_id}</td>
+                                    <td className="px-4 py-3 text-xs text-gray-500">
+                                        {req.request_type === "WH_TO_WH"
+                                            ? req.to_warehouse?.warehouse_name || req.to_warehouse_id
+                                            : req.to_shop?.shop_name || req.to_shop_id}
+                                    </td>
                                     <td className="px-4 py-3 text-center text-gray-500">{req.items_count || 0}</td>
                                     <td className="px-4 py-3 text-right font-semibold text-gray-700">{totalQty}</td>
                                     <td className="px-4 py-3">
@@ -490,49 +547,90 @@ export default function BulkTransferRequestsTab() {
                             <div>
                                 <h3 className="text-base font-semibold text-gray-900">Create Bulk Transfer Request</h3>
                                 <p className="text-xs text-gray-400 mt-0.5">
-                                    {isShopOwnerFlow
-                                        ? "Request stock from a warehouse to your shop (destination is fixed to your shop)"
-                                        : "Warehouse → shop: add multiple variants in one request"}
+                                    {isWhBulkFlow
+                                        ? "Request stock from a peer warehouse to your warehouse"
+                                        : isShopOwnerFlow
+                                          ? "Request stock from a warehouse to your shop (destination fixed)"
+                                          : "Warehouse → shop: add multiple variants in one request"}
                                 </p>
                             </div>
                             <button onClick={() => dispatch(closeCreateModal())} className="text-gray-400 hover:text-gray-600 transition-colors"><X size={20} /></button>
                         </div>
                         <div className="p-6 space-y-4">
                             <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-xs text-gray-500 mb-1">Source Warehouse <span className="text-red-400">*</span></label>
-                                    <select 
-                                        value={createForm.from_warehouse_id} 
-                                        onChange={(e) => {
-                                            dispatch(updateCreateForm({ from_warehouse_id: e.target.value, items: [] }));
-                                            setCatalogSelection({});
-                                        }} 
-                                        className={inputCls("from_warehouse_id", createErrors)}
-                                    >
-                                        <option value="">Select warehouse</option>
-                                        {warehouses.map(w => <option key={w.warehouse_id} value={w.warehouse_id}>{w.warehouse_name} — {w.city}</option>)}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-xs text-gray-500 mb-1">Destination Shop <span className="text-red-400">*</span></label>
-                                    {isShopOwnerFlow ? (
-                                        <div className="w-full px-3 py-2 bg-gray-100 border border-gray-200 rounded-lg text-sm text-gray-700">
-                                            {myShopLabel || "Your shop"}
+                                {isWhBulkFlow ? (
+                                    <>
+                                        <div>
+                                            <label className="block text-xs text-gray-500 mb-1">Destination (your warehouse)</label>
+                                            <div className="w-full px-3 py-2 bg-gray-100 border border-gray-200 rounded-lg text-sm text-gray-700">
+                                                {myWarehouseLabel}
+                                            </div>
                                         </div>
-                                    ) : (
-                                        <select 
-                                            value={createForm.to_shop_id} 
-                                            onChange={(e) => dispatch(updateCreateForm({ to_shop_id: e.target.value }))} 
-                                            className={inputCls("to_shop_id", createErrors)}
-                                        >
-                                            <option value="">Select shop</option>
-                                            {shops.map(s => <option key={s.shop_id} value={s.shop_id}>{s.shop_name} — {s.city}</option>)}
-                                        </select>
-                                    )}
-                                </div>
+                                        <div>
+                                            <label className="block text-xs text-gray-500 mb-1">Source warehouse <span className="text-red-400">*</span></label>
+                                            <select
+                                                value={createForm.from_warehouse_id}
+                                                onChange={(e) => {
+                                                    dispatch(updateCreateForm({ from_warehouse_id: e.target.value, items: [] }));
+                                                    setCatalogSelection({});
+                                                }}
+                                                className={inputCls("from_warehouse_id", createErrors)}
+                                            >
+                                                <option value="">Select peer warehouse</option>
+                                                {peerWarehouses.map((w) => (
+                                                    <option key={w.warehouse_id} value={w.warehouse_id}>
+                                                        {w.warehouse_name} — {w.city}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div>
+                                            <label className="block text-xs text-gray-500 mb-1">Source Warehouse <span className="text-red-400">*</span></label>
+                                            <select
+                                                value={createForm.from_warehouse_id}
+                                                onChange={(e) => {
+                                                    dispatch(updateCreateForm({ from_warehouse_id: e.target.value, items: [] }));
+                                                    setCatalogSelection({});
+                                                }}
+                                                className={inputCls("from_warehouse_id", createErrors)}
+                                            >
+                                                <option value="">Select warehouse</option>
+                                                {warehouses.map((w) => (
+                                                    <option key={w.warehouse_id} value={w.warehouse_id}>
+                                                        {w.warehouse_name} — {w.city}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs text-gray-500 mb-1">Destination Shop <span className="text-red-400">*</span></label>
+                                            {isShopOwnerFlow ? (
+                                                <div className="w-full px-3 py-2 bg-gray-100 border border-gray-200 rounded-lg text-sm text-gray-700">
+                                                    {myShopLabel || "Your shop"}
+                                                </div>
+                                            ) : (
+                                                <select
+                                                    value={createForm.to_shop_id}
+                                                    onChange={(e) => dispatch(updateCreateForm({ to_shop_id: e.target.value }))}
+                                                    className={inputCls("to_shop_id", createErrors)}
+                                                >
+                                                    <option value="">Select shop</option>
+                                                    {shops.map((s) => (
+                                                        <option key={s.shop_id} value={s.shop_id}>
+                                                            {s.shop_name} — {s.city}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            )}
+                                        </div>
+                                    </>
+                                )}
                             </div>
                             
-                            {createForm.from_warehouse_id && catalogShopId && (
+                            {createForm.from_warehouse_id && (isWhBulkFlow ? userWarehouseId : catalogShopId) && (
                                 <div className="space-y-3">
                                     <div className="grid grid-cols-2 gap-3">
                                         <div>
@@ -562,7 +660,7 @@ export default function BulkTransferRequestsTab() {
                                         </div>
                                     </div>
                                     <VariantCatalogPicker
-                                        products={catalogData?.products || []}
+                                        products={catalogProducts}
                                         selection={catalogSelection}
                                         onSelectionChange={handleCatalogSelectionChange}
                                         onSelectAllProduct={handleSelectAllProduct}

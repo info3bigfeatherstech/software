@@ -45,10 +45,11 @@ export const bulkTransferApi = createApi({
 
         // GET /bulk-transfer-requests — list bulk requests
         getBulkTransferRequests: builder.query({
-            query: ({ page = 1, limit = 20, status = "", to_shop_id = "" }) => {
+            query: ({ page = 1, limit = 20, status = "", to_shop_id = "", to_warehouse_id = "" }) => {
                 const params = { page, limit };
                 if (status) params.status = status;
                 if (to_shop_id) params.to_shop_id = to_shop_id;
+                if (to_warehouse_id) params.to_warehouse_id = to_warehouse_id;
                 return { url: "/bulk-transfer-requests", method: "GET", params };
             },
             providesTags: (result) => {

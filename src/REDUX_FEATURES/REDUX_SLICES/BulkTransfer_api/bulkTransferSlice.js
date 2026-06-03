@@ -24,6 +24,7 @@ const initialState = {
     createForm: {
         from_warehouse_id: "",
         to_shop_id: "",
+        to_warehouse_id: "",
         request_remarks: "",
         items: [],
     },
@@ -80,6 +81,7 @@ const bulkTransferSlice = createSlice({
             const {
                 from_warehouse_id = "",
                 to_shop_id = "",
+                to_warehouse_id = "",
                 request_remarks = "",
                 items = [],
             } = action.payload || {};
@@ -87,6 +89,7 @@ const bulkTransferSlice = createSlice({
             state.createForm = {
                 from_warehouse_id,
                 to_shop_id,
+                to_warehouse_id,
                 request_remarks,
                 items,
             };

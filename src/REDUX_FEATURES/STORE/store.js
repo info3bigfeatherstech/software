@@ -35,6 +35,7 @@ import shopLevelsReducer from "../REDUX_SLICES/ShopLevels_api/shopLevelsSlice";
 import { bulkTransferApi } from "../REDUX_SLICES/BulkTransfer_api/bulkTransferApi";
 import bulkTransferReducer from "../REDUX_SLICES/BulkTransfer_api/bulkTransferSlice";
 import { shopWarehouseCatalogApi } from "../REDUX_SLICES/ShopWarehouseCatalog_api/shopWarehouseCatalogApi";
+import { warehousePeerCatalogApi } from "../REDUX_SLICES/WarehousePeerCatalog_api/warehousePeerCatalogApi";
 
 
 import { customerApi } from "../REDUX_SLICES/Customer_api/customerApi";
@@ -83,6 +84,7 @@ export const store = configureStore({
     bulkTransfer: bulkTransferReducer,
     [bulkTransferApi.reducerPath]: bulkTransferApi.reducer,
     [shopWarehouseCatalogApi.reducerPath]: shopWarehouseCatalogApi.reducer,
+    [warehousePeerCatalogApi.reducerPath]: warehousePeerCatalogApi.reducer,
 
     customer: customerReducer,
     [customerApi.reducerPath]: customerApi.reducer,
@@ -112,6 +114,7 @@ export const store = configureStore({
       shopLevelsApi.middleware,
       bulkTransferApi.middleware,
       shopWarehouseCatalogApi.middleware,
+      warehousePeerCatalogApi.middleware,
       transferApi.middleware,
       customerApi.middleware,
       billingApi.middleware,
