@@ -46,7 +46,7 @@ export const billingApi = createApi({
     endpoints: (builder) => ({
 
         // POST /bills — create new bill
-         // POST /bills — create new bill (UPDATED: accepts credit_note_ids)
+        // POST /bills — create new bill (UPDATED: accepts credit_note_ids)
         createBill: builder.mutation({
             query: ({ idempotencyKey, credit_note_ids = [], ...data }) => ({
                 url: "/bills",
@@ -132,6 +132,30 @@ export const billingApi = createApi({
             transformResponse: (response) => response.data,
         }),
 
+
+
+        // GET /bills/reports/daily — daily sales summary
+        getDailySummary: builder.query({
+            query: ({ shop_id, date }) => ({
+                url: `/bills/reports/daily`,
+                method: "GET",
+                params: { shop_id, date },
+            }),
+            transformResponse: (response) => response.data,
+        }),
+
+
+
+        // GET /bills/reports/gst — GST report by HSN
+        getGSTReport: builder.query({
+            query: ({ shop_id, from_date, to_date }) => ({
+                url: `/bills/reports/gst`,
+                method: "GET",
+                params: { shop_id, from_date, to_date },
+            }),
+            transformResponse: (response) => response.data,
+        }),
+
     }),
 });
 
@@ -142,4 +166,6 @@ export const {
     useLazyGetBillPdfQuery,
     useAddPaymentMutation,
     useCancelBillMutation,
+    useGetDailySummaryQuery,
+    useGetGSTReportQuery, 
 } = billingApi;

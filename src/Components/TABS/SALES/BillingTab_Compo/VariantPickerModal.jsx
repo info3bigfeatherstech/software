@@ -2,6 +2,7 @@
 //
 // Modal for selecting variant when product has multiple variants
 // UPDATED: Default price_type to "SPECIAL" to match backend
+// FIXED: Using special_price instead of retail_price
 
 import React from "react";
 import { useDispatch, useSelector } from "react-redux";
@@ -28,17 +29,17 @@ export default function VariantPickerModal() {
             product_name: product_name,
             system_barcode: variant.system_barcode,
             quantity: 1,
-            price_type: "SPECIAL",  // UPDATED: from "RETAIL" to "SPECIAL"
-            unit_price: toNumber(variant.retail_price),
-            retail_price: toNumber(variant.retail_price),
+            price_type: "SPECIAL",
+            unit_price: toNumber(variant.special_price),
+            retail_price: toNumber(variant.special_price),
             wholesale_price: toNumber(variant.wholesale_price),
-            special_price: toNumber(variant.retail_price),
+            special_price: toNumber(variant.special_price),
             mrp: toNumber(variant.mrp),
             online_price: toNumber(variant.online_price),
             gst_percent: toNumber(variant.gst_percent),
             quantity_available: variant.quantity_available || 999999,
-            line_total: toNumber(variant.retail_price),
-            gst_amount: (toNumber(variant.retail_price) * toNumber(variant.gst_percent)) / 100,
+            line_total: toNumber(variant.special_price),
+            gst_amount: (toNumber(variant.special_price) * toNumber(variant.gst_percent)) / 100,
         };
         dispatch(addToCart(cartItem));
         dispatch(closeVariantPicker());
@@ -76,7 +77,7 @@ export default function VariantPickerModal() {
                                     Barcode: {variant.system_barcode || "—"}
                                 </p>
                                 <p className="font-bold text-blue-600">
-                                    ₹{toNumber(variant.retail_price).toFixed(2)}
+                                    ₹{toNumber(variant.special_price).toFixed(2)}
                                 </p>
                             </div>
                         </button>
@@ -97,7 +98,6 @@ export default function VariantPickerModal() {
 </div>
     );
 }
-
 // down code is old use upper code have updated price handling 
 
 // // TABS/SALES/BillingTab_Compo/VariantPickerModal.jsx

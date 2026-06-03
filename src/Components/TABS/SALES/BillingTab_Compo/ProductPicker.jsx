@@ -1,10 +1,10 @@
-
 // TABS/SALES/BillingTab_Compo/ProductPicker.jsx
 //
 // Product grid for billing - shows products from shop-stocks API
 // Single variant → add directly, multiple variants → open picker
 // FIXED: Quantity increment on multiple scans, garbage barcode filtering
 // UPDATED: Default price_type to "SPECIAL" to match backend
+// FIXED: Using special_price instead of retail_price
 
 import React, { useState, useRef } from "react";
 import { useDispatch } from "react-redux";
@@ -73,23 +73,23 @@ export default function ProductPicker({ shop_id, cart = [] }) {
                     }));
                     toast.success(`${result.name} quantity increased to ${newQuantity}`);
                 } else {
-                    // Add new item to cart - UPDATED: default price_type to "SPECIAL"
+                    // Add new item to cart - UPDATED: using special_price
                     const cartItem = {
                         variant_id: result.variant_id,
                         product_name: result.name,
                         system_barcode: result.system_barcode || barcode,
                         quantity: 1,
-                        price_type: "SPECIAL",  // UPDATED: from "RETAIL" to "SPECIAL"
-                        unit_price: toNumber(result.retail_price),
-                        retail_price: toNumber(result.retail_price),
+                        price_type: "SPECIAL",
+                        unit_price: toNumber(result.special_price),
+                        retail_price: toNumber(result.special_price),
                         wholesale_price: toNumber(result.wholesale_price),
-                        special_price: toNumber(result.retail_price),
+                        special_price: toNumber(result.special_price),
                         mrp: toNumber(result.mrp),
                         online_price: toNumber(result.online_price),
                         gst_percent: toNumber(result.gst_percent),
                         quantity_available: 999999,
-                        line_total: toNumber(result.retail_price),
-                        gst_amount: (toNumber(result.retail_price) * toNumber(result.gst_percent)) / 100,
+                        line_total: toNumber(result.special_price),
+                        gst_amount: (toNumber(result.special_price) * toNumber(result.gst_percent)) / 100,
                     };
                     dispatch(addToCart(cartItem));
                     toast.success(`${result.name} added to cart`);
@@ -129,23 +129,23 @@ export default function ProductPicker({ shop_id, cart = [] }) {
             }));
             toast.success(`${product?.name} quantity increased to ${newQuantity}`);
         } else {
-            // Add new item - UPDATED: default price_type to "SPECIAL"
+            // Add new item - UPDATED: using special_price
             const cartItem = {
                 variant_id: variant.variant_id,
                 product_name: product?.name || "Unknown",
                 system_barcode: variant.system_barcode,
                 quantity: 1,
-                price_type: "SPECIAL",  // UPDATED: from "RETAIL" to "SPECIAL"
-                unit_price: toNumber(variant.retail_price),
-                retail_price: toNumber(variant.retail_price),
+                price_type: "SPECIAL",
+                unit_price: toNumber(variant.special_price),
+                retail_price: toNumber(variant.special_price),
                 wholesale_price: toNumber(variant.wholesale_price),
-                special_price: toNumber(variant.retail_price),
+                special_price: toNumber(variant.special_price),
                 mrp: toNumber(variant.mrp),
                 online_price: toNumber(variant.online_price),
                 gst_percent: toNumber(variant.gst_percent),
                 quantity_available: toNumber(stock.quantity_available),
-                line_total: toNumber(variant.retail_price),
-                gst_amount: (toNumber(variant.retail_price) * toNumber(variant.gst_percent)) / 100,
+                line_total: toNumber(variant.special_price),
+                gst_amount: (toNumber(variant.special_price) * toNumber(variant.gst_percent)) / 100,
             };
             dispatch(addToCart(cartItem));
             toast.success(`${product?.name} added to cart`);
@@ -225,7 +225,7 @@ export default function ProductPicker({ shop_id, cart = [] }) {
                                             {variant?.system_barcode?.slice(-6) || "—"}
                                         </p>
                                         <p className="font-bold text-blue-600">
-                                            ₹{toNumber(variant.retail_price).toFixed(2)}
+                                            ₹{toNumber(variant.special_price).toFixed(2)}
                                         </p>
                                     </div>
                                     <span

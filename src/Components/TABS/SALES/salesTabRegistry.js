@@ -6,6 +6,7 @@ const BillingTab    = lazy(() => import("./BillingTab"));
 const InvoicesTab   = lazy(() => import("./InvoicesTab"));
 const CustomersTab  = lazy(() => import("./CustomersTab"));
 const CreditNotesTab = lazy(() => import("./CreditNotesTab"));
+const ShopReportTab = lazy(() => import("./ShopReportTab/ShopReportTab"));
 
 export const SALES_TAB_REGISTRY = [
     {
@@ -25,5 +26,11 @@ export const SALES_TAB_REGISTRY = [
         label: "Returns / Credit Notes",
         icon: "M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6",
         component: CreditNotesTab,
+    },
+    {
+        id: "shopreports",
+        label: "Shop Reports",
+        icon: "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z",
+        component: ShopReportTab,
     },
 ];
