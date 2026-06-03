@@ -2,7 +2,6 @@
 import React, { useState } from "react";
 import { useSelector } from "react-redux";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { DASHBOARD_STATS, MONTHLY_SALES } from "../demoData";
 import { CURRENT_USER, filterByLocation, isAdmin } from "../roles";
 import { useGetProductStocksQuery } from "../../REDUX_FEATURES/REDUX_SLICES/Stock_api/stockApi";
 import { useGetShopsQuery } from "../../REDUX_FEATURES/REDUX_SLICES/Shop_api/shopApi";
@@ -53,9 +52,6 @@ export default function ContentDashboardTab() {
     const shops = shopsData?.shops || [];
 
     // ── Scope products to user's location ──────────────────────────────────────
-    // const scopedProducts = filterByLocation(allProducts, 'warehouse_id');
-    // For SHOP_OWNER, show all products (no warehouse filter)
-    // For WH roles, filter by warehouse_id
     const scopedProducts = user?.role === "SHOP_OWNER" || user?.role === "SHOP_STOCK_LISTER"
         ? allProducts
         : filterByLocation(allProducts, 'warehouse_id');
@@ -70,24 +66,22 @@ export default function ContentDashboardTab() {
     const outOfStock = filteredProducts.filter(p => p.stock === 0);
     const totalInventoryValue = filteredProducts.reduce((s, p) => s + ((p.stock || 0) * (p.mrp || 0)), 0);
 
-    // Chart data from demo (no API yet)
-    const chartData = MONTHLY_SALES.map(m => ({
-        month: m.month,
-        Sales: m.sales,
-        Purchase: m.purchase || Math.round(m.sales * 0.65),
-        Profit: m.profit || Math.round(m.sales * 0.28),
-    }));
+    // ── Empty chart data (replacing demo data) ─────────────────────────────────
+    const chartData = [
+        { month: "Jan", Sales: 0, Purchase: 0, Profit: 0 },
+        { month: "Feb", Sales: 0, Purchase: 0, Profit: 0 },
+        { month: "Mar", Sales: 0, Purchase: 0, Profit: 0 },
+        { month: "Apr", Sales: 0, Purchase: 0, Profit: 0 },
+        { month: "May", Sales: 0, Purchase: 0, Profit: 0 },
+        { month: "Jun", Sales: 0, Purchase: 0, Profit: 0 },
+    ];
 
     // Location label for display
-    // const locationLabel = isAdmin()
-    //     ? "All Locations"
-    //     : `${CURRENT_USER.locationName || CURRENT_USER.locationId?.startsWith("WH") ? "Warehouse" : "Shop"}: ${CURRENT_USER.locationName || CURRENT_USER.locationId}`;
-    // Location label for display
-const locationLabel = isAdmin()
-    ? "All Locations"
-    : user?.role === "SHOP_OWNER" || user?.role === "SHOP_STOCK_LISTER"
-        ? `Shop: ${CURRENT_USER.locationName || CURRENT_USER.shop_id}`
-        : `Warehouse: ${CURRENT_USER.locationName || CURRENT_USER.locationId}`;
+    const locationLabel = isAdmin()
+        ? "All Locations"
+        : user?.role === "SHOP_OWNER" || user?.role === "SHOP_STOCK_LISTER"
+            ? `Shop: ${CURRENT_USER.locationName || CURRENT_USER.shop_id}`
+            : `Warehouse: ${CURRENT_USER.locationName || CURRENT_USER.locationId}`;
 
     return (
         <div className="space-y-6">
@@ -117,7 +111,6 @@ const locationLabel = isAdmin()
                                     🏪 {s.shop_name} (Shop)
                                 </option>
                             ))}
-                            {/* Add warehouses here when warehouse API is ready */}
                         </select>
                     </div>
                 )}
@@ -169,7 +162,7 @@ const locationLabel = isAdmin()
                 <StatCard
                     label={isAdmin() ? "Total Locations" : "Your Location"}
                     value={isAdmin() ? shops.length : "1"}
-                    sub={isAdmin() ? `${DASHBOARD_STATS?.totalSuppliers || 0} vendors` : CURRENT_USER.locationName || CURRENT_USER.locationId}
+                    sub={isAdmin() ? `${shops.length} shops` : CURRENT_USER.locationName || CURRENT_USER.locationId}
                 />
             </div>
 
@@ -178,7 +171,7 @@ const locationLabel = isAdmin()
                 <div className="col-span-2 bg-white rounded-xl border border-gray-100 shadow-sm p-5">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="font-semibold text-gray-700 text-sm">Monthly Sales vs Purchase vs Profit</h3>
-                        <span className="text-xs text-gray-400">Last 6 months (demo data)</span>
+                        <span className="text-xs text-gray-400">Last 6 months (data loading...)</span>
                     </div>
                     <ResponsiveContainer width="100%" height={220}>
                         <BarChart data={chartData} margin={{ top: 0, right: 10, left: -10, bottom: 0 }}>
@@ -192,6 +185,7 @@ const locationLabel = isAdmin()
                             <Bar dataKey="Profit" fill="#8b5cf6" radius={[3, 3, 0, 0]} maxBarSize={28} />
                         </BarChart>
                     </ResponsiveContainer>
+                    <p className="text-center text-xs text-gray-400 mt-3">Real sales data will appear here once billing is active</p>
                 </div>
 
                 {/* NetworkStockPanel — stock-only, visible to ALL roles */}
