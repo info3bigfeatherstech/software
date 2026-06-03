@@ -12,6 +12,8 @@ import {
     updatePriceType,
     removeFromCart,
 } from "../../../../REDUX_FEATURES/REDUX_SLICES/Billing_api/billingSlice";
+import { formatGstPercentLabel } from "../../../../utils/billingCart.utils";
+import { isWithGstBill } from "../../../../constants/billingBillTypes";
 
 const toNumber = (value, defaultValue = 0) => {
     const num = Number(value);
@@ -21,6 +23,7 @@ const toNumber = (value, defaultValue = 0) => {
 export default function CartPanel() {
     const dispatch = useDispatch();
     const { cart, billType } = useSelector((state) => state.billing);
+    const withGst = isWithGstBill(billType);
 
     const handleQuantityChange = (variantId, newQty) => {
         const qty = toNumber(newQty);
@@ -76,8 +79,15 @@ export default function CartPanel() {
                                         <option value="MRP">MRP (₹{toNumber(item.mrp).toFixed(2)})</option>
                                         <option value="ONLINE">Online (₹{toNumber(item.online_price).toFixed(2)})</option>
                                     </select>
-                                    {billType === "GST_INVOICE" && (
-                                        <span className="text-[10px] text-gray-400">GST: {item.gst_percent}%</span>
+                                    {formatGstPercentLabel(item.gst_percent) ? (
+                                        <span className="text-[10px] font-medium text-indigo-700">
+                                            {item.gst_type === "IGST" ? "IGST" : item.gst_type === "EXEMPT" ? "Exempt" : "CGST+SGST"}{" "}
+                                            {formatGstPercentLabel(item.gst_percent)}
+                                        </span>
+                                    ) : (
+                                        <span className="text-[10px] text-amber-700" title="Set GST % in product master">
+                                            GST not set
+                                        </span>
                                     )}
                                 </div>
                             </td>
@@ -104,8 +114,18 @@ export default function CartPanel() {
                                 </div>
                             </td>
                             <td className="px-3 py-3 text-right">
-                                <p className="font-bold text-gray-800">₹{toNumber(item.line_total).toFixed(2)}</p>
-                                <p className="text-[10px] text-gray-400">@ ₹{toNumber(item.unit_price).toFixed(2)}</p>
+                                <p className="font-bold text-gray-800">
+                                    ₹{toNumber(
+                                        withGst
+                                            ? item.line_total + (item.gst_amount || 0)
+                                            : item.line_total
+                                    ).toFixed(2)}
+                                </p>
+                                <p className="text-[10px] text-gray-400">
+                                    @ ₹{toNumber(item.unit_price).toFixed(2)}
+                                    {withGst && (item.gst_amount || 0) > 0 &&
+                                        ` + GST ₹${toNumber(item.gst_amount).toFixed(2)}`}
+                                </p>
                             </td>
                             <td className="px-2 py-3 text-center">
                                 <button

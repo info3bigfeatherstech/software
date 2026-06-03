@@ -9,11 +9,11 @@ import { useDispatch, useSelector } from "react-redux";
 import { X } from "lucide-react";
 import { addToCart, closeVariantPicker } from "../../../../REDUX_FEATURES/REDUX_SLICES/Billing_api/billingSlice";
 import { toast } from "react-toastify";
-
-const toNumber = (value, defaultValue = 0) => {
-    const num = Number(value);
-    return isNaN(num) ? defaultValue : num;
-};
+import {
+    buildBillingCartItem,
+    formatGstPercentLabel,
+    toBillingNumber,
+} from "../../../../utils/billingCart.utils";
 
 export default function VariantPickerModal() {
     const dispatch = useDispatch();
@@ -24,23 +24,19 @@ export default function VariantPickerModal() {
     const { product_name, variants } = variantPickerTarget;
 
     const handleSelectVariant = (variant) => {
-        const cartItem = {
+        const cartItem = buildBillingCartItem({
             variant_id: variant.variant_id,
-            product_name: product_name,
+            product_name,
             system_barcode: variant.system_barcode,
-            quantity: 1,
-            price_type: "SPECIAL",
-            unit_price: toNumber(variant.special_price),
-            retail_price: toNumber(variant.special_price),
-            wholesale_price: toNumber(variant.wholesale_price),
-            special_price: toNumber(variant.special_price),
-            mrp: toNumber(variant.mrp),
-            online_price: toNumber(variant.online_price),
-            gst_percent: toNumber(variant.gst_percent),
+            special_price: variant.special_price,
+            wholesale_price: variant.wholesale_price,
+            mrp: variant.mrp,
+            online_price: variant.online_price,
+            retail_price: variant.special_price,
+            gst_percent: variant.gst_percent,
+            gst_type: variant.gst_type || "CGST_SGST",
             quantity_available: variant.quantity_available || 999999,
-            line_total: toNumber(variant.special_price),
-            gst_amount: (toNumber(variant.special_price) * toNumber(variant.gst_percent)) / 100,
-        };
+        });
         dispatch(addToCart(cartItem));
         dispatch(closeVariantPicker());
         toast.success(`${variant.sku || variant.system_barcode} added to cart`);
@@ -75,9 +71,14 @@ export default function VariantPickerModal() {
                             <div className="flex justify-between items-center mt-1">
                                 <p className="text-xs text-gray-500 font-mono">
                                     Barcode: {variant.system_barcode || "—"}
+                                    {formatGstPercentLabel(variant.gst_percent) && (
+                                        <span className="ml-2 text-indigo-600 font-sans">
+                                            GST {formatGstPercentLabel(variant.gst_percent)}
+                                        </span>
+                                    )}
                                 </p>
                                 <p className="font-bold text-blue-600">
-                                    ₹{toNumber(variant.special_price).toFixed(2)}
+                                    ₹{toBillingNumber(variant.special_price).toFixed(2)}
                                 </p>
                             </div>
                         </button>

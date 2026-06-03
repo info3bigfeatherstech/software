@@ -12,6 +12,7 @@ import {
     setSelectedCustomer,
     setCustomerMobileInput,
 } from "../../../../REDUX_FEATURES/REDUX_SLICES/Billing_api/billingSlice";
+import { INDIAN_GST_STATE_CODES } from "../../../../constants/indianStateCodes";
 
 export default function CreateCustomerModal() {
     const dispatch = useDispatch();
@@ -191,14 +192,17 @@ export default function CreateCustomerModal() {
 
                     <div className="grid grid-cols-2 gap-3">
                         <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">State Code (Optional)</label>
-                            <input
-                                type="text"
+                            <label className="block text-xs font-medium text-gray-700 mb-1">State (for GST supply)</label>
+                            <select
                                 value={formData.state_code}
                                 onChange={(e) => handleChange("state_code", e.target.value)}
-                                placeholder="e.g., 07"
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                            />
+                            >
+                                <option value="">Select state</option>
+                                {INDIAN_GST_STATE_CODES.map((s) => (
+                                    <option key={s.code} value={s.code}>{s.name} ({s.code})</option>
+                                ))}
+                            </select>
                         </div>
                         <div>
                             <label className="block text-xs font-medium text-gray-700 mb-1">Remarks (Optional)</label>

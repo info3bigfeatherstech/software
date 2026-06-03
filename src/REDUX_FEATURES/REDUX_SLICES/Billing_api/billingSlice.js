@@ -5,14 +5,19 @@
 // UPDATED: Bill type values to match backend enum (GST_INVOICE | NON_GST_INVOICE)
 
 import { createSlice } from "@reduxjs/toolkit";
+import { aggregateCartTax } from "../../../utils/billingTax";
+import { BILL_TYPES } from "../../../constants/billingBillTypes";
+import { calculateGstOnAmount } from "../../../utils/billingCart.utils";
 
 // Helper: calculate line total
 const calculateLineTotal = (unit_price, quantity) => unit_price * quantity;
 
-// Helper: calculate GST for an item (0 if billType is NON_GST_INVOICE)
-const calculateItemGst = (lineTotal, gstPercent, billType) => {
-    if (billType !== "GST_INVOICE") return 0;
-    return (lineTotal * gstPercent) / 100;
+const applyLineGst = (item, billType) => {
+    if (billType !== BILL_TYPES.WITH_GST || item.gst_type === "EXEMPT") {
+        item.gst_amount = 0;
+        return;
+    }
+    item.gst_amount = calculateGstOnAmount(item.line_total, item.gst_percent);
 };
 
 const initialState = {
@@ -23,10 +28,11 @@ const initialState = {
     selectedCustomer: null,
     customerMobileInput: "",
 
-    // Bill settings - UPDATED: "NON_GST_INVOICE" instead of "ESTIMATE"
-    billType: "GST_INVOICE",     // "GST_INVOICE" | "NON_GST_INVOICE"
-    paymentMethod: "CASH",       // "CASH" | "UPI" | "CARD"
+    billType: BILL_TYPES.WITHOUT_GST,
+    paymentMethod: "CASH",
     salesChannel: "WALK_IN",
+
+    shopName: "",
 
     // UI state
     showVariantPicker: false,
@@ -54,14 +60,14 @@ const billingSlice = createSlice({
             if (existing) {
                 existing.quantity += 1;
                 existing.line_total = calculateLineTotal(existing.unit_price, existing.quantity);
-                existing.gst_amount = calculateItemGst(existing.line_total, existing.gst_percent, state.billType);
+                applyLineGst(existing, state.billType);
             } else {
-                state.cart.push({
+                const newItem = {
                     variant_id: variant.variant_id,
                     product_name: variant.product_name,
                     system_barcode: variant.system_barcode,
                     quantity: 1,
-                    price_type: variant.price_type || "SPECIAL", // UPDATED: default to SPECIAL
+                    price_type: variant.price_type || "SPECIAL",
                     unit_price: variant.unit_price,
                     retail_price: variant.retail_price,
                     wholesale_price: variant.wholesale_price,
@@ -69,10 +75,13 @@ const billingSlice = createSlice({
                     mrp: variant.mrp,
                     online_price: variant.online_price,
                     gst_percent: variant.gst_percent,
+                    gst_type: variant.gst_type || "CGST_SGST",
                     quantity_available: variant.quantity_available,
                     line_total: variant.unit_price,
-                    gst_amount: calculateItemGst(variant.unit_price, variant.gst_percent, state.billType),
-                });
+                    gst_amount: 0,
+                };
+                applyLineGst(newItem, state.billType);
+                state.cart.push(newItem);
             }
         },
 
@@ -91,7 +100,7 @@ const billingSlice = createSlice({
                 } else if (newQty <= item.quantity_available) {
                     item.quantity = newQty;
                     item.line_total = calculateLineTotal(item.unit_price, item.quantity);
-                    item.gst_amount = calculateItemGst(item.line_total, item.gst_percent, state.billType);
+                    applyLineGst(item, state.billType);
                 }
             }
         },
@@ -123,12 +132,17 @@ const billingSlice = createSlice({
                 item.price_type = price_type;
                 item.unit_price = newPrice;
                 item.line_total = calculateLineTotal(item.unit_price, item.quantity);
-                item.gst_amount = calculateItemGst(item.line_total, item.gst_percent, state.billType);
+                applyLineGst(item, state.billType);
             }
         },
 
         clearCart: (state) => {
             state.cart = [];
+        },
+
+        /** Re-apply GST math on all lines (e.g. after formula fix or page reload). */
+        recalculateCartGst: (state) => {
+            state.cart.forEach((item) => applyLineGst(item, state.billType));
         },
 
         // ── Customer Actions ─────────────────────────────────────────
@@ -155,10 +169,11 @@ const billingSlice = createSlice({
         // ── Bill Settings ────────────────────────────────────────────
         setBillType: (state, action) => {
             state.billType = action.payload;
-            // Recalculate GST for all items when bill type changes
-            state.cart.forEach(item => {
-                item.gst_amount = calculateItemGst(item.line_total, item.gst_percent, state.billType);
-            });
+            state.cart.forEach((item) => applyLineGst(item, state.billType));
+        },
+
+        setBillingShopContext: (state, action) => {
+            state.shopName = action.payload?.shop_name || "";
         },
 
         setPaymentMethod: (state, action) => {
@@ -200,7 +215,7 @@ export const selectCartSubtotal = (state) => {
 };
 
 export const selectCartGst = (state) => {
-    if (state.billing.billType !== "GST_INVOICE") return 0;
+    if (state.billing.billType !== BILL_TYPES.WITH_GST) return 0;
     return state.billing.cart.reduce((sum, item) => sum + (item.gst_amount || 0), 0);
 };
 
@@ -212,16 +227,23 @@ export const selectCartItemCount = (state) => {
     return state.billing.cart.reduce((sum, item) => sum + item.quantity, 0);
 };
 
+export const selectCartTaxSummary = (state) => {
+    const { cart, billType } = state.billing;
+    return aggregateCartTax(cart, billType);
+};
+
 export const {
     addToCart,
     removeFromCart,
     updateCartQty,
     updatePriceType,
     clearCart,
+    recalculateCartGst,
     setSelectedCustomer,
     clearSelectedCustomer,
     setCustomerMobileInput,
     setBillType,
+    setBillingShopContext,
     setPaymentMethod,
     openVariantPicker,
     closeVariantPicker,

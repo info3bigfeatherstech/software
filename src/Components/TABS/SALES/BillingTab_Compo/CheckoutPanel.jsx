@@ -21,7 +21,14 @@ import {
     setLastCreatedBill,
     clearLastCreatedBill,
 } from "../../../../REDUX_FEATURES/REDUX_SLICES/Billing_api/billingSlice";
-import { selectCartSubtotal, selectCartGst, selectCartTotal, selectCartItemCount } from "../../../../REDUX_FEATURES/REDUX_SLICES/Billing_api/billingSlice";
+import {
+    selectCartSubtotal,
+    selectCartTotal,
+    selectCartItemCount,
+    selectCartTaxSummary,
+} from "../../../../REDUX_FEATURES/REDUX_SLICES/Billing_api/billingSlice";
+import { getStateName } from "../../../../constants/indianStateCodes";
+import { BILL_TYPES, getBillTypeLabel, isWithGstBill } from "../../../../constants/billingBillTypes";
 
 const toNumber = (value, defaultValue = 0) => {
     const num = Number(value);
@@ -60,7 +67,20 @@ const BillViewModal = ({ bill, onClose }) => {
                 <div className="p-6 space-y-4">
                     <div className="grid grid-cols-2 gap-4 bg-gray-50 rounded-lg p-3 text-sm">
                         <div><p className="text-xs text-gray-500">Bill Date</p><p className="font-medium text-gray-800">{fmtDateTime(bill.created_at)}</p></div>
-                        <div><p className="text-xs text-gray-500">Bill Type</p><p className="font-medium text-gray-800">{bill.bill_type?.replace(/_/g, " ")}</p></div>
+                        <div>
+                            <p className="text-xs text-gray-500">Bill Type</p>
+                            <p className="font-medium text-gray-800">
+                                {getBillTypeLabel(bill.bill_type)}
+                            </p>
+                        </div>
+                        {bill.place_of_supply_state_code && (
+                            <div>
+                                <p className="text-xs text-gray-500">Place of Supply</p>
+                                <p className="font-medium text-gray-800">
+                                    {getStateName(bill.place_of_supply_state_code)} ({bill.place_of_supply_state_code})
+                                </p>
+                            </div>
+                        )}
                         <div><p className="text-xs text-gray-500">Payment Status</p><span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${bill.payment_status === "PAID" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}`}>{bill.payment_status || "PENDING"}</span></div>
                         <div><p className="text-xs text-gray-500">Customer</p><p className="font-medium text-gray-800">{bill.customer_name || "Walk-in Customer"}</p></div>
                     </div>
@@ -77,6 +97,15 @@ const BillViewModal = ({ bill, onClose }) => {
                                 <tfoot className="bg-gray-50">
                                     <tr><td colSpan="3" className="px-3 py-2 text-right font-semibold">Subtotal:</td><td className="px-3 py-2 text-right">₹{toNumber(bill.subtotal).toFixed(2)}</td></tr>
                                     <tr><td colSpan="3" className="px-3 py-2 text-right font-semibold">GST:</td><td className="px-3 py-2 text-right">₹{toNumber(bill.gst_amount).toFixed(2)}</td></tr>
+                                    {bill.tax_summary?.cgst > 0 && (
+                                        <tr><td colSpan="3" className="px-3 py-2 text-right text-xs text-gray-500">CGST:</td><td className="px-3 py-2 text-right text-xs">₹{toNumber(bill.tax_summary.cgst).toFixed(2)}</td></tr>
+                                    )}
+                                    {bill.tax_summary?.sgst > 0 && (
+                                        <tr><td colSpan="3" className="px-3 py-2 text-right text-xs text-gray-500">SGST:</td><td className="px-3 py-2 text-right text-xs">₹{toNumber(bill.tax_summary.sgst).toFixed(2)}</td></tr>
+                                    )}
+                                    {bill.tax_summary?.igst > 0 && (
+                                        <tr><td colSpan="3" className="px-3 py-2 text-right text-xs text-gray-500">IGST:</td><td className="px-3 py-2 text-right text-xs">₹{toNumber(bill.tax_summary.igst).toFixed(2)}</td></tr>
+                                    )}
                                     {bill.credit_applied > 0 && <tr><td colSpan="3" className="px-3 py-2 text-right font-semibold text-green-600">Credit Applied:</td><td className="px-3 py-2 text-right text-green-600">-₹{toNumber(bill.credit_applied).toFixed(2)}</td></tr>}
                                     <tr className="border-t border-gray-200"><td colSpan="3" className="px-3 py-2 text-right font-bold text-lg">Total:</td><td className="px-3 py-2 text-right font-bold text-lg text-blue-600">₹{toNumber(bill.total_amount).toFixed(2)}</td></tr>
                                 </tfoot>
@@ -99,11 +128,18 @@ const BillViewModal = ({ bill, onClose }) => {
 
 export default function CheckoutPanel({ shop_id }) {
     const dispatch = useDispatch();
-    const { cart, selectedCustomer, customerMobileInput, billType, paymentMethod, lastCreatedBill } = useSelector((state) => state.billing);
+    const {
+        cart,
+        selectedCustomer,
+        customerMobileInput,
+        billType,
+        paymentMethod,
+        lastCreatedBill,
+    } = useSelector((state) => state.billing);
     const subtotal = useSelector(selectCartSubtotal);
-    const gstAmount = useSelector(selectCartGst);
     const total = useSelector(selectCartTotal);
     const itemCount = useSelector(selectCartItemCount);
+    const taxSummary = useSelector(selectCartTaxSummary);
 
     const [createBill, { isLoading: isCreating }] = useCreateBillMutation();
     const [triggerPdf, { isLoading: isPdfLoading }] = useLazyGetBillPdfQuery();
@@ -228,6 +264,11 @@ export default function CheckoutPanel({ shop_id }) {
         } else {
             payload.customer_name = customerMobileInput ? customerMobileInput : "Walk-in Customer";
             if (customerMobileInput) payload.customer_mobile = customerMobileInput;
+        }
+
+        const payable = Math.max(0, total - totalSelectedCredit);
+        if (payable > 0 && paymentMethod) {
+            payload.payment_amount = payable;
         }
 
         try {
@@ -415,36 +456,85 @@ export default function CheckoutPanel({ shop_id }) {
                 </div>
             )}
 
-            {/* Bill Type Toggle - UPDATED: "NON_GST_INVOICE" instead of "ESTIMATE" */}
-            <div className="flex gap-2 mb-3">
-                <button
-                    onClick={() => dispatch(setBillType("NON_GST_INVOICE"))}
-                    className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all ${
-                        billType === "NON_GST_INVOICE"
-                            ? "bg-gray-800 text-white"
-                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                    }`}
-                >
-                    📄 Non-GST Invoice
-                </button>
-                <button
-                    onClick={() => dispatch(setBillType("GST_INVOICE"))}
-                    className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all ${
-                        billType === "GST_INVOICE"
-                            ? "bg-blue-600 text-white"
-                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                    }`}
-                >
-                    🧾 GST Invoice
-                </button>
+            <div className="mb-3">
+                <p className="text-xs font-semibold text-gray-600 mb-2">Bill type</p>
+                <div className="flex gap-2">
+                    <button
+                        type="button"
+                        onClick={() => dispatch(setBillType(BILL_TYPES.WITHOUT_GST))}
+                        className={`flex-1 py-2.5 px-2 text-xs font-semibold rounded-lg border transition-all text-left ${
+                            billType === BILL_TYPES.WITHOUT_GST
+                                ? "bg-gray-800 text-white border-gray-800"
+                                : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+                        }`}
+                    >
+                        <span className="block">Without GST</span>
+                        <span className={`block text-[10px] font-normal mt-0.5 ${billType === BILL_TYPES.WITHOUT_GST ? "text-gray-300" : "text-gray-400"}`}>
+                            Sirf product prices — bill par koi GST nahi
+                        </span>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => dispatch(setBillType(BILL_TYPES.WITH_GST))}
+                        className={`flex-1 py-2.5 px-2 text-xs font-semibold rounded-lg border transition-all text-left ${
+                            billType === BILL_TYPES.WITH_GST
+                                ? "bg-blue-600 text-white border-blue-600"
+                                : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+                        }`}
+                    >
+                        <span className="block">With GST</span>
+                        <span className={`block text-[10px] font-normal mt-0.5 ${billType === BILL_TYPES.WITH_GST ? "text-blue-100" : "text-gray-400"}`}>
+                            Product listing GST + tax invoice (CGST/SGST ya IGST)
+                        </span>
+                    </button>
+                </div>
             </div>
 
-            {/* Totals */}
             <div className="space-y-1 mb-3">
-                <div className="flex justify-between text-sm"><span className="text-gray-500">Subtotal ({itemCount} items):</span><span className="font-medium text-gray-800">₹{toNumber(subtotal).toFixed(2)}</span></div>
-                {billType === "GST_INVOICE" && (<div className="flex justify-between text-sm"><span className="text-gray-500">Total GST:</span><span className="font-medium text-gray-800">₹{toNumber(gstAmount).toFixed(2)}</span></div>)}
-                {totalSelectedCredit > 0 && (<div className="flex justify-between text-sm text-green-600"><span>Credit Applied:</span><span>-₹{totalSelectedCredit.toFixed(2)}</span></div>)}
-                <div className="flex justify-between items-center pt-2"><span className="text-lg font-bold text-gray-800">NET PAYABLE:</span><span className="text-2xl font-black text-blue-600">₹{finalPayable.toFixed(2)}</span></div>
+                <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">
+                        {isWithGstBill(billType) ? `Subtotal (${itemCount} items):` : `Total (${itemCount} items):`}
+                    </span>
+                    <span className="font-medium text-gray-800">₹{toNumber(subtotal).toFixed(2)}</span>
+                </div>
+                {isWithGstBill(billType) && taxSummary.gst_amount > 0 && (
+                    <div className="flex justify-between text-sm">
+                        <span className="text-gray-500">GST:</span>
+                        <span className="font-medium text-gray-800">₹{toNumber(taxSummary.gst_amount).toFixed(2)}</span>
+                    </div>
+                )}
+                {isWithGstBill(billType) && taxSummary.gst_amount > 0 && (
+                    <>
+                        {taxSummary.cgst > 0 && (
+                            <div className="flex justify-between text-xs text-gray-500 pl-2">
+                                <span>CGST</span>
+                                <span>₹{toNumber(taxSummary.cgst).toFixed(2)}</span>
+                            </div>
+                        )}
+                        {taxSummary.sgst > 0 && (
+                            <div className="flex justify-between text-xs text-gray-500 pl-2">
+                                <span>SGST</span>
+                                <span>₹{toNumber(taxSummary.sgst).toFixed(2)}</span>
+                            </div>
+                        )}
+                        {taxSummary.igst > 0 && (
+                            <div className="flex justify-between text-xs text-gray-500 pl-2">
+                                <span>IGST</span>
+                                <span>₹{toNumber(taxSummary.igst).toFixed(2)}</span>
+                            </div>
+                        )}
+                    </>
+                )}
+                {totalSelectedCredit > 0 && (
+                    <div className="flex justify-between text-sm text-green-600">
+                        <span>Credit Applied:</span>
+                        <span>-₹{totalSelectedCredit.toFixed(2)}</span>
+                    </div>
+                )}
+                <div className="flex justify-between items-center pt-2 border-t border-gray-100">
+                    <span className="text-lg font-bold text-gray-800">NET PAYABLE:</span>
+                    <span className="text-2xl font-black text-blue-600">₹{finalPayable.toFixed(2)}</span>
+                </div>
             </div>
 
             {/* Payment Method */}

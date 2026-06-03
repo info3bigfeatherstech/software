@@ -13,11 +13,13 @@ import { addToCart, updateCartQty } from "../../../../REDUX_FEATURES/REDUX_SLICE
 import BarcodeScanner from "./BarcodeScanner";
 import { useLazyGetProductByBarcodeQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/Product_api/productApi";
 import { toast } from "react-toastify";
-
-const toNumber = (value, defaultValue = 0) => {
-    const num = Number(value);
-    return isNaN(num) ? defaultValue : num;
-};
+import {
+    buildBillingCartItem,
+    formatGstPercentLabel,
+    resolveProductGstPercent,
+    resolveProductGstType,
+    toBillingNumber,
+} from "../../../../utils/billingCart.utils";
 
 // Valid barcode pattern: alphanumeric, dash, underscore, min 3 chars
 const isValidBarcode = (barcode) => {
@@ -73,24 +75,19 @@ export default function ProductPicker({ shop_id, cart = [] }) {
                     }));
                     toast.success(`${result.name} quantity increased to ${newQuantity}`);
                 } else {
-                    // Add new item to cart - UPDATED: using special_price
-                    const cartItem = {
+                    const cartItem = buildBillingCartItem({
                         variant_id: result.variant_id,
                         product_name: result.name,
                         system_barcode: result.system_barcode || barcode,
-                        quantity: 1,
-                        price_type: "SPECIAL",
-                        unit_price: toNumber(result.special_price),
-                        retail_price: toNumber(result.special_price),
-                        wholesale_price: toNumber(result.wholesale_price),
-                        special_price: toNumber(result.special_price),
-                        mrp: toNumber(result.mrp),
-                        online_price: toNumber(result.online_price),
-                        gst_percent: toNumber(result.gst_percent),
-                        quantity_available: 999999,
-                        line_total: toNumber(result.special_price),
-                        gst_amount: (toNumber(result.special_price) * toNumber(result.gst_percent)) / 100,
-                    };
+                        special_price: result.special_price,
+                        wholesale_price: result.wholesale_price,
+                        mrp: result.mrp,
+                        online_price: result.online_price,
+                        retail_price: result.special_price,
+                        gst_percent: result.gst_percent,
+                        gst_type: result.gst_type,
+                        quantity_available: result.stock_available ?? 999999,
+                    });
                     dispatch(addToCart(cartItem));
                     toast.success(`${result.name} added to cart`);
                 }
@@ -129,24 +126,19 @@ export default function ProductPicker({ shop_id, cart = [] }) {
             }));
             toast.success(`${product?.name} quantity increased to ${newQuantity}`);
         } else {
-            // Add new item - UPDATED: using special_price
-            const cartItem = {
+            const cartItem = buildBillingCartItem({
                 variant_id: variant.variant_id,
                 product_name: product?.name || "Unknown",
                 system_barcode: variant.system_barcode,
-                quantity: 1,
-                price_type: "SPECIAL",
-                unit_price: toNumber(variant.special_price),
-                retail_price: toNumber(variant.special_price),
-                wholesale_price: toNumber(variant.wholesale_price),
-                special_price: toNumber(variant.special_price),
-                mrp: toNumber(variant.mrp),
-                online_price: toNumber(variant.online_price),
-                gst_percent: toNumber(variant.gst_percent),
-                quantity_available: toNumber(stock.quantity_available),
-                line_total: toNumber(variant.special_price),
-                gst_amount: (toNumber(variant.special_price) * toNumber(variant.gst_percent)) / 100,
-            };
+                special_price: variant.special_price,
+                wholesale_price: variant.wholesale_price,
+                mrp: variant.mrp,
+                online_price: variant.online_price,
+                retail_price: variant.special_price,
+                gst_percent: resolveProductGstPercent(product),
+                gst_type: resolveProductGstType(product),
+                quantity_available: stock.quantity_available,
+            });
             dispatch(addToCart(cartItem));
             toast.success(`${product?.name} added to cart`);
         }
@@ -200,10 +192,11 @@ export default function ProductPicker({ shop_id, cart = [] }) {
                     filteredStocks.map((stock) => {
                         const variant = stock.variant;
                         const product = variant?.product;
-                        const stockQty = toNumber(stock.quantity_available);
-                        const lowStockThreshold = toNumber(stock.low_stock_threshold);
+                        const stockQty = toBillingNumber(stock.quantity_available);
+                        const lowStockThreshold = toBillingNumber(stock.low_stock_threshold);
                         const isLowStock = stockQty <= lowStockThreshold && stockQty > 0;
                         const isOutOfStock = stockQty === 0;
+                        const gstLabel = formatGstPercentLabel(resolveProductGstPercent(product));
 
                         return (
                             <button
@@ -219,13 +212,18 @@ export default function ProductPicker({ shop_id, cart = [] }) {
                                 <p className="font-medium text-sm text-gray-800 line-clamp-2">
                                     {product?.name || "Unknown"}
                                 </p>
+                                {gstLabel && (
+                                    <p className="text-[10px] font-medium text-indigo-700 mt-0.5">
+                                        GST {gstLabel}
+                                    </p>
+                                )}
                                 <div className="mt-auto flex justify-between items-end w-full">
                                     <div>
                                         <p className="text-xs text-gray-500 font-mono">
                                             {variant?.system_barcode?.slice(-6) || "—"}
                                         </p>
                                         <p className="font-bold text-blue-600">
-                                            ₹{toNumber(variant.special_price).toFixed(2)}
+                                            ₹{toBillingNumber(variant.special_price).toFixed(2)}
                                         </p>
                                     </div>
                                     <span
