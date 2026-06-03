@@ -8,7 +8,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { X, Plus, RefreshCw, Package, Truck, CheckCircle, XCircle, Ban, Eye, ClipboardList } from "lucide-react";
 import { toast } from "react-toastify";
 import { useGetWarehousesQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/Warehouse_api/warehouseApi";
-import { useGetShopsQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/Shop_api/shopApi";
+import { useGetShopsQuery, useGetMyShopQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/Shop_api/shopApi";
 import { useLazyGetWarehouseStockCatalogQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/ShopWarehouseCatalog_api/shopWarehouseCatalogApi";
 import VariantCatalogPicker from "./TransferRequestShared/VariantCatalogPicker";
 import { useGetBulkTransferRequestsQuery, useCreateBulkTransferRequestMutation, useLazyGetBulkTransferRequestByIdQuery, generateBulkIdempotencyKey } from "../../../../REDUX_FEATURES/REDUX_SLICES/BulkTransfer_api/bulkTransferApi";
@@ -59,9 +59,19 @@ export default function BulkTransferRequestsTab() {
     const userShopId = user?.shop_id || "";
     const userWarehouseId = user?.warehouse_id || "";
     const userRole = user?.role || "";
+    const canCreateBulk = userRole === "SHOP_OWNER" || userRole === "SUPER_ADMIN";
+    const isShopOwnerFlow = userRole === "SHOP_OWNER" && !!userShopId;
+    const isWarehouseStaff = userRole === "WH_MANAGER" || userRole === "WH_STOCK_LISTER";
     
-    const { data: warehousesData } = useGetWarehousesQuery({ page: 1, limit: 50, is_active: "true" });
-    const { data: shopsData } = useGetShopsQuery({ page: 1, limit: 50, is_active: "true" });
+    const { data: warehousesData } = useGetWarehousesQuery(
+        { page: 1, limit: 50, is_active: "true" },
+        { skip: !showCreateModal && !canCreateBulk }
+    );
+    const { data: shopsData } = useGetShopsQuery(
+        { page: 1, limit: 50, is_active: "true" },
+        { skip: !showCreateModal || isShopOwnerFlow }
+    );
+    const { data: myShopData } = useGetMyShopQuery(undefined, { skip: !isShopOwnerFlow });
     const catalogShopId = createForm.to_shop_id || userShopId;
     const [fetchCatalog, { data: catalogData, isFetching: catalogLoading }] =
         useLazyGetWarehouseStockCatalogQuery();
@@ -77,6 +87,14 @@ export default function BulkTransferRequestsTab() {
     
     const warehouses = warehousesData?.warehouses || [];
     const shops = shopsData?.shops || [];
+    const myShopLabel = useMemo(() => {
+        if (myShopData?.shop_name) {
+            return `${myShopData.shop_name}${myShopData.city ? ` — ${myShopData.city}` : ""}`;
+        }
+        const match = shops.find((s) => s.shop_id === (createForm.to_shop_id || userShopId));
+        if (match) return `${match.shop_name} — ${match.city}`;
+        return userShopId ? "Your shop" : "";
+    }, [shops, myShopData, createForm.to_shop_id, userShopId]);
     const requests = bulkRequestsData?.requests || [];
     const meta = bulkRequestsData?.meta || { total: 0, page: 1, limit: 20, totalPages: 1 };
 
@@ -302,10 +320,13 @@ export default function BulkTransferRequestsTab() {
                         Bulk Transfer Requests
                     </h2>
                     <p className="text-sm text-gray-400 mt-0.5">
-                        Create bulk requests with multiple items — Full workflow: Request → Approve → Dispatch → Receive → Complete
+                        {isWarehouseStaff
+                            ? "Approve and dispatch shop bulk requests (WH → Shop). To request stock from another warehouse, use Transfer Requests."
+                            : "Create bulk requests with multiple items — Request → Approve → Dispatch → Receive → Complete"}
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
+                    {canCreateBulk && (
                     <button
                         onClick={() =>
                             userShopId
@@ -316,11 +337,19 @@ export default function BulkTransferRequestsTab() {
                     >
                         <Plus size={14} /> New Bulk Request
                     </button>
+                    )}
                     <button onClick={() => refetch()} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-500 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
                         <RefreshCw size={13} /> Refresh
                     </button>
                 </div>
             </div>
+
+            {isWarehouseStaff && (
+                <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+                    <strong>Warehouse staff:</strong> Bulk requests here are <em>warehouse → shop</em> (shops create them).
+                    Need stock from another warehouse into yours? Open <strong>Transfer Requests</strong>, search stock, and create a <strong>WH → WH</strong> request.
+                </div>
+            )}
             
             {/* Stats */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -460,7 +489,11 @@ export default function BulkTransferRequestsTab() {
                         <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex justify-between">
                             <div>
                                 <h3 className="text-base font-semibold text-gray-900">Create Bulk Transfer Request</h3>
-                                <p className="text-xs text-gray-400 mt-0.5">Add multiple products to a single request</p>
+                                <p className="text-xs text-gray-400 mt-0.5">
+                                    {isShopOwnerFlow
+                                        ? "Request stock from a warehouse to your shop (destination is fixed to your shop)"
+                                        : "Warehouse → shop: add multiple variants in one request"}
+                                </p>
                             </div>
                             <button onClick={() => dispatch(closeCreateModal())} className="text-gray-400 hover:text-gray-600 transition-colors"><X size={20} /></button>
                         </div>
@@ -482,14 +515,20 @@ export default function BulkTransferRequestsTab() {
                                 </div>
                                 <div>
                                     <label className="block text-xs text-gray-500 mb-1">Destination Shop <span className="text-red-400">*</span></label>
-                                    <select 
-                                        value={createForm.to_shop_id} 
-                                        onChange={(e) => dispatch(updateCreateForm({ to_shop_id: e.target.value }))} 
-                                        className={inputCls("to_shop_id", createErrors)}
-                                    >
-                                        <option value="">Select shop</option>
-                                        {shops.map(s => <option key={s.shop_id} value={s.shop_id}>{s.shop_name} — {s.city}</option>)}
-                                    </select>
+                                    {isShopOwnerFlow ? (
+                                        <div className="w-full px-3 py-2 bg-gray-100 border border-gray-200 rounded-lg text-sm text-gray-700">
+                                            {myShopLabel || "Your shop"}
+                                        </div>
+                                    ) : (
+                                        <select 
+                                            value={createForm.to_shop_id} 
+                                            onChange={(e) => dispatch(updateCreateForm({ to_shop_id: e.target.value }))} 
+                                            className={inputCls("to_shop_id", createErrors)}
+                                        >
+                                            <option value="">Select shop</option>
+                                            {shops.map(s => <option key={s.shop_id} value={s.shop_id}>{s.shop_name} — {s.city}</option>)}
+                                        </select>
+                                    )}
                                 </div>
                             </div>
                             
