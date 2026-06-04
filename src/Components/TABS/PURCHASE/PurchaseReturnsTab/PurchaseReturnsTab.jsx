@@ -130,7 +130,7 @@ export default function PurchaseReturnsTab() {
                             <th className="px-4 py-3 text-xs font-semibold text-gray-400 uppercase text-center">Actions</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-50">
+                    <tbody className="divide-y divide-gray-50 text-gray-700">
                         {debitNotes.map((row) => (
                             <tr key={row.debit_note_id} className="hover:bg-gray-50">
                                 <td className="px-4 py-3 font-mono text-xs">{row.debit_note_number}</td>

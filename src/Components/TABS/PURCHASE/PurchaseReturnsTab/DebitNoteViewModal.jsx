@@ -2,7 +2,7 @@ import React from "react";
 import { X, Download } from "lucide-react";
 import { toast } from "react-toastify";
 import { useGetDebitNoteByIdQuery, useLazyDownloadDebitNotePdfQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/DebitNote_api/debitNoteApi";
-import { downloadBlob } from "../../../../utils/downloadBlob";
+import { downloadBlobFile } from "../../../../utils/downloadBlob";
 
 const fmtCurrency = (n) => `₹${Number(n || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
 const fmtDate = (iso) =>
@@ -22,14 +22,14 @@ export default function DebitNoteViewModal({ debitNoteId, onClose }) {
     const handlePdf = async () => {
         try {
             const result = await downloadPdf(debitNoteId).unwrap();
-            downloadBlob(result, `${dn?.debit_note_number || "debit-note"}.pdf`);
+            downloadBlobFile(result, `${dn?.debit_note_number || "debit-note"}.pdf`);
         } catch {
             toast.error("Failed to download PDF");
         }
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 text-gray-700">
             <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
                 <div className="flex items-center justify-between px-5 py-4 border-b">
                     <h3 className="text-lg font-semibold">Debit Note</h3>

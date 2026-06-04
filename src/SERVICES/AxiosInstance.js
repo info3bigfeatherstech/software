@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const DEFAULT_API_BASE_URL = "http://localhost:3443/api/v1";
+const DEFAULT_API_BASE_URL = "http://localhost:3000/api/v1";
 
 // ✅ Access token stored in memory (set by Redux)
 let globalAccessToken = null;
@@ -47,7 +47,7 @@ AxiosInstance.interceptors.response.use(
 
     // Only intercept 401 — but NOT the refresh endpoint itself
     if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url?.includes("/auth/refresh")) {
-      
+
       if (isRefreshing) {
         // Queue requests while refresh is in progress
         return new Promise((resolve, reject) => {

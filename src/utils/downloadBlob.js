@@ -10,12 +10,14 @@ export const downloadBlobFile = (blob, filename) => {
     const url = window.URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = filename;
+    anchor.download = filename || "download";
     document.body.appendChild(anchor);
     anchor.click();
     window.URL.revokeObjectURL(url);
     document.body.removeChild(anchor);
 };
+
+export const downloadBlob = downloadBlobFile;
 
 export const CHALLAN_READY_STATUSES = new Set([
     "DISPATCHED",
