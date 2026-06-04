@@ -6,9 +6,16 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import AxiosInstance from "../../../SERVICES/AxiosInstance";
 
-const axiosBaseQuery = () => async ({ url, method, data, params, headers }) => {
+const axiosBaseQuery = () => async ({ url, method, data, params, headers, responseType }) => {
     try {
-        const result = await AxiosInstance({ url, method, data, params, headers });
+        const result = await AxiosInstance({
+            url,
+            method,
+            data,
+            params,
+            headers,
+            ...(responseType ? { responseType } : {}),
+        });
         return { data: result.data };
     } catch (axiosError) {
         return {
@@ -53,6 +60,17 @@ export const transferApi = createApi({
         // ─────────────────────────────────────────────────────────────
         // STOCK LEDGER QUERIES (read-only audit trail)
         // ─────────────────────────────────────────────────────────────
+
+        exportStockLedgerCsv: builder.query({
+            query: ({ movement_type = "", variant_id = "", from_date = "", to_date = "" }) => {
+                const params = {};
+                if (movement_type) params.movement_type = movement_type;
+                if (variant_id) params.variant_id = variant_id;
+                if (from_date) params.from_date = from_date;
+                if (to_date) params.to_date = to_date;
+                return { url: "/stock/ledger/export", method: "GET", params, responseType: "blob" };
+            },
+        }),
 
         // GET /stock/ledger — list all ledger entries
         getStockLedger: builder.query({
@@ -152,4 +170,5 @@ export const {
     useGetVariantLedgerQuery,
     useGetWarehouseLedgerQuery,
     useGetShopLedgerQuery,
+    useLazyExportStockLedgerCsvQuery,
 } = transferApi;

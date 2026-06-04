@@ -6,9 +6,16 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import AxiosInstance from "../../../SERVICES/AxiosInstance";
 
-const axiosBaseQuery = () => async ({ url, method, data, params, headers }) => {
+const axiosBaseQuery = () => async ({ url, method, data, params, headers, responseType }) => {
     try {
-        const result = await AxiosInstance({ url, method, data, params, headers });
+        const result = await AxiosInstance({
+            url,
+            method,
+            data,
+            params,
+            headers,
+            ...(responseType ? { responseType } : {}),
+        });
         return { data: result.data };
     } catch (axiosError) {
         return {
@@ -134,6 +141,14 @@ export const bulkTransferApi = createApi({
             transformResponse: (response) => response.data,
         }),
 
+        downloadBulkChallanPdf: builder.query({
+            query: (bulkRequestId) => ({
+                url: `/bulk-transfer-requests/${bulkRequestId}/challan/pdf`,
+                method: "GET",
+                responseType: "blob",
+            }),
+        }),
+
         // PATCH /bulk-transfer-requests/:id/cancel — cancel bulk request
         cancelBulkTransferRequest: builder.mutation({
             query: ({ bulkRequestId, cancel_reason, idempotencyKey }) => ({
@@ -162,4 +177,5 @@ export const {
     useReceiveBulkTransferRequestMutation,
     useCancelBulkTransferRequestMutation,
     useLazyGetBulkTransferRequestByIdQuery,
+    useLazyDownloadBulkChallanPdfQuery,
 } = bulkTransferApi;

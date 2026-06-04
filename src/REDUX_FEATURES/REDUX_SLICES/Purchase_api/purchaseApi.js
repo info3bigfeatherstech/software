@@ -6,9 +6,15 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import AxiosInstance from "../../../SERVICES/AxiosInstance";
 
-const axiosBaseQuery = () => async ({ url, method, data, params }) => {
+const axiosBaseQuery = () => async ({ url, method, data, params, responseType }) => {
     try {
-        const result = await AxiosInstance({ url, method, data, params });
+        const result = await AxiosInstance({
+            url,
+            method,
+            data,
+            params,
+            ...(responseType ? { responseType } : {}),
+        });
         return { data: result.data };
     } catch (axiosError) {
         return {
@@ -79,6 +85,14 @@ export const purchaseApi = createApi({
 
         // ── GET /purchase-entries/summary/vendor ────────────────────────────────
         // Vendor-wise purchase summary for reports
+        downloadPurchasePdf: builder.query({
+            query: (purchaseId) => ({
+                url: `/purchase-entries/${purchaseId}/pdf`,
+                method: "GET",
+                responseType: "blob",
+            }),
+        }),
+
         getVendorPurchaseSummary: builder.query({
             query: ({ from_date = "", to_date = "" }) => {
                 const params = {};
@@ -97,4 +111,5 @@ export const {
     useGetPurchaseEntriesQuery,
     useGetPurchaseByIdQuery,
     useGetVendorPurchaseSummaryQuery,
+    useLazyDownloadPurchasePdfQuery,
 } = purchaseApi;

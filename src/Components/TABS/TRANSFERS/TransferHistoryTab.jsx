@@ -8,7 +8,13 @@
 import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { RefreshCw, Eye, X, Download } from "lucide-react";
-import { useGetStockLedgerQuery, useGetVariantLedgerQuery } from "../../../REDUX_FEATURES/REDUX_SLICES/Transfer_api/transferApi";
+import { toast } from "react-toastify";
+import {
+    useGetStockLedgerQuery,
+    useGetVariantLedgerQuery,
+    useLazyExportStockLedgerCsvQuery,
+} from "../../../REDUX_FEATURES/REDUX_SLICES/Transfer_api/transferApi";
+import { downloadBlobFile } from "../../../utils/downloadBlob";
 import {
     setLedgerMovementType,
     setLedgerDateRange,
@@ -82,6 +88,8 @@ export default function TransferHistoryTab() {
         { variantId: selectedVariantId, page: 1, limit: 100 },
         { skip: !selectedVariantId || !showVariantModal }
     );
+
+    const [exportLedgerCsv, { isFetching: isExporting }] = useLazyExportStockLedgerCsvQuery();
     
     const ledger = data?.ledger || [];
     const meta = data?.meta || { total: 0, page: 1, limit: 20, totalPages: 1 };
@@ -112,30 +120,19 @@ export default function TransferHistoryTab() {
         }
     }, [showVariantModal, selectedVariantId, refetchVariant]);
     
-    const handleExportCSV = () => {
-        const headers = ["Ledger ID", "Movement Type", "Product ID", "Variant ID", "Quantity", "From", "To", "Reference Type", "Reference ID", "Date", "Remarks"];
-        const rows = ledger.map(entry => [
-            entry.ledger_id,
-            entry.movement_type,
-            entry.product_id || "",
-            entry.variant_id || "",
-            entry.quantity,
-            entry.from_warehouse_id || entry.from_shop_id || "",
-            entry.to_warehouse_id || entry.to_shop_id || "",
-            entry.reference_type || "",
-            entry.reference_id || "",
-            entry.created_at,
-            entry.remarks || "",
-        ]);
-        
-        const csvContent = [headers, ...rows].map(row => row.join(",")).join("\n");
-        const blob = new Blob([csvContent], { type: "text/csv" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `stock_ledger_${new Date().toISOString().split("T")[0]}.csv`;
-        a.click();
-        URL.revokeObjectURL(url);
+    const handleExportCSV = async () => {
+        try {
+            const blob = await exportLedgerCsv({
+                movement_type: ledgerFilters.movement_type,
+                variant_id: ledgerFilters.variant_id,
+                from_date: ledgerFilters.from_date,
+                to_date: ledgerFilters.to_date,
+            }).unwrap();
+            downloadBlobFile(blob, `stock-ledger-${new Date().toISOString().slice(0, 10)}.csv`);
+            toast.success("Ledger exported");
+        } catch (err) {
+            toast.error(err?.data?.message || "Export failed");
+        }
     };
     
     return (
@@ -152,7 +149,7 @@ export default function TransferHistoryTab() {
                 <div className="flex gap-2">
                     <button 
                         onClick={handleExportCSV} 
-                        disabled={ledger.length === 0}
+                        disabled={isExporting}
                         className="px-3 py-2 text-sm text-gray-600 border rounded-lg hover:bg-gray-50 flex items-center gap-2 disabled:opacity-50"
                     >
                         <Download size={14} /> Export CSV

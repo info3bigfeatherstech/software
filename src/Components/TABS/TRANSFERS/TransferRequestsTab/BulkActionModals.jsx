@@ -5,7 +5,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { X, AlertTriangle, Package, Truck, CheckCircle, XCircle, Eye } from "lucide-react";
+import { X, AlertTriangle, Package, Truck, CheckCircle, XCircle, Eye, Download } from "lucide-react";
 import { toast } from "react-toastify";
 import {
     useApproveBulkTransferRequestMutation,
@@ -13,8 +13,10 @@ import {
     useDispatchBulkTransferRequestMutation,
     useReceiveBulkTransferRequestMutation,
     useCancelBulkTransferRequestMutation,
+    useLazyDownloadBulkChallanPdfQuery,
     generateBulkIdempotencyKey,
 } from "../../../../REDUX_FEATURES/REDUX_SLICES/BulkTransfer_api/bulkTransferApi";
+import { downloadBlobFile, CHALLAN_READY_STATUSES } from "../../../../utils/downloadBlob";
 import {
     closeApproveModal,
     closeRejectModal,
@@ -79,6 +81,7 @@ export default function BulkActionModals({ onSuccess }) {
     } = useSelector((state) => state.bulkTransfer);
 
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [downloadBulkChallan, { isFetching: isDownloadingChallan }] = useLazyDownloadBulkChallanPdfQuery();
 
     const [approveBulkRequest] = useApproveBulkTransferRequestMutation();
     const [rejectBulkRequest] = useRejectBulkTransferRequestMutation();
@@ -576,6 +579,17 @@ const handleReceive = async () => {
     if (showViewModal && selectedRequest) {
         const viewTotalQty = selectedRequest.items?.reduce((s, i) => s + i.quantity, 0) || 0;
         const status = selectedRequest.status;
+        const canPrintChallan = CHALLAN_READY_STATUSES.has(status);
+
+        const handleDownloadBulkChallan = async () => {
+            try {
+                const blob = await downloadBulkChallan(selectedRequest.bulk_request_id).unwrap();
+                downloadBlobFile(blob, `bulk-challan-${selectedRequest.bulk_request_number}.pdf`);
+                toast.success("Bulk transfer challan downloaded");
+            } catch (err) {
+                toast.error(err?.data?.message || "Failed to download challan");
+            }
+        };
         
         return (
             <div className="fixed inset-0 z-50 overflow-y-auto text-gray-700">
@@ -684,7 +698,18 @@ const handleReceive = async () => {
                             </div>
                         )}
                     </div>
-                    <div className="sticky bottom-0 bg-white border-t border-gray-100 px-6 py-4 flex justify-end">
+                    <div className="sticky bottom-0 bg-white border-t border-gray-100 px-6 py-4 flex justify-end gap-2">
+                        {canPrintChallan && (
+                            <button
+                                type="button"
+                                onClick={handleDownloadBulkChallan}
+                                disabled={isDownloadingChallan}
+                                className="px-4 py-2 border border-blue-200 text-blue-700 rounded-lg text-sm hover:bg-blue-50 flex items-center gap-2 disabled:opacity-50"
+                            >
+                                <Download size={16} />
+                                {isDownloadingChallan ? "Downloading…" : "Transfer Challan (PDF)"}
+                            </button>
+                        )}
                         <button onClick={() => dispatch(closeViewModal())} className="px-4 py-2 bg-gray-100 rounded-lg text-sm hover:bg-gray-200">Close</button>
                     </div>
                 </div>

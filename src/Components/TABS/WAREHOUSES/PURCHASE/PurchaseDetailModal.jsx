@@ -5,8 +5,10 @@
 
 import React from "react";
 import { useDispatch } from "react-redux";
-import { X, Package, Building2, MapPin, Calendar, FileText, Hash, Layers } from "lucide-react";
-import { useGetPurchaseByIdQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/Purchase_api/purchaseApi";
+import { X, Package, Building2, MapPin, Calendar, FileText, Hash, Layers, Download } from "lucide-react";
+import { toast } from "react-toastify";
+import { useGetPurchaseByIdQuery, useLazyDownloadPurchasePdfQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/Purchase_api/purchaseApi";
+import { downloadBlobFile } from "../../../../utils/downloadBlob";
 import { closeDetailModal } from "../../../../REDUX_FEATURES/REDUX_SLICES/Purchase_api/purchaseSlice";
 
 const fmtDateTime = (iso) => {
@@ -46,6 +48,18 @@ export default function PurchaseDetailModal({ purchase, onClose }) {
 
     const detail = purchaseDetail || purchase;
     const items = detail?.items || [];
+    const [downloadPdf, { isFetching: isDownloading }] = useLazyDownloadPurchasePdfQuery();
+
+    const handleDownloadPdf = async () => {
+        if (!detail?.purchase_id) return;
+        try {
+            const blob = await downloadPdf(detail.purchase_id).unwrap();
+            downloadBlobFile(blob, `purchase-${detail.purchase_number}.pdf`);
+            toast.success("Purchase PDF downloaded");
+        } catch (err) {
+            toast.error(err?.data?.message || "Failed to download PDF");
+        }
+    };
 
     const handleClose = () => {
         dispatch(closeDetailModal());
@@ -147,7 +161,9 @@ export default function PurchaseDetailModal({ purchase, onClose }) {
                                                 <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500">Variant Info</th>
                                                 <th className="px-4 py-2.5 text-right text-xs font-semibold text-gray-500">Quantity</th>
                                                 <th className="px-4 py-2.5 text-right text-xs font-semibold text-gray-500">Unit Cost</th>
-                                                <th className="px-4 py-2.5 text-right text-xs font-semibold text-gray-500">Total</th>
+                                                <th className="px-4 py-2.5 text-right text-xs font-semibold text-gray-500">GST%</th>
+                                                <th className="px-4 py-2.5 text-right text-xs font-semibold text-gray-500">Tax</th>
+                                                <th className="px-4 py-2.5 text-right text-xs font-semibold text-gray-500">Line Total</th>
                                                 <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500">Batch</th>
                                                 <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500">Location</th>
                                             </tr>
@@ -156,7 +172,8 @@ export default function PurchaseDetailModal({ purchase, onClose }) {
                                             {items.map((item, idx) => {
                                                 const product = item.product || {};
                                                 const variant = product.variants?.[0] || {};
-                                                const total = (item.quantity || 0) * (item.purchase_cost || 0);
+                                                const lineSubtotal = item.line_subtotal ?? (item.quantity || 0) * (item.purchase_cost || 0);
+                                                const lineTotal = lineSubtotal + (item.tax_amount || 0);
                                                 const location = [item.room_zone, item.rack_shelf].filter(Boolean).join(" / ") || "—";
 
                                                 return (
@@ -179,8 +196,14 @@ export default function PurchaseDetailModal({ purchase, onClose }) {
                                                         <td className="px-4 py-2.5 text-right text-gray-600">
                                                             ₹{item.purchase_cost?.toLocaleString()}
                                                         </td>
+                                                        <td className="px-4 py-2.5 text-right text-gray-600">
+                                                            {item.gst_percent ?? 0}%
+                                                        </td>
+                                                        <td className="px-4 py-2.5 text-right text-gray-600">
+                                                            ₹{(item.tax_amount || 0).toLocaleString()}
+                                                        </td>
                                                         <td className="px-4 py-2.5 text-right font-semibold text-gray-800">
-                                                            ₹{total.toLocaleString()}
+                                                            ₹{lineTotal.toLocaleString()}
                                                         </td>
                                                         <td className="px-4 py-2.5">
                                                             <span className="text-xs font-mono text-gray-500">
@@ -214,7 +237,16 @@ export default function PurchaseDetailModal({ purchase, onClose }) {
                 )}
 
                 {/* Footer */}
-                <div className="sticky bottom-0 bg-white border-t border-gray-100 px-6 py-4 flex justify-end">
+                <div className="sticky bottom-0 bg-white border-t border-gray-100 px-6 py-4 flex justify-end gap-2">
+                    <button
+                        type="button"
+                        onClick={handleDownloadPdf}
+                        disabled={isDownloading || !detail?.purchase_id}
+                        className="px-4 py-2 border border-blue-200 text-blue-700 rounded-lg text-sm hover:bg-blue-50 flex items-center gap-2 disabled:opacity-50"
+                    >
+                        <Download size={16} />
+                        {isDownloading ? "Downloading…" : "Purchase PDF"}
+                    </button>
                     <button
                         onClick={handleClose}
                         className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 cursor-pointer"

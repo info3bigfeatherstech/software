@@ -3,10 +3,13 @@
 // Modal for viewing transfer request details
 // Shows all details including rejection reason if rejected
 
-import React from "react";
+import React, { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { X, CheckCircle, XCircle, Truck, Package, Ban, Calendar, MapPin, User, FileText } from "lucide-react";
+import { X, CheckCircle, XCircle, Truck, Package, Ban, Calendar, MapPin, User, FileText, Download } from "lucide-react";
+import { toast } from "react-toastify";
 import { closeViewRequestModal } from "../../../../REDUX_FEATURES/REDUX_SLICES/TransferRequest_api/transferRequestSlice";
+import { useLazyDownloadTransferChallanPdfQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/TransferRequest_api/transferRequestApi";
+import { downloadBlobFile, CHALLAN_READY_STATUSES } from "../../../../utils/downloadBlob";
 
 const STATUS_BADGE = {
     REQUESTED: "bg-yellow-100 text-yellow-700",
@@ -38,6 +41,18 @@ export default function ViewRequestModal({ onSuccess }) {
     const request = viewRequestData;
     const isEmergency = request.priority === "HIGH";
     const isRejected = request.status === "REJECTED";
+    const canPrintChallan = CHALLAN_READY_STATUSES.has(request.status);
+    const [downloadChallan, { isFetching: isDownloading }] = useLazyDownloadTransferChallanPdfQuery();
+
+    const handleDownloadChallan = async () => {
+        try {
+            const blob = await downloadChallan(request.request_id).unwrap();
+            downloadBlobFile(blob, `transfer-challan-${request.request_number}.pdf`);
+            toast.success("Transfer challan downloaded");
+        } catch (err) {
+            toast.error(err?.data?.message || "Failed to download challan");
+        }
+    };
 
     return (
         <div className="fixed inset-0 z-50 overflow-y-auto text-gray-700">
@@ -177,10 +192,31 @@ export default function ViewRequestModal({ onSuccess }) {
                             )}
                         </div>
                     )}
+
+                    {request.unit_cost_snapshot != null && (
+                        <div className="bg-gray-50 rounded-lg p-3 text-sm">
+                            <p className="text-xs text-gray-500">Transfer valuation (at dispatch)</p>
+                            <p className="font-medium text-gray-800">
+                                Unit cost: ₹{Number(request.unit_cost_snapshot).toFixed(2)} × {request.quantity} = ₹
+                                {Number(request.line_value_snapshot || 0).toFixed(2)}
+                            </p>
+                        </div>
+                    )}
                 </div>
 
                 {/* Footer */}
-                <div className="sticky bottom-0 bg-white border-t border-gray-100 px-6 py-4 flex justify-end">
+                <div className="sticky bottom-0 bg-white border-t border-gray-100 px-6 py-4 flex justify-end gap-2">
+                    {canPrintChallan && (
+                        <button
+                            type="button"
+                            onClick={handleDownloadChallan}
+                            disabled={isDownloading}
+                            className="px-4 py-2 border border-blue-200 text-blue-700 rounded-lg text-sm hover:bg-blue-50 flex items-center gap-2 disabled:opacity-50"
+                        >
+                            <Download size={16} />
+                            {isDownloading ? "Downloading…" : "Transfer Challan (PDF)"}
+                        </button>
+                    )}
                     <button 
                         onClick={() => dispatch(closeViewRequestModal())} 
                         className="px-4 py-2 bg-gray-100 rounded-lg text-sm hover:bg-gray-200"

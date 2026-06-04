@@ -7,9 +7,16 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import AxiosInstance from "../../../SERVICES/AxiosInstance";
 
-const axiosBaseQuery = () => async ({ url, method, data, params, headers }) => {
+const axiosBaseQuery = () => async ({ url, method, data, params, headers, responseType }) => {
     try {
-        const result = await AxiosInstance({ url, method, data, params, headers });
+        const result = await AxiosInstance({
+            url,
+            method,
+            data,
+            params,
+            headers,
+            ...(responseType ? { responseType } : {}),
+        });
         return { data: result.data };
     } catch (axiosError) {
         return {
@@ -54,6 +61,14 @@ export const transferRequestApi = createApi({
             }),
             invalidatesTags: ["TransferRequest", "MyTransferRequest"],
             transformResponse: (response) => response.data,
+        }),
+
+        downloadTransferChallanPdf: builder.query({
+            query: (requestId) => ({
+                url: `/transfer-requests/${requestId}/challan/pdf`,
+                method: "GET",
+                responseType: "blob",
+            }),
         }),
 
         // ── GET /transfer-requests (list all, role-scoped) ────────────────────
@@ -204,5 +219,6 @@ export const {
     useGetTransferRequestsQuery,
     useGetMyTransferRequestsQuery,
     useGetTransferRequestByIdQuery,
-    useLazyGetTransferRequestByIdQuery
+    useLazyGetTransferRequestByIdQuery,
+    useLazyDownloadTransferChallanPdfQuery,
 } = transferRequestApi;
