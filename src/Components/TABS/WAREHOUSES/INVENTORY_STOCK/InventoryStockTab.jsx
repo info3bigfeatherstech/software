@@ -8,8 +8,8 @@
 // - Delete stock (hard delete with confirmation)
 // - Bulk select + bulk update location + bulk delete
 // - Manual stock creation (POST /product-stocks)
-// - Expandable rows: products with multiple stock records show chevron,
-//   expanded rows show all raw stock records (batch/location/expiry intact)
+// - One row per variant (qty summed); expand to see per-batch stock records
+// - Last inward date + last vendor from most recent purchase on that SKU
  
 import React, { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
@@ -71,31 +71,18 @@ const isExpiringSoon = (expiryDate) => {
     return daysUntilExpiry > 0 && daysUntilExpiry <= 30;
 };
  
-// ── Option C: Group by product_id, each expanded row = raw stock record ──
-// A product group has multiple entries when same product_id appears more than once
-// (e.g. same variant in different batches/locations, or multiple variants with stock)
-const groupStocksByProduct = (stocks) => {
-    const productMap = new Map();
- 
-    stocks.forEach((stock) => {
-        const product = stock.variant?.product || {};
-        const productId = product.product_id || stock.product_id || stock.stock_id;
- 
-        if (!productMap.has(productId)) {
-            productMap.set(productId, {
-                product_id: productId,
-                product_code: product.product_code || "—",
-                name: product.name || "—",
-                records: [],
-            });
-        }
- 
-        productMap.get(productId).records.push(stock);
-    });
- 
-    return Array.from(productMap.values());
+const variantExpandKey = (stock) =>
+    stock.aggregate_key || `${stock.warehouse_id}:${stock.variant_id}`;
+
+/** Resolve a concrete batch row for edit/qty modals when the list row is variant-aggregated. */
+const resolveActionStockRow = (row) => {
+    if (row?.batch_records?.length) {
+        const id = row.primary_stock_id || row.stock_id;
+        return row.batch_records.find((b) => b.stock_id === id) || row.batch_records[0];
+    }
+    return row;
 };
- 
+
 // ── Format variant attributes array correctly ──────────────────────────
 const fmtAttributes = (attributes) => {
     if (Array.isArray(attributes) && attributes.length > 0) {
@@ -120,8 +107,7 @@ export default function InventoryStockTab() {
         showManualAddModal,
     } = useSelector((state) => state.stock);
  
-    // Local state for expandable product groups
-    const [expandedProducts, setExpandedProducts] = useState({});
+    const [expandedVariants, setExpandedVariants] = useState({});
  
     const isSuperAdmin = user?.role === "SUPER_ADMIN";
     const isWHRole = ["WH_MANAGER", "WH_STOCK_LISTER"].includes(user?.role);
@@ -151,19 +137,16 @@ export default function InventoryStockTab() {
     const [deleteStock] = useDeleteStockMutation();
  
     const stocks = data?.stocks || [];
-    const meta = data?.meta || { total: 0, page: 1, limit: 20, totalPages: 1 };
+    const meta = data?.meta || { total: 0, page: 1, limit: 20, totalPages: 1, stats: null };
+    const warehouseStats = meta.stats;
     const categories = categoriesData?.categories || [];
     const warehouses = warehousesData?.warehouses || [];
     const allStockList = allStocks || [];
  
-    // ── Group stocks for display (Option C) ─────────────────────────────
-    const groupedProducts = React.useMemo(() => groupStocksByProduct(stocks), [stocks]);
- 
-    // ── Stats Calculations ──────────────────────────────────────────────
-    const totalSKUs = allStockList.length;
-    const totalUnits = allStockList.reduce((sum, s) => sum + (s.quantity || 0), 0);
-    const lowStockCount = allStockList.filter(s => s.quantity > 0 && s.quantity <= (s.low_stock_threshold || 10)).length;
-    const outOfStockCount = allStockList.filter(s => s.quantity === 0).length;
+    const totalSKUs = warehouseStats?.sku_count ?? allStockList.length;
+    const totalUnits = warehouseStats?.total_units ?? allStockList.reduce((sum, s) => sum + (s.quantity || 0), 0);
+    const lowStockCount = warehouseStats?.low_stock_count ?? allStockList.filter((s) => s.quantity > 0 && s.quantity <= (s.low_stock_threshold || 10)).length;
+    const outOfStockCount = warehouseStats?.out_of_stock_count ?? allStockList.filter((s) => s.quantity === 0).length;
  
     // ── Selection (still based on flat stocks array — grouping is visual only) ──
     const allSelectedOnPage = stocks.length > 0 && 
@@ -182,9 +165,8 @@ export default function InventoryStockTab() {
         }
     };
  
-    // ── Toggle expand/collapse for a product group ──────────────────────
-    const toggleExpand = (productId) => {
-        setExpandedProducts(prev => ({ ...prev, [productId]: !prev[productId] }));
+    const toggleExpand = (key) => {
+        setExpandedVariants((prev) => ({ ...prev, [key]: !prev[key] }));
     };
  
     // ── Handle Individual Delete ────────────────────────────────────────
@@ -211,8 +193,7 @@ export default function InventoryStockTab() {
         dispatch(clearSelectedStocks());
     };
  
-    // ── Shared row renderer — used for both main row and expanded rows ──
-    const renderStockRow = (stock, isExpanded = false, isFirstInGroup = false, groupHasMultiple = false) => {
+    const renderStockRow = (stock, { isChild = false, isVariantSummary = false, expandKey = "", canExpand = false, isExpanded = false } = {}) => {
         const product = stock.variant?.product || {};
         const variant = stock.variant || {};
         const status = getStockStatus(stock.quantity, stock.low_stock_threshold);
@@ -222,32 +203,33 @@ export default function InventoryStockTab() {
         const variantLabel = attrStr || variant.sku || variant.system_barcode || "—";
         const expiringSoon = isExpiringSoon(stock.expiry_date);
         const isSelected = selectedStockIds.includes(stock.stock_id);
-        const productId = product.product_id || stock.product_id;
- 
+        const actionRow = isVariantSummary ? resolveActionStockRow(stock) : stock;
+        const batchLabel = isVariantSummary
+            ? (stock.batch_count > 1 ? `${stock.batch_count} batches` : (stock.batch_records?.[0]?.batch_number || "—"))
+            : (stock.batch_number || "—");
+        const lastVendor = stock.last_vendor_name || stock.last_purchase?.vendor?.company_name || "—";
+
         return (
             <tr
-                key={stock.stock_id}
-                className={`hover:bg-gray-50 transition-colors ${isSelected ? "bg-blue-50" : "bg-white"} ${isExpanded ? "border-l-2 border-l-indigo-200" : ""}`}
+                key={isVariantSummary ? expandKey : stock.stock_id}
+                className={`hover:bg-gray-50 transition-colors ${isSelected ? "bg-blue-50" : "bg-white"} ${isChild ? "border-l-2 border-l-indigo-200" : ""}`}
             >
-                {/* Expand chevron column — only shown on first row of a multi-record group */}
                 <td className="px-2 py-3 w-8">
-                    {isFirstInGroup && groupHasMultiple && (
+                    {isVariantSummary && canExpand && (
                         <button
-                            onClick={() => toggleExpand(productId)}
+                            onClick={() => toggleExpand(expandKey)}
                             className="p-1 hover:bg-gray-200 rounded transition-colors"
-                            title={expandedProducts[productId] ? "Collapse" : "Expand all records"}
+                            title={isExpanded ? "Collapse batches" : "Expand batch breakdown"}
                         >
-                            {expandedProducts[productId]
+                            {isExpanded
                                 ? <ChevronDown size={15} className="text-gray-500" />
                                 : <ChevronRight size={15} className="text-gray-500" />
                             }
                         </button>
                     )}
-                    {/* spacer for non-first rows so columns align */}
-                    {!isFirstInGroup && <span className="w-6 inline-block" />}
+                    {isChild && <span className="w-6 inline-block" />}
                 </td>
- 
-                {/* Checkbox */}
+
                 <td className="px-3 py-3">
                     <button
                         onClick={() => dispatch(toggleSelectStock(stock.stock_id))}
@@ -259,100 +241,92 @@ export default function InventoryStockTab() {
                         }
                     </button>
                 </td>
- 
-                {/* Product — only show name on first row of a group */}
+
                 <td className="px-4 py-3 min-w-[130px]">
-                    {isFirstInGroup ? (
+                    {!isChild ? (
                         <div>
                             <p className="font-semibold text-gray-800 text-sm leading-tight">{product.name || "—"}</p>
                             <p className="text-xs font-mono text-gray-400 mt-0.5">{product.product_code || "—"}</p>
-                            {groupHasMultiple && (
+                            {isVariantSummary && stock.batch_count > 1 && (
                                 <span className="inline-block mt-1 text-[10px] font-medium text-indigo-500 bg-indigo-50 border border-indigo-100 rounded-full px-1.5 py-0.5">
-                                    multi-record
+                                    {stock.batch_count} batches
                                 </span>
                             )}
                         </div>
                     ) : (
-                        <span className="text-xs text-gray-300 pl-2">↳</span>
+                        <span className="text-xs text-gray-300 pl-2">↳ batch</span>
                     )}
                 </td>
- 
-                {/* Variant */}
+
                 <td className="px-4 py-3 min-w-[110px]">
-                    <div>
-                        <p className="text-xs text-gray-700">{variantLabel}</p>
-                        {variant.sku && (
-                            <p className="text-xs font-mono text-gray-500 mt-0.5">SKU: {variant.sku}</p>
-                        )}
-                        {variant.system_barcode && !variant.sku && (
-                            <p className="text-xs font-mono text-gray-500 mt-0.5">Barcode: {variant.system_barcode}</p>
-                        )}
-                    </div>
+                    {!isChild ? (
+                        <div>
+                            <p className="text-xs text-gray-700">{variantLabel}</p>
+                            {variant.sku && (
+                                <p className="text-xs font-mono text-gray-500 mt-0.5">SKU: {variant.sku}</p>
+                            )}
+                        </div>
+                    ) : (
+                        <span className="text-xs text-gray-400 font-mono">{stock.batch_number || "—"}</span>
+                    )}
                 </td>
- 
-                {/* Qty */}
+
                 <td className="px-4 py-3 text-right">
                     <span className="font-bold text-gray-800">{stock.quantity}</span>
                 </td>
- 
-                {/* Status */}
+
                 <td className="px-4 py-3 min-w-[110px]">
                     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${status.color}`}>
                         <span>{status.icon}</span> {status.label}
                     </span>
                 </td>
- 
-                {/* Batch */}
+
                 <td className="px-4 py-3">
-                    <span className="text-sm text-gray-500">
-                        {stock.batch_number || "—"}
-                    </span>
+                    <span className="text-sm text-gray-500">{batchLabel}</span>
                 </td>
- 
-                {/* Expiry */}
+
                 <td className="px-4 py-3 min-w-[90px]">
                     {stock.expiry_date ? (
                         <div className="flex items-center gap-1">
                             <span className={`text-xs ${expiringSoon ? "text-orange-600 font-semibold" : "text-gray-400"}`}>
                                 {fmtDate(stock.expiry_date)}
                             </span>
-                            {expiringSoon && (
-                                <AlertCircle size={12} className="text-orange-500" />
-                            )}
+                            {expiringSoon && <AlertCircle size={12} className="text-orange-500" />}
                         </div>
                     ) : (
                         <span className="text-xs text-gray-400">—</span>
                     )}
                 </td>
- 
-                {/* Location */}
+
                 <td className="px-4 py-3 min-w-[100px]">
                     <div className="flex items-center gap-1 text-xs text-gray-500">
                         <MapPin size={12} className="shrink-0" />
                         <span title={stock.position || ""}>{location}</span>
                     </div>
                 </td>
- 
-                {/* Last Inward */}
+
                 <td className="px-4 py-3 min-w-[90px]">
                     <div className="flex items-center gap-1 text-xs text-gray-400">
                         <Calendar size={12} className="shrink-0" />
                         <span>{fmtDate(stock.last_purchase_date)}</span>
                     </div>
                 </td>
- 
-                {/* Actions */}
+
+                <td className="px-4 py-3 min-w-[100px]">
+                    <span className="text-xs text-gray-600">{isVariantSummary ? lastVendor : "—"}</span>
+                </td>
+
                 <td className="px-4 py-3">
                     <div className="flex items-center justify-center gap-1">
                         <button
-                            onClick={() => dispatch(openEditModal(stock))}
+                            onClick={() => dispatch(openEditModal(actionRow))}
                             className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-gray-100 rounded-md transition-colors"
                             title="Edit Stock Details"
                         >
                             <Edit2 size={15} />
                         </button>
                         <button
-                            onClick={() => dispatch(openQuantityModal(stock))}
+                            onClick={() => dispatch(openQuantityModal(actionRow))}
                             className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-gray-100 rounded-md transition-colors"
                             title="Adjust Quantity"
                         >
@@ -496,7 +470,7 @@ export default function InventoryStockTab() {
             <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
                 <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center">
                     <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Inventory Stock</span>
-                    <span className="text-xs text-gray-400 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded-full">{meta.total} records</span>
+                    <span className="text-xs text-gray-400 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded-full">{meta.total} SKUs</span>
                 </div>
                 <table className="w-full text-sm">
                     <thead className="bg-gray-50 border-b border-gray-100">
@@ -528,6 +502,7 @@ export default function InventoryStockTab() {
                             <th className="px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide text-left">Expiry</th>
                             <th className="px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide text-left">Location</th>
                             <th className="px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide text-left">Last Inward</th>
+                            <th className="px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide text-left">Last Vendor</th>
                             <th className="px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide text-center">Actions</th>
                         </tr>
                     </thead>
@@ -535,7 +510,7 @@ export default function InventoryStockTab() {
  
                         {(isLoading || isFetching) && (
                             <tr>
-                                <td colSpan={11} className="px-4 py-10 text-center">
+                                <td colSpan={12} className="px-4 py-10 text-center">
                                     <div className="flex justify-center">
                                         <div className="w-5 h-5 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
                                     </div>
@@ -545,7 +520,7 @@ export default function InventoryStockTab() {
  
                         {!isLoading && !isFetching && stocks.length === 0 && (
                             <tr>
-                                <td colSpan={11} className="px-4 py-14 text-center">
+                                <td colSpan={12} className="px-4 py-14 text-center">
                                     <div className="flex flex-col items-center gap-2">
                                         <Package size={32} className="text-gray-300" />
                                         <p className="text-sm text-gray-400">No stock records found</p>
@@ -558,28 +533,21 @@ export default function InventoryStockTab() {
                             </tr>
                         )}
  
-                        {!isLoading && groupedProducts.map((group) => {
-                            const isMultiRecord = group.records.length > 1;
-                            const isExpanded = !!expandedProducts[group.product_id];
- 
+                        {!isLoading && !isFetching && stocks.map((stock) => {
+                            const key = variantExpandKey(stock);
+                            const canExpand = (stock.batch_count || 0) > 1;
+                            const isExpanded = !!expandedVariants[key];
+
                             return (
-                                <React.Fragment key={group.product_id}>
-                                    {/* Always render the first record as the main row */}
-                                    {renderStockRow(
-                                        group.records[0],
-                                        false,           // isExpanded styling = false for main row
-                                        true,            // isFirstInGroup = true
-                                        isMultiRecord    // groupHasMultiple
-                                    )}
- 
-                                    {/* Render remaining records only when expanded */}
-                                    {isMultiRecord && isExpanded && group.records.slice(1).map((stock) =>
-                                        renderStockRow(
-                                            stock,
-                                            true,   // isExpanded = true (gets left accent border)
-                                            false,  // isFirstInGroup = false
-                                            false   // groupHasMultiple not needed for child rows
-                                        )
+                                <React.Fragment key={key}>
+                                    {renderStockRow(stock, {
+                                        isVariantSummary: true,
+                                        expandKey: key,
+                                        canExpand,
+                                        isExpanded,
+                                    })}
+                                    {canExpand && isExpanded && (stock.batch_records || []).map((batch) =>
+                                        renderStockRow(batch, { isChild: true })
                                     )}
                                 </React.Fragment>
                             );

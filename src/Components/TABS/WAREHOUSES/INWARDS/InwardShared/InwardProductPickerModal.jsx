@@ -6,11 +6,11 @@ import { useGetProductsQuery } from "../../../../../REDUX_FEATURES/REDUX_SLICES/
 import { useUpdateInwardItemMutation } from "../../../../../REDUX_FEATURES/REDUX_SLICES/Inward_api/inwardApi";
 
 const formatAttributes = (attrs) => {
-    if (!attrs || typeof attrs !== "object") return "";
-    const parts = Object.entries(attrs)
-        .filter(([, v]) => v != null && String(v).trim() !== "")
-        .map(([k, v]) => `${k}: ${v}`);
-    return parts.length ? parts.join(" · ") : "";
+    if (!Array.isArray(attrs) || attrs.length === 0) return "";
+    return attrs
+        .filter((a) => a.value != null && String(a.value).trim() !== "")
+        .map((a) => `${a.key}: ${a.value}`)
+        .join(" · ");
 };
 
 const findVariantByText = (variants, text) => {

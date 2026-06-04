@@ -42,8 +42,9 @@ export const stockApi = createApi({
                 variant_id = "",
                 product_id = "",
                 batch_number = "",
+                view = "variant",
             }) => {
-                const params = { page, limit };
+                const params = { page, limit, view };
                 if (search) params.search = search;
                 if (warehouse_id) params.warehouse_id = warehouse_id;
                 if (variant_id) params.variant_id = variant_id;
@@ -54,7 +55,10 @@ export const stockApi = createApi({
             providesTags: (result) => {
                 if (result?.stocks) {
                     return [
-                        ...result.stocks.map(({ stock_id }) => ({ type: "Stock", id: stock_id })),
+                        ...result.stocks.map((s) => ({
+                            type: "Stock",
+                            id: s.stock_id || s.aggregate_key || s.variant_id,
+                        })),
                         { type: "StockList", id: "LIST" },
                     ];
                 }
@@ -62,7 +66,7 @@ export const stockApi = createApi({
             },
             transformResponse: (response) => ({
                 stocks: response.data || [],
-                meta: response.meta || { total: 0, page: 1, limit: 20, totalPages: 1 },
+                meta: response.meta || { total: 0, page: 1, limit: 20, totalPages: 1, stats: null },
             }),
         }),
 
@@ -79,7 +83,7 @@ export const stockApi = createApi({
         // GET all stocks for stats (unpaginated)
         getAllProductStocks: builder.query({
             query: ({ warehouse_id = "" }) => {
-                const params = { page: 1, limit: 10 };
+                const params = { page: 1, limit: 100, view: "variant" };
                 if (warehouse_id) params.warehouse_id = warehouse_id;
                 return { url: "/product-stocks", method: "GET", params };
             },

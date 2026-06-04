@@ -47,7 +47,12 @@ export default function PurchaseDetailModal({ purchase, onClose }) {
     );
 
     const detail = purchaseDetail || purchase;
-    const items = detail?.items || [];
+    const displayItems =
+        detail?.display_lines_by_variant?.length
+            ? detail.display_lines_by_variant
+            : detail?.display_lines?.length
+                ? detail.display_lines
+                : detail?.items || [];
     const [downloadPdf, { isFetching: isDownloading }] = useLazyDownloadPurchasePdfQuery();
 
     const handleDownloadPdf = async () => {
@@ -144,11 +149,11 @@ export default function PurchaseDetailModal({ purchase, onClose }) {
                             <div className="flex items-center gap-2 mb-3">
                                 <Layers size={16} className="text-gray-500" />
                                 <p className="text-sm font-semibold text-gray-700">
-                                    Items Received ({items.length})
+                                    Items Received ({displayItems.length})
                                 </p>
                             </div>
 
-                            {items.length === 0 ? (
+                            {displayItems.length === 0 ? (
                                 <div className="text-center py-8 text-gray-400 text-sm border border-dashed border-gray-200 rounded-xl">
                                     No items found in this purchase
                                 </div>
@@ -169,24 +174,33 @@ export default function PurchaseDetailModal({ purchase, onClose }) {
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-100">
-                                            {items.map((item, idx) => {
-                                                const product = item.product || {};
-                                                const variant = product.variants?.[0] || {};
+                                            {displayItems.map((item, idx) => {
+                                                const productName = item.product_name || item.product?.name || "—";
+                                                const productCode = item.product_code || item.product?.product_code || "—";
+                                                const variantSku =
+                                                    item.variant_sku ||
+                                                    item.variant?.sku ||
+                                                    item.variant?.system_barcode ||
+                                                    "—";
                                                 const lineSubtotal = item.line_subtotal ?? (item.quantity || 0) * (item.purchase_cost || 0);
-                                                const lineTotal = lineSubtotal + (item.tax_amount || 0);
+                                                const lineTotal = item.line_total ?? lineSubtotal + (item.tax_amount || 0);
                                                 const location = [item.room_zone, item.rack_shelf].filter(Boolean).join(" / ") || "—";
+                                                const batchDisplay =
+                                                    item.batch_display ||
+                                                    item.batch_number ||
+                                                    (item.batch_numbers?.length ? item.batch_numbers.join(", ") : "—");
 
                                                 return (
-                                                    <tr key={item.purchase_item_id || idx} className="hover:bg-gray-50">
+                                                    <tr key={item.purchase_item_id || item.variant_id || idx} className="hover:bg-gray-50">
                                                         <td className="px-4 py-2.5">
-                                                            <p className="font-medium text-gray-800 text-sm">{product.name || "—"}</p>
-                                                            <p className="text-xs text-gray-400 font-mono mt-0.5">{product.product_code || "—"}</p>
+                                                            <p className="font-medium text-gray-800 text-sm">{productName}</p>
+                                                            <p className="text-xs text-gray-400 font-mono mt-0.5">{productCode}</p>
                                                         </td>
                                                         <td className="px-4 py-2.5">
-                                                            <p className="text-xs text-gray-600">{variant.sku || variant.system_barcode || "—"}</p>
-                                                            {variant.attributes && (
-                                                                <p className="text-xs text-gray-400 mt-0.5">
-                                                                    {Object.entries(variant.attributes).map(([k, v]) => `${k}: ${v}`).join(", ")}
+                                                            <p className="text-xs font-mono text-gray-600">{variantSku}</p>
+                                                            {item.line_count > 1 && (
+                                                                <p className="text-[10px] text-indigo-500 mt-0.5">
+                                                                    {item.line_count} inward lines merged
                                                                 </p>
                                                             )}
                                                         </td>
@@ -207,7 +221,7 @@ export default function PurchaseDetailModal({ purchase, onClose }) {
                                                         </td>
                                                         <td className="px-4 py-2.5">
                                                             <span className="text-xs font-mono text-gray-500">
-                                                                {item.batch_number || "—"}
+                                                                {batchDisplay}
                                                             </span>
                                                         </td>
                                                         <td className="px-4 py-2.5">
