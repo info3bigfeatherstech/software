@@ -8,10 +8,26 @@ import {
 import { useGetPurchaseEntriesQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/Purchase_api/purchaseApi";
 
 const DEBIT_TYPES = [
-    { value: "SHORTAGE", label: "Shortage (not received / invoice mismatch)" },
-    { value: "DEFECTIVE", label: "Defective — return stock to vendor" },
-    { value: "RATE_DIFFERENCE", label: "Rate / billing difference" },
-    { value: "OTHER", label: "Other" },
+    {
+        value: "SHORTAGE",
+        label: "Shortage (invoice/qty mismatch)",
+        stock: "No — amount claim only; warehouse stock unchanged",
+    },
+    {
+        value: "DEFECTIVE",
+        label: "Defective — return goods to vendor",
+        stock: "Yes — qty deducted from WH (batch-wise), ledger PURCHASE_RETURN",
+    },
+    {
+        value: "RATE_DIFFERENCE",
+        label: "Rate / billing difference",
+        stock: "No — financial adjustment only",
+    },
+    {
+        value: "OTHER",
+        label: "Other",
+        stock: "Usually no stock; contact WH manager if physical return needed",
+    },
 ];
 
 const fmtMoney = (n) => `₹${Number(n || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
@@ -20,6 +36,7 @@ export default function CreateDebitNoteModal({ onSuccess, onClose }) {
     const [purchaseSearch, setPurchaseSearch] = useState("");
     const [selectedPurchaseId, setSelectedPurchaseId] = useState("");
     const [lineQty, setLineQty] = useState({});
+    const [lineVariantId, setLineVariantId] = useState({});
     const [type, setType] = useState("SHORTAGE");
     const [reason, setReason] = useState("");
 
@@ -41,9 +58,25 @@ export default function CreateDebitNoteModal({ onSuccess, onClose }) {
         if (!selectedPurchaseId) return;
         fetchReturnable(selectedPurchaseId);
         setLineQty({});
+        setLineVariantId({});
     }, [selectedPurchaseId, fetchReturnable]);
 
     const lines = returnable?.lines || [];
+
+    useEffect(() => {
+        if (!lines.length) return;
+        setLineVariantId((prev) => {
+            const next = { ...prev };
+            for (const line of lines) {
+                if (line.requires_variant_pick && !next[line.purchase_item_id] && line.variant_options?.length) {
+                    next[line.purchase_item_id] = line.variant_options[0].variant_id;
+                } else if (line.variant_id && !next[line.purchase_item_id]) {
+                    next[line.purchase_item_id] = line.variant_id;
+                }
+            }
+            return next;
+        });
+    }, [returnable, lines.length]);
 
     const estimatedTotal = useMemo(() => {
         let sub = 0;
@@ -77,10 +110,25 @@ export default function CreateDebitNoteModal({ onSuccess, onClose }) {
 
         const items = lines
             .filter((l) => (lineQty[l.purchase_item_id] || 0) > 0)
-            .map((l) => ({
-                purchase_item_id: l.purchase_item_id,
-                quantity: lineQty[l.purchase_item_id],
-            }));
+            .map((l) => {
+                const variantId = l.requires_variant_pick
+                    ? lineVariantId[l.purchase_item_id]
+                    : l.variant_id || lineVariantId[l.purchase_item_id];
+                if (l.requires_variant_pick && !variantId) {
+                    return null;
+                }
+                return {
+                    purchase_item_id: l.purchase_item_id,
+                    quantity: lineQty[l.purchase_item_id],
+                    ...(variantId ? { variant_id: variantId } : {}),
+                };
+            })
+            .filter(Boolean);
+
+        if (items.length !== lines.filter((l) => (lineQty[l.purchase_item_id] || 0) > 0).length) {
+            toast.error("Select variant (SKU) for each line with multiple variants");
+            return;
+        }
 
         if (!items.length) {
             toast.error("Enter return quantity for at least one line");
@@ -152,6 +200,9 @@ export default function CreateDebitNoteModal({ onSuccess, onClose }) {
                                     <option key={t.value} value={t.value}>{t.label}</option>
                                 ))}
                             </select>
+                            <p className="mt-1.5 text-xs text-gray-500">
+                                {DEBIT_TYPES.find((t) => t.value === type)?.stock}
+                            </p>
                         </div>
                         <div>
                             <label className="text-xs font-medium text-gray-500 uppercase">Est. debit amount</label>
@@ -169,6 +220,7 @@ export default function CreateDebitNoteModal({ onSuccess, onClose }) {
                                 <thead className="bg-gray-50 border-b">
                                     <tr>
                                         <th className="px-3 py-2 text-left text-xs text-gray-400">Product</th>
+                                        <th className="px-3 py-2 text-left text-xs text-gray-400">Variant / SKU</th>
                                         <th className="px-3 py-2 text-right text-xs text-gray-400">Purchased</th>
                                         <th className="px-3 py-2 text-right text-xs text-gray-400">Already DN</th>
                                         <th className="px-3 py-2 text-right text-xs text-gray-400">Return qty</th>
@@ -179,7 +231,31 @@ export default function CreateDebitNoteModal({ onSuccess, onClose }) {
                                         <tr key={line.purchase_item_id}>
                                             <td className="px-3 py-2">
                                                 <div className="font-medium text-gray-800">{line.product_name}</div>
-                                                <div className="text-xs text-gray-400">{line.sku}</div>
+                                            </td>
+                                            <td className="px-3 py-2">
+                                                {line.requires_variant_pick ? (
+                                                    <select
+                                                        value={lineVariantId[line.purchase_item_id] || ""}
+                                                        onChange={(e) =>
+                                                            setLineVariantId((prev) => ({
+                                                                ...prev,
+                                                                [line.purchase_item_id]: e.target.value,
+                                                            }))
+                                                        }
+                                                        className="w-full max-w-[140px] border border-amber-200 bg-amber-50 rounded px-2 py-1 text-xs"
+                                                    >
+                                                        {(line.variant_options || []).map((opt) => (
+                                                            <option key={opt.variant_id} value={opt.variant_id}>
+                                                                {opt.sku} ({opt.product_code})
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                ) : (
+                                                    <span className="text-xs font-mono text-gray-600">
+                                                        {line.sku || "—"}
+                                                        {line.product_code ? ` · ${line.product_code}` : ""}
+                                                    </span>
+                                                )}
                                             </td>
                                             <td className="px-3 py-2 text-right">{line.purchased_quantity}</td>
                                             <td className="px-3 py-2 text-right text-amber-700">{line.already_returned}</td>
@@ -204,7 +280,7 @@ export default function CreateDebitNoteModal({ onSuccess, onClose }) {
                                     ))}
                                     {!loadingLines && !lines.length && (
                                         <tr>
-                                            <td colSpan={4} className="px-3 py-4 text-center text-gray-400 text-sm">
+                                            <td colSpan={5} className="px-3 py-4 text-center text-gray-400 text-sm">
                                                 No returnable lines on this purchase
                                             </td>
                                         </tr>
