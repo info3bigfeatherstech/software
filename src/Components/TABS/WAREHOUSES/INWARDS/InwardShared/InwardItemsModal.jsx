@@ -535,17 +535,30 @@ export default function InwardItemsModal({
 
                                             <td style={{ padding: "0 8px", borderRight: "0.5px solid #E5E7EB", borderBottom: "0.5px solid #E5E7EB" }}>
                                                 {item.mapped_product_id ? (
-                                                    <span style={{
-                                                        display: "inline-flex", alignItems: "center", gap: "3px",
+                                                    <span
+                                                        title={
+                                                            item.mapped_variant?.sku
+                                                                ? `${item.mapped_product?.name || "Product"} → ${item.mapped_variant.sku}`
+                                                                : item.mapped_product?.name
+                                                        }
+                                                        style={{
+                                                        display: "inline-flex", flexDirection: "column", alignItems: "flex-start", gap: "1px",
                                                         fontSize: "10px", fontWeight: 500,
                                                         background: "#DCFCE7", color: "#15803D",
                                                         borderRadius: "10px", padding: "2px 8px",
                                                         border: "0.5px solid #BBF7D0",
                                                     }}>
-                                                        <svg style={{ width: "9px", height: "9px" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                                                        </svg>
-                                                        Mapped
+                                                        <span style={{ display: "inline-flex", alignItems: "center", gap: "3px" }}>
+                                                            <svg style={{ width: "9px", height: "9px" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                                                            </svg>
+                                                            Mapped
+                                                        </span>
+                                                        {item.mapped_variant?.sku && (
+                                                            <span style={{ fontFamily: "monospace", fontSize: "9px", color: "#166534" }}>
+                                                                {item.mapped_variant.sku}
+                                                            </span>
+                                                        )}
                                                     </span>
                                                 ) : (
                                                     <button
