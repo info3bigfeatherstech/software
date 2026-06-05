@@ -56,76 +56,76 @@ const BillViewModal = ({ bill, onClose }) => {
 
     return (
         <div className="fixed inset-0 z-50 overflow-y-auto text-gray-700">
-    <div className="flex items-center justify-center min-h-screen px-4 py-8">
-        <div className="fixed inset-0 bg-black/40" />
+            <div className="flex items-center justify-center min-h-screen px-4 py-8">
+                <div className="fixed inset-0 bg-black/40" />
 
-            <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
-                <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex justify-between">
-                    <div>
-                        <h3 className="text-base font-semibold text-gray-800">Bill Details</h3>
-                        <p className="text-xs text-gray-400 font-mono">{bill.bill_number}</p>
-                    </div>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
-                </div>
-                <div className="p-6 space-y-4">
-                    <div className="grid grid-cols-2 gap-4 bg-gray-50 rounded-lg p-3 text-sm">
-                        <div><p className="text-xs text-gray-500">Bill Date</p><p className="font-medium text-gray-800">{fmtDateTime(bill.created_at)}</p></div>
+                <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+                    <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex justify-between">
                         <div>
-                            <p className="text-xs text-gray-500">Bill Type</p>
-                            <p className="font-medium text-gray-800">
-                                {getBillTypeLabel(bill.bill_type)}
-                            </p>
+                            <h3 className="text-base font-semibold text-gray-800">Bill Details</h3>
+                            <p className="text-xs text-gray-400 font-mono">{bill.bill_number}</p>
                         </div>
-                        {bill.place_of_supply_state_code && (
+                        <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+                    </div>
+                    <div className="p-6 space-y-4">
+                        <div className="grid grid-cols-2 gap-4 bg-gray-50 rounded-lg p-3 text-sm">
+                            <div><p className="text-xs text-gray-500">Bill Date</p><p className="font-medium text-gray-800">{fmtDateTime(bill.created_at)}</p></div>
                             <div>
-                                <p className="text-xs text-gray-500">Place of Supply</p>
+                                <p className="text-xs text-gray-500">Bill Type</p>
                                 <p className="font-medium text-gray-800">
-                                    {getStateName(bill.place_of_supply_state_code)} ({bill.place_of_supply_state_code})
+                                    {getBillTypeLabel(bill.bill_type)}
                                 </p>
                             </div>
-                        )}
-                        <div><p className="text-xs text-gray-500">Payment Status</p><span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${bill.payment_status === "PAID" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}`}>{bill.payment_status || "PENDING"}</span></div>
-                        <div><p className="text-xs text-gray-500">Customer</p><p className="font-medium text-gray-800">{bill.customer_name || "Walk-in Customer"}</p></div>
-                    </div>
-                    <div>
-                        <p className="text-sm font-medium text-gray-700 mb-2">Items ({totalQty})</p>
-                        <div className="border border-gray-200 rounded-lg overflow-hidden">
-                            <table className="w-full text-sm">
-                                <thead className="bg-gray-50"><tr><th className="px-3 py-2 text-left text-xs font-semibold text-gray-500">Product</th><th className="px-3 py-2 text-right text-xs font-semibold text-gray-500">Qty</th><th className="px-3 py-2 text-right text-xs font-semibold text-gray-500">Price</th><th className="px-3 py-2 text-right text-xs font-semibold text-gray-500">Total</th></tr></thead>
-                                <tbody className="divide-y divide-gray-100">
-                                    {bill.items?.map((item, idx) => (
-                                        <tr key={idx}><td className="px-3 py-2"><p className="font-medium text-gray-800">{item.variant?.product?.name || item.product?.name}</p><p className="text-xs text-gray-400">{item.variant?.sku || "—"}</p></td><td className="px-3 py-2 text-right">{item.quantity}</td><td className="px-3 py-2 text-right">₹{toNumber(item.unit_price).toFixed(2)}</td><td className="px-3 py-2 text-right font-semibold">₹{toNumber(item.line_total).toFixed(2)}</td></tr>
-                                    ))}
-                                </tbody>
-                                <tfoot className="bg-gray-50">
-                                    <tr><td colSpan="3" className="px-3 py-2 text-right font-semibold">Subtotal:</td><td className="px-3 py-2 text-right">₹{toNumber(bill.subtotal).toFixed(2)}</td></tr>
-                                    <tr><td colSpan="3" className="px-3 py-2 text-right font-semibold">GST:</td><td className="px-3 py-2 text-right">₹{toNumber(bill.gst_amount).toFixed(2)}</td></tr>
-                                    {bill.tax_summary?.cgst > 0 && (
-                                        <tr><td colSpan="3" className="px-3 py-2 text-right text-xs text-gray-500">CGST:</td><td className="px-3 py-2 text-right text-xs">₹{toNumber(bill.tax_summary.cgst).toFixed(2)}</td></tr>
-                                    )}
-                                    {bill.tax_summary?.sgst > 0 && (
-                                        <tr><td colSpan="3" className="px-3 py-2 text-right text-xs text-gray-500">SGST:</td><td className="px-3 py-2 text-right text-xs">₹{toNumber(bill.tax_summary.sgst).toFixed(2)}</td></tr>
-                                    )}
-                                    {bill.tax_summary?.igst > 0 && (
-                                        <tr><td colSpan="3" className="px-3 py-2 text-right text-xs text-gray-500">IGST:</td><td className="px-3 py-2 text-right text-xs">₹{toNumber(bill.tax_summary.igst).toFixed(2)}</td></tr>
-                                    )}
-                                    {bill.credit_applied > 0 && <tr><td colSpan="3" className="px-3 py-2 text-right font-semibold text-green-600">Credit Applied:</td><td className="px-3 py-2 text-right text-green-600">-₹{toNumber(bill.credit_applied).toFixed(2)}</td></tr>}
-                                    <tr className="border-t border-gray-200"><td colSpan="3" className="px-3 py-2 text-right font-bold text-lg">Total:</td><td className="px-3 py-2 text-right font-bold text-lg text-blue-600">₹{toNumber(bill.total_amount).toFixed(2)}</td></tr>
-                                </tfoot>
-                            </table>
+                            {bill.place_of_supply_state_code && (
+                                <div>
+                                    <p className="text-xs text-gray-500">Place of Supply</p>
+                                    <p className="font-medium text-gray-800">
+                                        {getStateName(bill.place_of_supply_state_code)} ({bill.place_of_supply_state_code})
+                                    </p>
+                                </div>
+                            )}
+                            <div><p className="text-xs text-gray-500">Payment Status</p><span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${bill.payment_status === "PAID" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}`}>{bill.payment_status || "PENDING"}</span></div>
+                            <div><p className="text-xs text-gray-500">Customer</p><p className="font-medium text-gray-800">{bill.customer_name || "Walk-in Customer"}</p></div>
                         </div>
+                        <div>
+                            <p className="text-sm font-medium text-gray-700 mb-2">Items ({totalQty})</p>
+                            <div className="border border-gray-200 rounded-lg overflow-hidden">
+                                <table className="w-full text-sm">
+                                    <thead className="bg-gray-50"><tr><th className="px-3 py-2 text-left text-xs font-semibold text-gray-500">Product</th><th className="px-3 py-2 text-right text-xs font-semibold text-gray-500">Qty</th><th className="px-3 py-2 text-right text-xs font-semibold text-gray-500">Price</th><th className="px-3 py-2 text-right text-xs font-semibold text-gray-500">Total</th></tr></thead>
+                                    <tbody className="divide-y divide-gray-100">
+                                        {bill.items?.map((item, idx) => (
+                                            <tr key={idx}><td className="px-3 py-2"><p className="font-medium text-gray-800">{item.variant?.product?.name || item.product?.name}</p><p className="text-xs text-gray-400">{item.variant?.sku || "—"}</p></td><td className="px-3 py-2 text-right">{item.quantity}</td><td className="px-3 py-2 text-right">₹{toNumber(item.unit_price).toFixed(2)}</td><td className="px-3 py-2 text-right font-semibold">₹{toNumber(item.line_total).toFixed(2)}</td></tr>
+                                        ))}
+                                    </tbody>
+                                    <tfoot className="bg-gray-50">
+                                        <tr><td colSpan="3" className="px-3 py-2 text-right font-semibold">Subtotal:</td><td className="px-3 py-2 text-right">₹{toNumber(bill.subtotal).toFixed(2)}</td></tr>
+                                        <tr><td colSpan="3" className="px-3 py-2 text-right font-semibold">GST:</td><td className="px-3 py-2 text-right">₹{toNumber(bill.gst_amount).toFixed(2)}</td></tr>
+                                        {bill.tax_summary?.cgst > 0 && (
+                                            <tr><td colSpan="3" className="px-3 py-2 text-right text-xs text-gray-500">CGST:</td><td className="px-3 py-2 text-right text-xs">₹{toNumber(bill.tax_summary.cgst).toFixed(2)}</td></tr>
+                                        )}
+                                        {bill.tax_summary?.sgst > 0 && (
+                                            <tr><td colSpan="3" className="px-3 py-2 text-right text-xs text-gray-500">SGST:</td><td className="px-3 py-2 text-right text-xs">₹{toNumber(bill.tax_summary.sgst).toFixed(2)}</td></tr>
+                                        )}
+                                        {bill.tax_summary?.igst > 0 && (
+                                            <tr><td colSpan="3" className="px-3 py-2 text-right text-xs text-gray-500">IGST:</td><td className="px-3 py-2 text-right text-xs">₹{toNumber(bill.tax_summary.igst).toFixed(2)}</td></tr>
+                                        )}
+                                        {bill.credit_applied > 0 && <tr><td colSpan="3" className="px-3 py-2 text-right font-semibold text-green-600">Credit Applied:</td><td className="px-3 py-2 text-right text-green-600">-₹{toNumber(bill.credit_applied).toFixed(2)}</td></tr>}
+                                        <tr className="border-t border-gray-200"><td colSpan="3" className="px-3 py-2 text-right font-bold text-lg">Total:</td><td className="px-3 py-2 text-right font-bold text-lg text-blue-600">₹{toNumber(bill.total_amount).toFixed(2)}</td></tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                        {bill.payments && bill.payments.length > 0 && (
+                            <div className="bg-gray-50 rounded-lg p-3"><p className="text-xs font-medium text-gray-500 mb-2">Payments</p>{bill.payments.map((payment, idx) => (<div key={idx} className="flex justify-between text-sm"><span>{payment.payment_method} • {fmtDateTime(payment.paid_at)}</span><span className="font-medium">₹{toNumber(payment.amount).toFixed(2)}</span></div>))}</div>
+                        )}
+                        {bill.credit_notes_applied && bill.credit_notes_applied.length > 0 && (
+                            <div className="bg-purple-50 rounded-lg p-3"><p className="text-xs font-medium text-purple-800 mb-2">Credit Notes Applied</p>{bill.credit_notes_applied.map((cn, idx) => (<div key={idx} className="flex justify-between text-sm"><span>{cn.credit_note_number}</span><span className="font-medium">₹{toNumber(cn.amount_applied).toFixed(2)}</span></div>))}</div>
+                        )}
                     </div>
-                    {bill.payments && bill.payments.length > 0 && (
-                        <div className="bg-gray-50 rounded-lg p-3"><p className="text-xs font-medium text-gray-500 mb-2">Payments</p>{bill.payments.map((payment, idx) => (<div key={idx} className="flex justify-between text-sm"><span>{payment.payment_method} • {fmtDateTime(payment.paid_at)}</span><span className="font-medium">₹{toNumber(payment.amount).toFixed(2)}</span></div>))}</div>
-                    )}
-                    {bill.credit_notes_applied && bill.credit_notes_applied.length > 0 && (
-                        <div className="bg-purple-50 rounded-lg p-3"><p className="text-xs font-medium text-purple-800 mb-2">Credit Notes Applied</p>{bill.credit_notes_applied.map((cn, idx) => (<div key={idx} className="flex justify-between text-sm"><span>{cn.credit_note_number}</span><span className="font-medium">₹{toNumber(cn.amount_applied).toFixed(2)}</span></div>))}</div>
-                    )}
+                    <div className="sticky bottom-0 bg-white border-t border-gray-100 px-6 py-4 flex justify-end"><button onClick={onClose} className="px-4 py-2 bg-gray-100 rounded-lg text-sm hover:bg-gray-200">Close</button></div>
                 </div>
-                <div className="sticky bottom-0 bg-white border-t border-gray-100 px-6 py-4 flex justify-end"><button onClick={onClose} className="px-4 py-2 bg-gray-100 rounded-lg text-sm hover:bg-gray-200">Close</button></div>
             </div>
-    </div>
-</div>
+        </div>
     );
 };
 
@@ -412,8 +412,6 @@ export default function CheckoutPanel({ shop_id }) {
         setDismissedCredit(true);
     };
 
-    const finalPayable = Math.max(0, total - totalSelectedCredit);
-
     if (createdBillData || lastCreatedBill) {
         const bill = createdBillData || lastCreatedBill;
         return (
@@ -525,11 +523,10 @@ export default function CheckoutPanel({ shop_id }) {
                     <button
                         type="button"
                         onClick={() => dispatch(setBillType(BILL_TYPES.WITHOUT_GST))}
-                        className={`flex-1 py-2.5 px-2 text-xs font-semibold rounded-lg border transition-all text-left ${
-                            billType === BILL_TYPES.WITHOUT_GST
-                                ? "bg-gray-800 text-white border-gray-800"
-                                : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
-                        }`}
+                        className={`flex-1 py-2.5 px-2 text-xs font-semibold rounded-lg border transition-all text-left ${billType === BILL_TYPES.WITHOUT_GST
+                            ? "bg-gray-800 text-white border-gray-800"
+                            : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+                            }`}
                     >
                         <span className="block">Without GST</span>
                         <span className={`block text-[10px] font-normal mt-0.5 ${billType === BILL_TYPES.WITHOUT_GST ? "text-gray-300" : "text-gray-400"}`}>
@@ -539,11 +536,10 @@ export default function CheckoutPanel({ shop_id }) {
                     <button
                         type="button"
                         onClick={() => dispatch(setBillType(BILL_TYPES.WITH_GST))}
-                        className={`flex-1 py-2.5 px-2 text-xs font-semibold rounded-lg border transition-all text-left ${
-                            billType === BILL_TYPES.WITH_GST
-                                ? "bg-blue-600 text-white border-blue-600"
-                                : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
-                        }`}
+                        className={`flex-1 py-2.5 px-2 text-xs font-semibold rounded-lg border transition-all text-left ${billType === BILL_TYPES.WITH_GST
+                            ? "bg-blue-600 text-white border-blue-600"
+                            : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+                            }`}
                     >
                         <span className="block">With GST</span>
                         <span className={`block text-[10px] font-normal mt-0.5 ${billType === BILL_TYPES.WITH_GST ? "text-blue-100" : "text-gray-400"}`}>
