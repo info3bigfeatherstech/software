@@ -39,6 +39,7 @@ export const SUB_TAB_PERMISSIONS = {
     "settings.vendors": ["SUPER_ADMIN", "WH_MANAGER"],
     "settings.companydetails": ["SUPER_ADMIN"],
     "settings.bankdetails": ["SUPER_ADMIN", "SHOP_OWNER"],
+    "settings.staffcodes": ["SUPER_ADMIN", "SHOP_OWNER"],
 
 
     // Settings internal horizontal tabs (from settingsTabRegistry.js)
@@ -47,6 +48,7 @@ export const SUB_TAB_PERMISSIONS = {
     "settings.internal.vendors": ["SUPER_ADMIN", "WH_MANAGER"],
     "settings.internal.companydetails": ["SUPER_ADMIN"],
     "settings.internal.bankdetails": ["SUPER_ADMIN", "SHOP_OWNER"],
+    "settings.internal.staffcodes": ["SUPER_ADMIN", "SHOP_OWNER"],
 
     // Transfers sidebar dropdown
     "transfers.wh-to-shop": ["SUPER_ADMIN", "WH_MANAGER", "WH_STOCK_LISTER"],

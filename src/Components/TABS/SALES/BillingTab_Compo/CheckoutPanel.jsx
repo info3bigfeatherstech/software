@@ -12,10 +12,11 @@ import { useDispatch, useSelector } from "react-redux";
 import { Printer, Download, PlusCircle, Eye, X, Receipt, CheckCircle, Search } from "lucide-react";
 import { toast } from "react-toastify";
 import { useCreateBillMutation, useLazyGetBillPdfQuery, useGetBillByIdQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/Billing_api/billingApi";
-import { useGetShopBankAccountsQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/Shop_api/shopApi";
+import { useGetShopBankAccountsQuery, useGetShopStaffCodesQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/Shop_api/shopApi";
 import { useGetCreditNotesQuery, useLazyLookupCreditNoteQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/CreditNote_api/creditNoteApi";
 import UpiPaymentModal from "./UpiPaymentModal";
 import { formatBankAccountLabel } from "../../../../utils/upiPayment";
+import { formatStaffCodeLabel } from "../../../../utils/staffCode";
 import {
     clearCart,
     clearSelectedCustomer,
@@ -85,8 +86,16 @@ const BillViewModal = ({ bill, onClose }) => {
                                 </div>
                             )}
                             <div><p className="text-xs text-gray-500">Payment Status</p><span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${bill.payment_status === "PAID" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}`}>{bill.payment_status || "PENDING"}</span></div>
-                            <div><p className="text-xs text-gray-500">Customer</p><p className="font-medium text-gray-800">{bill.customer_name || "Walk-in Customer"}</p></div>
-                        </div>
+                        <div><p className="text-xs text-gray-500">Customer</p><p className="font-medium text-gray-800">{bill.customer_name || "Walk-in Customer"}</p></div>
+                        {bill.staff_code_value && (
+                            <div>
+                                <p className="text-xs text-gray-500">Billing Staff</p>
+                                <p className="font-medium text-gray-800">
+                                    {bill.staff_code_value} — {bill.staff_name_snapshot}
+                                </p>
+                            </div>
+                        )}
+                    </div>
                         <div>
                             <p className="text-sm font-medium text-gray-700 mb-2">Items ({totalQty})</p>
                             <div className="border border-gray-200 rounded-lg overflow-hidden">
@@ -158,6 +167,7 @@ export default function CheckoutPanel({ shop_id }) {
     const [dismissedCredit, setDismissedCredit] = useState(false);
     const [selectedBankAccountId, setSelectedBankAccountId] = useState("");
     const [showUpiModal, setShowUpiModal] = useState(false);
+    const [selectedStaffCodeId, setSelectedStaffCodeId] = useState("");
 
     const [lookupCreditNote, { isFetching: isLookingUpCn }] = useLazyLookupCreditNoteQuery();
 
@@ -165,6 +175,13 @@ export default function CheckoutPanel({ shop_id }) {
         { shopId: shop_id, upi_only: true, active_only: true },
         { skip: !shop_id }
     );
+
+    const { data: staffCodes = [] } = useGetShopStaffCodesQuery(
+        { shopId: shop_id, active_only: true },
+        { skip: !shop_id }
+    );
+
+    const staffCodesRequired = staffCodes.length > 0;
 
     // Org-wide pool: customer's credit notes redeemable at this shop counter
     const { data: creditNotesData, refetch: refetchCreditNotes } = useGetCreditNotesQuery({
@@ -297,6 +314,11 @@ export default function CheckoutPanel({ shop_id }) {
             payload.payment_amount = finalPayable;
         }
 
+        const staffId = extra.staff_code_id ?? selectedStaffCodeId;
+        if (staffId) {
+            payload.staff_code_id = staffId;
+        }
+
         return payload;
     };
 
@@ -323,6 +345,7 @@ export default function CheckoutPanel({ shop_id }) {
             setSearchedCreditNotes([]);
             setCreditNoteSearchInput("");
             setShowUpiModal(false);
+            setSelectedStaffCodeId("");
             refetchCreditNotes();
         } catch (err) {
             console.error("Bill creation error:", err);
@@ -331,11 +354,21 @@ export default function CheckoutPanel({ shop_id }) {
         }
     };
 
+    const assertStaffCodeSelected = () => {
+        if (staffCodesRequired && !selectedStaffCodeId) {
+            toast.error("Select your billing staff code before creating this bill");
+            return false;
+        }
+        return true;
+    };
+
     const handleCreateBill = async () => {
         if (cart.length === 0) {
             toast.error("Cart is empty");
             return;
         }
+
+        if (!assertStaffCodeSelected()) return;
 
         if (paymentMethod === "UPI" && finalPayable > 0) {
             if (!bankAccounts.length) {
@@ -514,6 +547,29 @@ export default function CheckoutPanel({ shop_id }) {
                         <button onClick={() => setSelectedCreditNoteIds([])} className="text-xs text-red-500 hover:text-red-700">Remove</button>
                     </div>
                     <div className="mt-1 text-xs text-green-600">{selectedCreditNoteIds.length} credit note(s) applied</div>
+                </div>
+            )}
+
+            {staffCodesRequired && (
+                <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                    <label className="block text-xs font-semibold text-amber-900 mb-1">
+                        Billing Staff Code (required for this bill)
+                    </label>
+                    <select
+                        value={selectedStaffCodeId}
+                        onChange={(e) => setSelectedStaffCodeId(e.target.value)}
+                        className="w-full px-3 py-2 border border-amber-300 rounded-lg text-sm bg-white"
+                    >
+                        <option value="">— Select your code —</option>
+                        {staffCodes.map((sc) => (
+                            <option key={sc.staff_code_id} value={sc.staff_code_id}>
+                                {formatStaffCodeLabel(sc)}
+                            </option>
+                        ))}
+                    </select>
+                    <p className="text-[10px] text-amber-700 mt-1">
+                        Shared login stays active — pick your code for each bill. Cleared after bill is saved.
+                    </p>
                 </div>
             )}
 

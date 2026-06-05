@@ -23,7 +23,7 @@ const axiosBaseQuery = () => async ({ url, method, data, params }) => {
 export const shopApi = createApi({
     reducerPath: "shopApi",
     baseQuery: axiosBaseQuery(),
-    tagTypes: ["Shop", "MyShop", "ShopBank"],
+    tagTypes: ["Shop", "MyShop", "ShopBank", "ShopStaffCode"],
 
     endpoints: (builder) => ({
 
@@ -142,6 +142,69 @@ export const shopApi = createApi({
             transformResponse: (response) => response.data,
         }),
 
+        getShopStaffCodes: builder.query({
+            query: ({ shopId, active_only = true }) => ({
+                url: `/shops/${shopId}/staff-codes`,
+                method: "GET",
+                params: { active_only: active_only ? "true" : "false" },
+            }),
+            providesTags: (result, error, { shopId }) => [{ type: "ShopStaffCode", id: shopId }],
+            transformResponse: (response) => response.data || [],
+        }),
+
+        getShopStaffBillingSummary: builder.query({
+            query: ({ shopId, from_date = "", to_date = "" }) => {
+                const params = {};
+                if (from_date) params.from_date = from_date;
+                if (to_date) params.to_date = to_date;
+                return {
+                    url: `/shops/${shopId}/staff-codes/billing-summary`,
+                    method: "GET",
+                    params,
+                };
+            },
+            providesTags: (result, error, { shopId }) => [{ type: "ShopStaffCode", id: `summary-${shopId}` }],
+            transformResponse: (response) => response.data,
+        }),
+
+        createShopStaffCode: builder.mutation({
+            query: ({ shopId, ...data }) => ({
+                url: `/shops/${shopId}/staff-codes`,
+                method: "POST",
+                data,
+            }),
+            invalidatesTags: (result, error, { shopId }) => [
+                { type: "ShopStaffCode", id: shopId },
+                { type: "ShopStaffCode", id: `summary-${shopId}` },
+            ],
+            transformResponse: (response) => response.data,
+        }),
+
+        updateShopStaffCode: builder.mutation({
+            query: ({ shopId, staffCodeId, ...data }) => ({
+                url: `/shops/${shopId}/staff-codes/${staffCodeId}`,
+                method: "PUT",
+                data,
+            }),
+            invalidatesTags: (result, error, { shopId }) => [
+                { type: "ShopStaffCode", id: shopId },
+                { type: "ShopStaffCode", id: `summary-${shopId}` },
+            ],
+            transformResponse: (response) => response.data,
+        }),
+
+        deleteShopStaffCode: builder.mutation({
+            query: ({ shopId, staffCodeId }) => ({
+                url: `/shops/${shopId}/staff-codes/${staffCodeId}`,
+                method: "DELETE",
+            }),
+            invalidatesTags: (result, error, { shopId }) => [
+                { type: "ShopStaffCode", id: shopId },
+                { type: "ShopStaffCode", id: `summary-${shopId}` },
+            ],
+            transformResponse: (response) => response.data,
+        }),
+
         // ── DELETE /shops/:shopId ───────────────────────────────────────────────
         deleteShop: builder.mutation({
             query: (shopId) => ({
@@ -167,6 +230,11 @@ export const {
     useCreateShopBankAccountMutation,
     useUpdateShopBankAccountMutation,
     useDeleteShopBankAccountMutation,
+    useGetShopStaffCodesQuery,
+    useGetShopStaffBillingSummaryQuery,
+    useCreateShopStaffCodeMutation,
+    useUpdateShopStaffCodeMutation,
+    useDeleteShopStaffCodeMutation,
     useCreateShopMutation,
     useUpdateShopMutation,
     useDeleteShopMutation,
