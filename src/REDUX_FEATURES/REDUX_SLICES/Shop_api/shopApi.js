@@ -23,7 +23,7 @@ const axiosBaseQuery = () => async ({ url, method, data, params }) => {
 export const shopApi = createApi({
     reducerPath: "shopApi",
     baseQuery: axiosBaseQuery(),
-    tagTypes: ["Shop", "MyShop"],
+    tagTypes: ["Shop", "MyShop", "ShopBank"],
 
     endpoints: (builder) => ({
 
@@ -91,6 +91,57 @@ export const shopApi = createApi({
             transformResponse: (response) => response.data,
         }),
 
+        // ── Shop bank accounts (UPI billing) ───────────────────────────────────
+        getShopBankAccounts: builder.query({
+            query: ({ shopId, upi_only = false, active_only = true }) => ({
+                url: `/shops/${shopId}/bank-accounts`,
+                method: "GET",
+                params: {
+                    upi_only: upi_only ? "true" : "false",
+                    active_only: active_only ? "true" : "false",
+                },
+            }),
+            providesTags: (result, error, { shopId }) => [
+                { type: "ShopBank", id: shopId },
+            ],
+            transformResponse: (response) => response.data || [],
+        }),
+
+        createShopBankAccount: builder.mutation({
+            query: ({ shopId, ...data }) => ({
+                url: `/shops/${shopId}/bank-accounts`,
+                method: "POST",
+                data,
+            }),
+            invalidatesTags: (result, error, { shopId }) => [
+                { type: "ShopBank", id: shopId },
+            ],
+            transformResponse: (response) => response.data,
+        }),
+
+        updateShopBankAccount: builder.mutation({
+            query: ({ shopId, bankAccountId, ...data }) => ({
+                url: `/shops/${shopId}/bank-accounts/${bankAccountId}`,
+                method: "PUT",
+                data,
+            }),
+            invalidatesTags: (result, error, { shopId }) => [
+                { type: "ShopBank", id: shopId },
+            ],
+            transformResponse: (response) => response.data,
+        }),
+
+        deleteShopBankAccount: builder.mutation({
+            query: ({ shopId, bankAccountId }) => ({
+                url: `/shops/${shopId}/bank-accounts/${bankAccountId}`,
+                method: "DELETE",
+            }),
+            invalidatesTags: (result, error, { shopId }) => [
+                { type: "ShopBank", id: shopId },
+            ],
+            transformResponse: (response) => response.data,
+        }),
+
         // ── DELETE /shops/:shopId ───────────────────────────────────────────────
         deleteShop: builder.mutation({
             query: (shopId) => ({
@@ -112,6 +163,10 @@ export const {
     useGetShopsQuery,
     useGetShopByIdQuery,
     useGetMyShopQuery,
+    useGetShopBankAccountsQuery,
+    useCreateShopBankAccountMutation,
+    useUpdateShopBankAccountMutation,
+    useDeleteShopBankAccountMutation,
     useCreateShopMutation,
     useUpdateShopMutation,
     useDeleteShopMutation,

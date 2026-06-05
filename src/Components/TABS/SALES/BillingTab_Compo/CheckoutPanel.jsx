@@ -12,7 +12,10 @@ import { useDispatch, useSelector } from "react-redux";
 import { Printer, Download, PlusCircle, Eye, X, Receipt, CheckCircle, Search } from "lucide-react";
 import { toast } from "react-toastify";
 import { useCreateBillMutation, useLazyGetBillPdfQuery, useGetBillByIdQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/Billing_api/billingApi";
+import { useGetShopBankAccountsQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/Shop_api/shopApi";
 import { useGetCreditNotesQuery, useLazyLookupCreditNoteQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/CreditNote_api/creditNoteApi";
+import UpiPaymentModal from "./UpiPaymentModal";
+import { formatBankAccountLabel } from "../../../../utils/upiPayment";
 import {
     clearCart,
     clearSelectedCustomer,
@@ -153,8 +156,15 @@ export default function CheckoutPanel({ shop_id }) {
     const [creditNoteSearchInput, setCreditNoteSearchInput] = useState("");
     const [showCreditAlert, setShowCreditAlert] = useState(false);
     const [dismissedCredit, setDismissedCredit] = useState(false);
+    const [selectedBankAccountId, setSelectedBankAccountId] = useState("");
+    const [showUpiModal, setShowUpiModal] = useState(false);
 
     const [lookupCreditNote, { isFetching: isLookingUpCn }] = useLazyLookupCreditNoteQuery();
+
+    const { data: bankAccounts = [] } = useGetShopBankAccountsQuery(
+        { shopId: shop_id, upi_only: true, active_only: true },
+        { skip: !shop_id }
+    );
 
     // Org-wide pool: customer's credit notes redeemable at this shop counter
     const { data: creditNotesData, refetch: refetchCreditNotes } = useGetCreditNotesQuery({
@@ -181,6 +191,27 @@ export default function CheckoutPanel({ shop_id }) {
     const totalSelectedCredit = mergedCreditNotes
         .filter((cn) => selectedCreditNoteIds.includes(cn.credit_note_id))
         .reduce((sum, cn) => sum + toNumber(cn.balance || cn.credit_amount || cn.amount), 0);
+
+    const finalPayable = Math.max(0, total - totalSelectedCredit);
+    const selectedBankAccount =
+        bankAccounts.find((a) => a.bank_account_id === selectedBankAccountId) ||
+        bankAccounts.find((a) => a.is_default) ||
+        bankAccounts[0] ||
+        null;
+
+    useEffect(() => {
+        if (!bankAccounts.length) {
+            setSelectedBankAccountId("");
+            return;
+        }
+        const preferred =
+            bankAccounts.find((a) => a.bank_account_id === selectedBankAccountId) ||
+            bankAccounts.find((a) => a.is_default) ||
+            bankAccounts[0];
+        if (preferred && preferred.bank_account_id !== selectedBankAccountId) {
+            setSelectedBankAccountId(preferred.bank_account_id);
+        }
+    }, [bankAccounts, selectedBankAccountId]);
 
     // Auto-show credit alert when customer is selected and has credit
     useEffect(() => {
@@ -237,13 +268,8 @@ export default function CheckoutPanel({ shop_id }) {
         refetchBill();
     };
 
-    const handleCreateBill = async () => {
-        if (cart.length === 0) {
-            toast.error("Cart is empty");
-            return;
-        }
-
-        const items = cart.map(item => ({
+    const buildBillPayload = (extra = {}) => {
+        const items = cart.map((item) => ({
             variant_id: item.variant_id,
             quantity: item.quantity,
             unit_price: item.unit_price,
@@ -252,11 +278,12 @@ export default function CheckoutPanel({ shop_id }) {
 
         const payload = {
             shop_id,
-            bill_type: billType,  // Now sends "GST_INVOICE" or "NON_GST_INVOICE"
+            bill_type: billType,
             payment_method: paymentMethod,
             sales_channel: "WALK_IN",
             items,
             credit_note_ids: selectedCreditNoteIds,
+            ...extra,
         };
 
         if (selectedCustomer) {
@@ -266,19 +293,24 @@ export default function CheckoutPanel({ shop_id }) {
             if (customerMobileInput) payload.customer_mobile = customerMobileInput;
         }
 
-        const payable = Math.max(0, total - totalSelectedCredit);
-        if (payable > 0 && paymentMethod) {
-            payload.payment_amount = payable;
+        if (finalPayable > 0 && paymentMethod) {
+            payload.payment_amount = finalPayable;
         }
 
+        return payload;
+    };
+
+    const submitBill = async (extra = {}) => {
         try {
             const result = await createBill({
                 idempotencyKey: `bill_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                ...payload,
+                ...buildBillPayload(extra),
             }).unwrap();
 
             if (result.credit_applied > 0) {
-                toast.success(`Bill created! ₹${result.credit_applied.toFixed(2)} credit applied. Remaining credit: ₹${(totalCreditAvailable - result.credit_applied).toFixed(2)}`);
+                toast.success(
+                    `Bill created! ₹${result.credit_applied.toFixed(2)} credit applied. Remaining credit: ₹${(totalCreditAvailable - result.credit_applied).toFixed(2)}`
+                );
             } else {
                 toast.success(`Bill ${result.bill_number} created successfully`);
             }
@@ -290,11 +322,42 @@ export default function CheckoutPanel({ shop_id }) {
             setSelectedCreditNoteIds([]);
             setSearchedCreditNotes([]);
             setCreditNoteSearchInput("");
+            setShowUpiModal(false);
             refetchCreditNotes();
         } catch (err) {
             console.error("Bill creation error:", err);
             toast.error(err?.data?.message || "Failed to create bill");
+            throw err;
         }
+    };
+
+    const handleCreateBill = async () => {
+        if (cart.length === 0) {
+            toast.error("Cart is empty");
+            return;
+        }
+
+        if (paymentMethod === "UPI" && finalPayable > 0) {
+            if (!bankAccounts.length) {
+                toast.error("No UPI bank account configured. Add one in Settings → Bank Details.");
+                return;
+            }
+            if (!selectedBankAccount?.upi_id) {
+                toast.error("Select a bank account with a valid UPI ID");
+                return;
+            }
+            setShowUpiModal(true);
+            return;
+        }
+
+        await submitBill();
+    };
+
+    const handleUpiPaymentConfirm = async ({ reference_no } = {}) => {
+        await submitBill({
+            bank_account_id: selectedBankAccount.bank_account_id,
+            reference_no,
+        });
     };
 
     const handleDownloadPdf = async () => {
@@ -547,10 +610,48 @@ export default function CheckoutPanel({ shop_id }) {
                 </select>
             </div>
 
+            {paymentMethod === "UPI" && finalPayable > 0 && (
+                <div className="mb-3 text-gray-700">
+                    <label className="block text-xs font-medium text-gray-700 mb-1">UPI Bank Account</label>
+                    {bankAccounts.length === 0 ? (
+                        <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                            No UPI account configured. Shop owner can add accounts in Settings → Bank Details.
+                        </p>
+                    ) : (
+                        <select
+                            value={selectedBankAccountId}
+                            onChange={(e) => setSelectedBankAccountId(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                        >
+                            {bankAccounts.map((account) => (
+                                <option key={account.bank_account_id} value={account.bank_account_id}>
+                                    {formatBankAccountLabel(account)} — {account.upi_id}
+                                </option>
+                            ))}
+                        </select>
+                    )}
+                </div>
+            )}
+
             {/* Create Bill Button */}
             <button onClick={handleCreateBill} disabled={cart.length === 0 || isCreating} className={`w-full py-3 rounded-xl font-bold text-white shadow-md transition-all flex items-center justify-center gap-2 ${cart.length === 0 ? "bg-gray-300 cursor-not-allowed shadow-none" : "bg-green-600 hover:bg-green-700 hover:shadow-lg"}`}>
-                {isCreating ? (<><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Creating Bill...</>) : (<><Printer size={18} /> Create Bill & {totalSelectedCredit > 0 ? "Apply Credit" : "Print"}</>)}
+                {isCreating ? (
+                    <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Creating Bill...</>
+                ) : paymentMethod === "UPI" && finalPayable > 0 ? (
+                    <><Printer size={18} /> Show UPI QR & Collect ₹{finalPayable.toFixed(2)}</>
+                ) : (
+                    <><Printer size={18} /> Create Bill & {totalSelectedCredit > 0 ? "Apply Credit" : "Print"}</>
+                )}
             </button>
+
+            <UpiPaymentModal
+                open={showUpiModal}
+                onClose={() => setShowUpiModal(false)}
+                onConfirm={handleUpiPaymentConfirm}
+                account={selectedBankAccount}
+                amount={finalPayable}
+                isConfirming={isCreating}
+            />
         </div>
     );
 }

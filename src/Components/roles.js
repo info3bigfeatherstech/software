@@ -38,7 +38,7 @@ export const SUB_TAB_PERMISSIONS = {
     "settings.shops": ["SUPER_ADMIN"],
     "settings.vendors": ["SUPER_ADMIN", "WH_MANAGER"],
     "settings.companydetails": ["SUPER_ADMIN"],
-    "settings.bankdetails": ["SUPER_ADMIN"],
+    "settings.bankdetails": ["SUPER_ADMIN", "SHOP_OWNER"],
 
 
     // Settings internal horizontal tabs (from settingsTabRegistry.js)
@@ -46,7 +46,7 @@ export const SUB_TAB_PERMISSIONS = {
     "settings.internal.shops": ["SUPER_ADMIN"],
     "settings.internal.vendors": ["SUPER_ADMIN", "WH_MANAGER"],
     "settings.internal.companydetails": ["SUPER_ADMIN"],
-    "settings.internal.bankdetails": ["SUPER_ADMIN"],
+    "settings.internal.bankdetails": ["SUPER_ADMIN", "SHOP_OWNER"],
 
     // Transfers sidebar dropdown
     "transfers.wh-to-shop": ["SUPER_ADMIN", "WH_MANAGER", "WH_STOCK_LISTER"],
@@ -246,7 +246,7 @@ export const ROLE_PERMISSIONS = {
     [ROLES.CASHIER]: ["dashboard", "sales", "cashbank"],
     [ROLES.WH_MANAGER]: ["dashboard", "warehouses", "transfers", "inventory", "archive", "purchase", "parties", "settings", "vendors", "reports", "sales", "cashbank", "teammembers", "backup", "utilities"],
     [ROLES.WH_STOCK_LISTER]: ["dashboard", "warehouses", "transfers", "inventory", "purchase", "parties", "settings", "vendors", "reports", "sales", "cashbank", "teammembers", "backup", "utilities"],
-    [ROLES.SHOP_OWNER]: ["dashboard", "sales", "purchase", "inventory", "transfers", "parties", "reports", "cashbank", "teammembers", "backup", "utilities"],
+    [ROLES.SHOP_OWNER]: ["dashboard", "sales", "purchase", "inventory", "transfers", "parties", "reports", "settings", "cashbank", "teammembers", "backup", "utilities"],
     [ROLES.SHOP_STOCK_LISTER]: ["dashboard", "sales", "purchase", "inventory", "transfers", "parties", "reports", "cashbank", "teammembers", "backup", "utilities"],
 };
 
