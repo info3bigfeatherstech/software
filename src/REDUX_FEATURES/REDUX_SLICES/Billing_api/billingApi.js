@@ -16,6 +16,26 @@ import AxiosInstance from "../../../SERVICES/AxiosInstance";
 // FIX: Accept `responseType` from the query config and pass it to Axios.
 // Without this, Axios always parses the response as JSON/text, so binary PDF
 // data is never returned as a Blob — making `response instanceof Blob` always false.
+const parseAxiosErrorData = async (data, fallbackMessage) => {
+    if (!data) return { message: fallbackMessage };
+    if (typeof Blob !== "undefined" && data instanceof Blob) {
+        try {
+            const text = await data.text();
+            return JSON.parse(text);
+        } catch {
+            return { message: fallbackMessage };
+        }
+    }
+    if (typeof data === "string") {
+        try {
+            return JSON.parse(data);
+        } catch {
+            return { message: data || fallbackMessage };
+        }
+    }
+    return data;
+};
+
 const axiosBaseQuery = () => async ({ url, method, data, params, headers, responseType }) => {
     try {
         const result = await AxiosInstance({
@@ -29,10 +49,12 @@ const axiosBaseQuery = () => async ({ url, method, data, params, headers, respon
         });
         return { data: result.data };
     } catch (axiosError) {
+        const fallback = axiosError.message || "Request failed";
+        const errorData = await parseAxiosErrorData(axiosError.response?.data, fallback);
         return {
             error: {
                 status: axiosError.response?.status || 500,
-                data: axiosError.response?.data || { message: axiosError.message || "Request failed" },
+                data: errorData,
             },
         };
     }
@@ -104,8 +126,7 @@ export const billingApi = createApi({
                 method: "GET",
                 responseType: "blob", // FIX: tells Axios to return binary data as a Blob
             }),
-            // FIX: result.data is already the Blob from Axios — return it directly.
-            // Do NOT call response.data.data — there is no nested .data on a Blob.
+            keepUnusedDataFor: 0,
             transformResponse: (response) => response,
         }),
 

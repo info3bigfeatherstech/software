@@ -402,21 +402,25 @@ export default function CheckoutPanel({ shop_id }) {
 
         try {
             const response = await triggerPdf(billId).unwrap();
-            const isBlob = response && typeof response === "object" && typeof response.size === "number";
-            if (isBlob) {
-                const blob = new Blob([response], { type: "application/pdf" });
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = `invoice-${billId}.pdf`;
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-                document.body.removeChild(a);
-                toast.success("PDF downloaded");
-            } else {
+            const blob =
+                response instanceof Blob
+                    ? response
+                    : response && typeof response === "object" && typeof response.size === "number"
+                      ? new Blob([response], { type: "application/pdf" })
+                      : null;
+            if (!blob || blob.type.includes("json")) {
                 toast.error("PDF generation failed");
+                return;
             }
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `invoice-${billId}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            toast.success("PDF downloaded");
         } catch (err) {
             console.error("PDF download error:", err);
             toast.error(err?.data?.message || "Failed to download PDF");
@@ -575,31 +579,44 @@ export default function CheckoutPanel({ shop_id }) {
 
             <div className="mb-3">
                 <p className="text-xs font-semibold text-gray-600 mb-2">Bill type</p>
-                <div className="flex gap-2">
-                    <button
-                        type="button"
-                        onClick={() => dispatch(setBillType(BILL_TYPES.WITHOUT_GST))}
-                        className={`flex-1 py-2.5 px-2 text-xs font-semibold rounded-lg border transition-all text-left ${billType === BILL_TYPES.WITHOUT_GST
-                            ? "bg-gray-800 text-white border-gray-800"
-                            : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
-                            }`}
-                    >
-                        <span className="block">Without GST</span>
-                        <span className={`block text-[10px] font-normal mt-0.5 ${billType === BILL_TYPES.WITHOUT_GST ? "text-gray-300" : "text-gray-400"}`}>
-                            Sirf product prices — bill par koi GST nahi
-                        </span>
-                    </button>
+                <div className="flex flex-col gap-2">
                     <button
                         type="button"
                         onClick={() => dispatch(setBillType(BILL_TYPES.WITH_GST))}
-                        className={`flex-1 py-2.5 px-2 text-xs font-semibold rounded-lg border transition-all text-left ${billType === BILL_TYPES.WITH_GST
+                        className={`w-full py-2.5 px-3 text-xs font-semibold rounded-lg border transition-all text-left ${billType === BILL_TYPES.WITH_GST
                             ? "bg-blue-600 text-white border-blue-600"
                             : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
                             }`}
                     >
-                        <span className="block">With GST</span>
+                        <span className="block">GST Tax Invoice</span>
                         <span className={`block text-[10px] font-normal mt-0.5 ${billType === BILL_TYPES.WITH_GST ? "text-blue-100" : "text-gray-400"}`}>
-                            Product listing GST + tax invoice (CGST/SGST ya IGST)
+                            Full tax invoice — requires shop GSTIN
+                        </span>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => dispatch(setBillType(BILL_TYPES.WITHOUT_GST))}
+                        className={`w-full py-2.5 px-3 text-xs font-semibold rounded-lg border transition-all text-left ${billType === BILL_TYPES.WITHOUT_GST
+                            ? "bg-gray-800 text-white border-gray-800"
+                            : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+                            }`}
+                    >
+                        <span className="block">Non-GST Bill</span>
+                        <span className={`block text-[10px] font-normal mt-0.5 ${billType === BILL_TYPES.WITHOUT_GST ? "text-gray-300" : "text-gray-400"}`}>
+                            Same layout — no GSTIN, no tax rows
+                        </span>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => dispatch(setBillType(BILL_TYPES.ESTIMATE))}
+                        className={`w-full py-2.5 px-3 text-xs font-semibold rounded-lg border transition-all text-left ${billType === BILL_TYPES.ESTIMATE
+                            ? "bg-amber-600 text-white border-amber-600"
+                            : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+                            }`}
+                    >
+                        <span className="block">Estimate / Fake Bill</span>
+                        <span className={`block text-[10px] font-normal mt-0.5 ${billType === BILL_TYPES.ESTIMATE ? "text-amber-100" : "text-gray-400"}`}>
+                            Quotation only — ESTIMATE ONLY watermark, no tax
                         </span>
                     </button>
                 </div>
@@ -608,7 +625,7 @@ export default function CheckoutPanel({ shop_id }) {
             <div className="space-y-1 mb-3">
                 <div className="flex justify-between text-sm">
                     <span className="text-gray-500">
-                        {isWithGstBill(billType) ? `Subtotal (${itemCount} items):` : `Total (${itemCount} items):`}
+                        {isWithGstBill(billType) ? `Subtotal (${itemCount} items):` : `Subtotal (${itemCount} items):`}
                     </span>
                     <span className="font-medium text-gray-800">₹{toNumber(subtotal).toFixed(2)}</span>
                 </div>

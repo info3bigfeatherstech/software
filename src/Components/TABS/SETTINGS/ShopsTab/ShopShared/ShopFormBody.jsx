@@ -5,7 +5,6 @@
 
 import React from "react";
 import { SALES_CHANNELS } from "../../../../../REDUX_FEATURES/REDUX_SLICES/Shop_api/shopSlice";
-
 const CHANNEL_LABELS = {
     WALK_IN: "Walk-in Store",
     ONLINE: "Online Store", 
@@ -97,6 +96,19 @@ export default function ShopFormBody({ formData, onChange, formErrors, isEdit = 
                 {errorMsg("city")}
             </div>
 
+            {/* Pincode */}
+            <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Pincode</label>
+                <input
+                    value={formData.pincode || ""}
+                    onChange={(e) => onChange({ pincode: e.target.value.replace(/\D/g, "").slice(0, 6) })}
+                    placeholder="6-digit pincode"
+                    maxLength={6}
+                    className={inputCls("pincode")}
+                />
+                {errorMsg("pincode")}
+            </div>
+
             {/* Phone */}
             <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Phone</label>
@@ -120,6 +132,24 @@ export default function ShopFormBody({ formData, onChange, formErrors, isEdit = 
                     className={inputCls("email")}
                 />
                 {errorMsg("email")}
+            </div>
+
+            {/* GSTIN — required for GST tax invoices */}
+            <div className="col-span-2">
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Shop GSTIN
+                </label>
+                <input
+                    value={formData.gst_number || ""}
+                    onChange={(e) => onChange({ gst_number: e.target.value.toUpperCase() })}
+                    placeholder="e.g., 07AABCU9603R1ZX"
+                    maxLength={15}
+                    className={`${inputCls("gst_number")} font-mono uppercase`}
+                />
+                {errorMsg("gst_number")}
+                <p className="text-xs text-gray-400 mt-1">
+                    Required to generate GST tax invoices for this shop
+                </p>
             </div>
 
             {/* Owner User ID */}

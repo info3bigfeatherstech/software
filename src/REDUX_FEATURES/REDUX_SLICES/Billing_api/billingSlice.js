@@ -13,7 +13,11 @@ import { calculateGstOnAmount } from "../../../utils/billingCart.utils";
 const calculateLineTotal = (unit_price, quantity) => unit_price * quantity;
 
 const applyLineGst = (item, billType) => {
-    if (billType !== BILL_TYPES.WITH_GST || item.gst_type === "EXEMPT") {
+    if (
+        billType !== BILL_TYPES.WITH_GST ||
+        billType === BILL_TYPES.ESTIMATE ||
+        item.gst_type === "EXEMPT"
+    ) {
         item.gst_amount = 0;
         return;
     }
