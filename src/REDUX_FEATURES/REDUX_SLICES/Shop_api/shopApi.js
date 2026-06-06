@@ -65,6 +65,16 @@ export const shopApi = createApi({
             transformResponse: (response) => response.data,
         }),
 
+        updateMyShop: builder.mutation({
+            query: (shopData) => ({
+                url: "/shops/me",
+                method: "PUT",
+                data: shopData,
+            }),
+            invalidatesTags: ["MyShop"],
+            transformResponse: (response) => response.data,
+        }),
+
         // ── POST /shops ─────────────────────────────────────────────────────────
         createShop: builder.mutation({
             query: (shopData) => ({
@@ -226,6 +236,7 @@ export const {
     useGetShopsQuery,
     useGetShopByIdQuery,
     useGetMyShopQuery,
+    useUpdateMyShopMutation,
     useGetShopBankAccountsQuery,
     useCreateShopBankAccountMutation,
     useUpdateShopBankAccountMutation,

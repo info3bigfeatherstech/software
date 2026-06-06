@@ -8,13 +8,9 @@ import React, { Suspense } from "react";
 import { useSearchParams } from "react-router-dom";
 import { CASHBANK_TAB_REGISTRY } from "./cashbankTabRegistry";
 import { filterInternalTabsByRole } from "../../../Components/roles";
-import { useSelector } from "react-redux";
-
 const CashBankDashboard = () => {
     const [searchParams, setSearchParams] = useSearchParams();
-    const { user } = useSelector((state) => state.auth);
-    
-    // Filter tabs based on user role
+
     const filteredTabs = filterInternalTabsByRole("cashbank", CASHBANK_TAB_REGISTRY);
     
     // If no tabs visible, show nothing

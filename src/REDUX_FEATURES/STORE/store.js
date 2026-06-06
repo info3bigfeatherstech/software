@@ -18,6 +18,7 @@ import bulkUploadReducer from "../REDUX_SLICES/BulkUpload_api/bulkUploadSlice";
 import { stockApi } from "../REDUX_SLICES/Stock_api/stockApi";
 import stockReducer from "../REDUX_SLICES/Stock_api/stockSlice";
 import { purchaseApi } from "../REDUX_SLICES/Purchase_api/purchaseApi";
+import { purchaseFinanceApi } from "../REDUX_SLICES/Purchase_api/purchaseFinanceApi";
 import purchaseReducer from "../REDUX_SLICES/Purchase_api/purchaseSlice";
 import { shopApi } from "../REDUX_SLICES/Shop_api/shopApi";
 import shopReducer from "../REDUX_SLICES/Shop_api/shopSlice";
@@ -46,6 +47,7 @@ import billingReducer from "../REDUX_SLICES/Billing_api/billingSlice";
 import { creditNoteApi } from "../REDUX_SLICES/CreditNote_api/creditNoteApi";
 import creditNoteReducer from "../REDUX_SLICES/CreditNote_api/creditNoteSlice";
 import { debitNoteApi } from "../REDUX_SLICES/DebitNote_api/debitNoteApi";
+import { cashbankApi } from "../REDUX_SLICES/Cashbank_api/cashbankApi";
 
 export const store = configureStore({
   reducer: {
@@ -69,6 +71,7 @@ export const store = configureStore({
     [stockApi.reducerPath]: stockApi.reducer,
     purchase: purchaseReducer,
     [purchaseApi.reducerPath]: purchaseApi.reducer,
+    [purchaseFinanceApi.reducerPath]: purchaseFinanceApi.reducer,
     shop: shopReducer,
     [shopApi.reducerPath]: shopApi.reducer,
     transfer: transferReducer,
@@ -95,6 +98,7 @@ export const store = configureStore({
     creditNote: creditNoteReducer,
 [creditNoteApi.reducerPath]: creditNoteApi.reducer,
     [debitNoteApi.reducerPath]: debitNoteApi.reducer,
+    [cashbankApi.reducerPath]: cashbankApi.reducer,
 
   },
   middleware: (getDefaultMiddleware) =>
@@ -109,6 +113,7 @@ export const store = configureStore({
       bulkUploadApi.middleware,
       stockApi.middleware,
       purchaseApi.middleware,
+      purchaseFinanceApi.middleware,
       shopApi.middleware,
       shopStockApi.middleware,
       transferRequestApi.middleware,
@@ -122,5 +127,6 @@ export const store = configureStore({
       billingApi.middleware,
       creditNoteApi.middleware,
       debitNoteApi.middleware,
+      cashbankApi.middleware,
     ),
 });

@@ -2,7 +2,7 @@
  * Place of supply resolution — mirrors backend billing.utils resolvePlaceOfSupply priority.
  */
 
-import { normalizeStateCode } from "./billingTax";
+import { normalizeStateCode } from "../constants/indianStateCodes";
 
 /** First 2 digits of GSTIN = state code (India). */
 export const stateCodeFromGstin = (gstin) => {

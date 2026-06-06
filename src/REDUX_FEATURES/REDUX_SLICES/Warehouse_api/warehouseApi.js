@@ -20,7 +20,7 @@ const axiosBaseQuery = () => async ({ url, method, data, params }) => {
 export const warehouseApi = createApi({
     reducerPath: "warehouseApi",
     baseQuery: axiosBaseQuery(),
-    tagTypes: ["Warehouse"],
+    tagTypes: ["Warehouse", "MyWarehouse"],
 
     endpoints: (builder) => ({
 
@@ -46,6 +46,22 @@ export const warehouseApi = createApi({
                 warehouses: response.data || [],
                 meta: response.meta || { total: 0, page: 1, limit: 10, totalPages: 1 },
             }),
+        }),
+
+        getMyWarehouse: builder.query({
+            query: () => ({ url: "/warehouses/me", method: "GET" }),
+            providesTags: ["MyWarehouse"],
+            transformResponse: (response) => response.data,
+        }),
+
+        updateMyWarehouse: builder.mutation({
+            query: (warehouseData) => ({
+                url: "/warehouses/me",
+                method: "PUT",
+                data: warehouseData,
+            }),
+            invalidatesTags: ["MyWarehouse"],
+            transformResponse: (response) => response.data,
         }),
 
         // GET /warehouses/:warehouseId
@@ -101,6 +117,8 @@ export const warehouseApi = createApi({
 
 export const {
     useGetWarehousesQuery,
+    useGetMyWarehouseQuery,
+    useUpdateMyWarehouseMutation,
     useGetWarehouseByIdQuery,
     useCreateWarehouseMutation,
     useUpdateWarehouseMutation,

@@ -2,45 +2,65 @@
 //
 // Pure presentational component.
 // Role-aware: shows warehouse_id OR shop_id OR neither based on selected role.
-// Both AddForm and EditForm import this.
+// teamMode: restricted roles + locked assignment for shop/warehouse managers.
 
 import React from "react";
+import { USER_ROLES } from "./userRoles";
 
-export const USER_ROLES = [
-    { value: "SUPER_ADMIN", label: "Super Admin", color: "bg-purple-100 text-purple-700" },
-    { value: "WH_MANAGER", label: "Warehouse Manager", color: "bg-indigo-100 text-indigo-700" },
-    { value: "WH_STOCK_LISTER", label: "WH Stock Lister", color: "bg-blue-100 text-blue-700" },
-    { value: "SHOP_OWNER", label: "Shop Owner", color: "bg-green-100 text-green-700" },
-    { value: "BILLING_STAFF", label: "Billing Staff", color: "bg-yellow-100 text-yellow-700" },
-    { value: "SHOP_STOCK_LISTER", label: "Shop Stock Lister", color: "bg-orange-100 text-orange-700" },
-];
+export { USER_ROLES };
 
 const WH_ROLES = ["WH_MANAGER", "WH_STOCK_LISTER"];
 const SHOP_ROLES = ["SHOP_OWNER", "BILLING_STAFF", "SHOP_STOCK_LISTER"];
 
-export default function UserFormBody({ formData, onChange, formErrors, isEdit = false }) {
+export default function UserFormBody({
+    formData,
+    onChange,
+    formErrors,
+    isEdit = false,
+    teamMode = false,
+    teamContext = null,
+    allowedRoles = null,
+    readOnly = false,
+    lockRole = false,
+}) {
     const role = formData.role || "";
     const needsWH = WH_ROLES.includes(role);
     const needsShop = SHOP_ROLES.includes(role);
+    const roleOptions = allowedRoles?.length
+        ? USER_ROLES.filter((r) => allowedRoles.includes(r.value))
+        : USER_ROLES;
 
     const field = (name) => ({
         value: formData[name] ?? "",
         onChange: (e) => onChange({ [name]: e.target.value }),
+        disabled: readOnly,
+        readOnly,
     });
 
     const inputCls = (name) =>
         `w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${formErrors?.[name] ? "border-red-400" : "border-gray-300"
-        }`;
+        } ${readOnly ? "bg-gray-50 text-gray-600 cursor-not-allowed" : ""}`;
 
     const errorMsg = (name) =>
         formErrors?.[name] ? (
             <p className="text-xs text-red-500 mt-1">{formErrors[name]}</p>
         ) : null;
 
+    const assignmentLabel = () => {
+        if (teamContext?.scope === "shop" && teamContext.shop) {
+            return `${teamContext.shop.shop_name} (${teamContext.shop.shop_code})`;
+        }
+        if (teamContext?.scope === "warehouse" && teamContext.warehouse) {
+            return `${teamContext.warehouse.warehouse_name} (${teamContext.warehouse.warehouse_code})`;
+        }
+        if (teamContext?.scope === "shop") return teamContext.shop_id || "Your shop";
+        if (teamContext?.scope === "warehouse") return teamContext.warehouse_id || "Your warehouse";
+        return null;
+    };
+
     return (
         <div className="grid grid-cols-2 gap-4 text-gray-700">
 
-            {/* Name */}
             <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">
                     Full Name <span className="text-red-500">*</span>
@@ -53,7 +73,6 @@ export default function UserFormBody({ formData, onChange, formErrors, isEdit = 
                 {errorMsg("name")}
             </div>
 
-            {/* Phone */}
             <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">
                     Phone <span className="text-red-500">*</span>
@@ -67,23 +86,39 @@ export default function UserFormBody({ formData, onChange, formErrors, isEdit = 
                 {errorMsg("phone")}
             </div>
 
-            {/* Password — required on Add, optional on Edit */}
-            <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
-                    Password {!isEdit && <span className="text-red-500">*</span>}
-                    {isEdit && <span className="text-gray-400 font-normal ml-1">(leave blank to keep current)</span>}
-                </label>
-                <input
-                    type="password"
-                    {...field("password")}
-                    placeholder={isEdit ? "Enter new password to change" : "Min 8 chars, upper+lower+digit+special"}
-                    className={inputCls("password")}
-                    autoComplete="new-password"
-                />
-                {errorMsg("password")}
-            </div>
+            {!teamMode && (
+                <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                        Password {!isEdit && <span className="text-red-500">*</span>}
+                        {isEdit && <span className="text-gray-400 font-normal ml-1">(leave blank to keep current)</span>}
+                    </label>
+                    <input
+                        type="password"
+                        {...field("password")}
+                        placeholder={isEdit ? "Enter new password to change" : "Min 8 chars, upper+lower+digit+special"}
+                        className={inputCls("password")}
+                        autoComplete="new-password"
+                    />
+                    {errorMsg("password")}
+                </div>
+            )}
 
-            {/* Role */}
+            {teamMode && !isEdit && (
+                <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                        Password <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                        type="password"
+                        {...field("password")}
+                        placeholder="Min 8 chars, upper+lower+digit+special"
+                        className={inputCls("password")}
+                        autoComplete="new-password"
+                    />
+                    {errorMsg("password")}
+                </div>
+            )}
+
             <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">
                     Role <span className="text-red-500">*</span>
@@ -92,16 +127,28 @@ export default function UserFormBody({ formData, onChange, formErrors, isEdit = 
                     value={formData.role || ""}
                     onChange={(e) => onChange({ role: e.target.value })}
                     className={inputCls("role")}
+                    disabled={readOnly || lockRole || (teamMode && isEdit)}
                 >
-                    {USER_ROLES.map(r => (
+                    {roleOptions.map((r) => (
                         <option key={r.value} value={r.value}>{r.label}</option>
                     ))}
                 </select>
                 {errorMsg("role")}
             </div>
 
-            {/* Warehouse ID — only for WH roles */}
-            {needsWH && (
+            {teamMode && teamContext && (
+                <div className="col-span-2 bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
+                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                        Assigned {teamContext.scope === "shop" ? "Shop" : "Warehouse"}
+                    </p>
+                    <p className="text-sm text-gray-800 mt-1">{assignmentLabel()}</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                        Assignment is fixed to your {teamContext.scope} and cannot be changed here.
+                    </p>
+                </div>
+            )}
+
+            {!teamMode && needsWH && (
                 <div className="col-span-2">
                     <label className="block text-xs font-medium text-gray-600 mb-1">
                         Warehouse ID <span className="text-gray-400">(optional for now)</span>
@@ -118,8 +165,7 @@ export default function UserFormBody({ formData, onChange, formErrors, isEdit = 
                 </div>
             )}
 
-            {/* Shop ID — only for shop roles */}
-            {needsShop && (
+            {!teamMode && needsShop && (
                 <div className="col-span-2">
                     <label className="block text-xs font-medium text-gray-600 mb-1">
                         Shop ID <span className="text-gray-400">(optional for now)</span>
@@ -135,8 +181,8 @@ export default function UserFormBody({ formData, onChange, formErrors, isEdit = 
                     {errorMsg("shop_id")}
                 </div>
             )}
-            {/* SUPER_ADMIN note */}
-            {role === "SUPER_ADMIN" && (
+
+            {!teamMode && role === "SUPER_ADMIN" && (
                 <div className="col-span-2 bg-purple-50 border border-purple-100 rounded-lg px-4 py-2">
                     <p className="text-xs text-purple-600">
                         Super Admin has full system access — no warehouse or shop assignment needed.
@@ -144,7 +190,6 @@ export default function UserFormBody({ formData, onChange, formErrors, isEdit = 
                 </div>
             )}
 
-            {/* Remarks — full width */}
             <div className="col-span-2">
                 <label className="block text-xs font-medium text-gray-600 mb-1">Remarks</label>
                 <textarea

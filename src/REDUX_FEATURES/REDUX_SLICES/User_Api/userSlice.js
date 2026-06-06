@@ -41,9 +41,9 @@ const userSlice = createSlice({
     reducers: {
 
         // ── Add Form ──────────────────────────────────────────────────────────────
-        openAddForm: (state) => {
+        openAddForm: (state, action) => {
             state.showAddForm = true;
-            state.formData = { ...EMPTY_FORM };
+            state.formData = { ...EMPTY_FORM, ...(action.payload || {}) };
             state.formErrors = {};
         },
         closeAddForm: (state) => {

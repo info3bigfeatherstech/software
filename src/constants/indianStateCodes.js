@@ -37,9 +37,33 @@ export const INDIAN_GST_STATE_CODES = [
   { code: "38", name: "Ladakh" },
 ];
 
+export const normalizeStateCode = (code) => {
+  if (code == null || String(code).trim() === "") return "";
+  return String(code).trim().padStart(2, "0").slice(-2);
+};
+
 export const getStateName = (code) => {
   if (!code) return "";
-  const normalized = String(code).trim().padStart(2, "0").slice(-2);
+  const normalized = normalizeStateCode(code);
   const row = INDIAN_GST_STATE_CODES.find((s) => s.code === normalized);
   return row?.name || `State ${normalized}`;
+};
+
+export const formatStateWithCode = (code) => {
+  if (!code) return "";
+  const normalized = normalizeStateCode(code);
+  const name = getStateName(normalized);
+  return `${name} (${normalized})`;
+};
+
+/** Type-ahead filter for state picker — matches name or code (e.g. "Himachal" → HP). */
+export const searchIndianStates = (query, limit = 15) => {
+  const q = String(query || "").trim().toLowerCase();
+  if (!q) return INDIAN_GST_STATE_CODES.slice(0, limit);
+  return INDIAN_GST_STATE_CODES.filter(
+    (s) =>
+      s.name.toLowerCase().includes(q) ||
+      s.code.includes(q) ||
+      s.name.toLowerCase().replace(/&/g, "and").includes(q.replace(/&/g, "and"))
+  ).slice(0, limit);
 };

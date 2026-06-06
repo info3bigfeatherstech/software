@@ -12,7 +12,8 @@ import {
     setSelectedCustomer,
     setCustomerMobileInput,
 } from "../../../../REDUX_FEATURES/REDUX_SLICES/Billing_api/billingSlice";
-import { INDIAN_GST_STATE_CODES } from "../../../../constants/indianStateCodes";
+import IndianStatePicker from "../../../shared/IndianStatePicker";
+import { stateCodeFromGstin } from "../../../../utils/billingPlaceOfSupply";
 
 export default function CreateCustomerModal() {
     const dispatch = useDispatch();
@@ -39,7 +40,14 @@ export default function CreateCustomerModal() {
     }, [showCreateCustomer, customerMobileInput]);
 
     const handleChange = (field, value) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
+        setFormData((prev) => {
+            const next = { ...prev, [field]: value };
+            if (field === "gst_number") {
+                const fromGst = stateCodeFromGstin(value);
+                if (fromGst) next.state_code = fromGst;
+            }
+            return next;
+        });
         if (errors[field]) {
             setErrors(prev => ({ ...prev, [field]: "" }));
         }
@@ -190,30 +198,21 @@ export default function CreateCustomerModal() {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
-                        <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">State (for GST supply)</label>
-                            <select
-                                value={formData.state_code}
-                                onChange={(e) => handleChange("state_code", e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                            >
-                                <option value="">Select state</option>
-                                {INDIAN_GST_STATE_CODES.map((s) => (
-                                    <option key={s.code} value={s.code}>{s.name} ({s.code})</option>
-                                ))}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">Remarks (Optional)</label>
-                            <input
-                                type="text"
-                                value={formData.remarks}
-                                onChange={(e) => handleChange("remarks", e.target.value)}
-                                placeholder="Any notes"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                            />
-                        </div>
+                    <IndianStatePicker
+                        value={formData.state_code}
+                        onChange={(code) => handleChange("state_code", code)}
+                        error={errors.state_code}
+                    />
+
+                    <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Remarks (Optional)</label>
+                        <input
+                            type="text"
+                            value={formData.remarks}
+                            onChange={(e) => handleChange("remarks", e.target.value)}
+                            placeholder="Any notes"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                        />
                     </div>
                 </div>
 

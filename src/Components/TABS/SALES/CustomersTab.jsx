@@ -31,6 +31,9 @@ import {
     setFormErrors,
     clearFormErrors,
 } from "../../../REDUX_FEATURES/REDUX_SLICES/Customer_api/customerSlice";
+import IndianStatePicker from "../../shared/IndianStatePicker";
+import { formatStateWithCode } from "../../../constants/indianStateCodes";
+import { stateCodeFromGstin } from "../../../utils/billingPlaceOfSupply";
 
 const toNumber = (value, defaultValue = 0) => {
     const num = Number(value);
@@ -380,7 +383,7 @@ export default function CustomersTab() {
                                 <X size={20} />
                             </button>
                         </div>
-                        <div className="p-6 space-y-4">
+                        <div className="p-6 space-y-4 text-gray-700">
                             <div>
                                 <label className="block text-xs font-medium text-gray-700 mb-1">
                                     Mobile Number <span className="text-red-500">*</span>
@@ -426,7 +429,13 @@ export default function CustomersTab() {
                                 <input
                                     type="text"
                                     value={addForm.gst_number}
-                                    onChange={(e) => dispatch(updateAddForm({ gst_number: e.target.value }))}
+                                    onChange={(e) => {
+                                        const gst_number = e.target.value;
+                                        const patch = { gst_number };
+                                        const fromGst = stateCodeFromGstin(gst_number);
+                                        if (fromGst) patch.state_code = fromGst;
+                                        dispatch(updateAddForm(patch));
+                                    }}
                                     placeholder="22AAAAA0000A1Z"
                                     className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-200"
                                 />
@@ -453,6 +462,11 @@ export default function CustomersTab() {
                                     />
                                 </div>
                             </div>
+                            <IndianStatePicker
+                                value={addForm.state_code}
+                                onChange={(code) => dispatch(updateAddForm({ state_code: code }))}
+                                error={formErrors.state_code}
+                            />
                         </div>
                         <div className="sticky bottom-0 bg-white border-t border-gray-100 px-6 py-4 flex justify-end gap-3">
                             <button onClick={() => dispatch(closeAddModal())} className="px-4 py-2 border border-gray-200 rounded-lg text-sm hover:bg-gray-50">Cancel</button>
@@ -530,7 +544,13 @@ export default function CustomersTab() {
                                 <input
                                     type="text"
                                     value={editForm.gst_number}
-                                    onChange={(e) => dispatch(updateEditForm({ gst_number: e.target.value }))}
+                                    onChange={(e) => {
+                                        const gst_number = e.target.value;
+                                        const patch = { gst_number };
+                                        const fromGst = stateCodeFromGstin(gst_number);
+                                        if (fromGst) patch.state_code = fromGst;
+                                        dispatch(updateEditForm(patch));
+                                    }}
                                     placeholder="22AAAAA0000A1Z"
                                     className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-200"
                                 />
@@ -557,6 +577,11 @@ export default function CustomersTab() {
                                     />
                                 </div>
                             </div>
+                            <IndianStatePicker
+                                value={editForm.state_code}
+                                onChange={(code) => dispatch(updateEditForm({ state_code: code }))}
+                                error={formErrors.state_code}
+                            />
                         </div>
                         <div className="sticky bottom-0 bg-white border-t border-gray-100 px-6 py-4 flex justify-end gap-3">
                             <button onClick={() => dispatch(closeEditModal())} className="px-4 py-2 border border-gray-200 rounded-lg text-sm hover:bg-gray-50">Cancel</button>
@@ -621,7 +646,17 @@ export default function CustomersTab() {
                                 {(selectedCustomer.address || selectedCustomer.city) && (
                                     <div className="flex items-center gap-2 text-sm">
                                         <MapPin size={14} className="text-gray-400" />
-                                        <span className="text-gray-700">{selectedCustomer.address}, {selectedCustomer.city}</span>
+                                        <span className="text-gray-700">
+                                            {[selectedCustomer.address, selectedCustomer.city].filter(Boolean).join(", ")}
+                                        </span>
+                                    </div>
+                                )}
+                                {selectedCustomer.state_code && (
+                                    <div className="flex items-center gap-2 text-sm">
+                                        <MapPin size={14} className="text-gray-400" />
+                                        <span className="text-gray-700">
+                                            State: {formatStateWithCode(selectedCustomer.state_code)}
+                                        </span>
                                     </div>
                                 )}
                             </div>

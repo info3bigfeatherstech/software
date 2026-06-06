@@ -1,106 +1,171 @@
-// TABS/PURCHASE/ExpensesTab/ExpensesTab.jsx
-
 import React, { useState } from "react";
-import { Eye, Edit2, Plus } from "lucide-react";
-
-const fmtCurrency = (n) => `₹${n.toLocaleString("en-IN")}`;
-
-const EXPENSES = [
-    { id: "EXP-001", category: "Rent", description: "Main Warehouse monthly rent", warehouse: "Main Warehouse", amount: 6000, date: "01 May 2026", recordedBy: "Admin" },
-    { id: "EXP-002", category: "Office", description: "Stationery and supplies", warehouse: "Delhi Warehouse", amount: 2500, date: "15 May 2026", recordedBy: "Rahul (SM-001)" },
-];
+import { useSelector } from "react-redux";
+import { Plus, RefreshCw, Edit2, XCircle } from "lucide-react";
+import {
+    useGetWarehouseExpensesQuery,
+    useCancelWarehouseExpenseMutation,
+} from "../../../../REDUX_FEATURES/REDUX_SLICES/Purchase_api/purchaseFinanceApi";
+import ExpenseFormModal from "./ExpenseFormModal";
+import {
+    fmtCurrency,
+    fmtDate,
+    EXPENSE_CATEGORIES,
+    getExpenseCategoryLabel,
+    getPaymentMethodLabel,
+} from "../purchaseFinanceUtils";
+import { useGetWarehousesQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/Warehouse_api/warehouseApi";
+import { ROLES } from "../../../roles";
 
 export default function ExpensesTab() {
+    const { user } = useSelector((state) => state.auth);
+    const isSuperAdmin = user?.role === ROLES.SUPER_ADMIN;
+    const warehouseId = user?.warehouse_id || "";
+    const canWrite = [ROLES.SUPER_ADMIN, ROLES.WH_MANAGER].includes(user?.role);
+
+    const [warehouseFilter, setWarehouseFilter] = useState("");
+    const effectiveWarehouseId = isSuperAdmin ? warehouseFilter : warehouseId;
+
+    const { data: warehousesData } = useGetWarehousesQuery(
+        { page: 1, limit: 100, is_active: "true" },
+        { skip: !isSuperAdmin }
+    );
+    const warehouses = warehousesData?.warehouses || [];
+
     const [search, setSearch] = useState("");
     const [category, setCategory] = useState("");
-    const [dateFrom, setDateFrom] = useState("");
-    const [dateTo, setDateTo] = useState("");
+    const [fromDate, setFromDate] = useState("");
+    const [toDate, setToDate] = useState("");
+    const [showForm, setShowForm] = useState(false);
+    const [editExpense, setEditExpense] = useState(null);
+
+    const { data, isLoading, isFetching, refetch } = useGetWarehouseExpensesQuery({
+        search,
+        category,
+        from_date: fromDate,
+        to_date: toDate,
+        warehouse_id: effectiveWarehouseId,
+        limit: 100,
+    });
+
+    const [cancelExpense] = useCancelWarehouseExpenseMutation();
+    const expenses = data?.expenses || [];
+    const summary = data?.meta?.summary || {};
+
+    const handleCancel = async (expense) => {
+        if (!window.confirm(`Cancel expense ${expense.expense_number}?`)) return;
+        try {
+            await cancelExpense(expense.expense_id).unwrap();
+            refetch();
+        } catch (err) {
+            alert(err?.data?.message || "Failed to cancel expense");
+        }
+    };
 
     return (
         <div className="space-y-5 bg-gray-50 min-h-screen px-1 py-1">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-gray-200">
                 <div>
                     <h2 className="text-xl font-semibold text-gray-900">Expenses</h2>
-                    <p className="text-sm text-gray-400 mt-0.5">Track operational and business expenses</p>
+                    <p className="text-sm text-gray-400 mt-0.5">Warehouse operating costs — rent, freight, labour, utilities (not inventory purchase)</p>
                 </div>
-                <button className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-700 transition-colors">
-                    <Plus size={14} /> Add Expense
-                </button>
+                <div className="flex gap-2">
+                    <button type="button" onClick={() => refetch()} className="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-200 text-gray-500 text-sm rounded-lg">
+                        <RefreshCw size={13} className={isFetching ? "animate-spin" : ""} /> Refresh
+                    </button>
+                    {canWrite && (
+                        <button
+                            type="button"
+                            onClick={() => { setEditExpense(null); setShowForm(true); }}
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg"
+                        >
+                            <Plus size={14} /> Add Expense
+                        </button>
+                    )}
+                </div>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div className="bg-white rounded-xl border border-gray-100 p-4">
-                    <p className="text-xs uppercase tracking-wide font-medium text-gray-500">Total Expenses</p>
-                    <p className="text-3xl font-bold text-gray-800">2</p>
-                    <p className="text-xs text-gray-400 mt-1">this period</p>
+                    <p className="text-xs uppercase text-gray-500">Total Expenses</p>
+                    <p className="text-3xl font-bold text-gray-800">{summary.count || 0}</p>
                 </div>
                 <div className="bg-white rounded-xl border border-gray-100 p-4">
-                    <p className="text-xs uppercase tracking-wide font-medium text-gray-500">Total Amount</p>
-                    <p className="text-3xl font-bold text-gray-800">{fmtCurrency(8500)}</p>
-                    <p className="text-xs text-gray-400 mt-1">amount spent</p>
+                    <p className="text-xs uppercase text-gray-500">Total Amount</p>
+                    <p className="text-3xl font-bold text-gray-800">{fmtCurrency(summary.total_amount)}</p>
                 </div>
-                <div className="bg-white rounded-xl border border-gray-100 p-4">
-                    <p className="text-xs uppercase tracking-wide font-medium text-gray-500">This Month</p>
-                    <p className="text-3xl font-bold text-gray-800">{fmtCurrency(8500)}</p>
-                    <p className="text-xs text-gray-400 mt-1">May 2026</p>
-                </div>
-                <div className="bg-white rounded-xl border border-gray-100 p-4">
-                    <p className="text-xs uppercase tracking-wide font-medium text-gray-500">Categories</p>
-                    <p className="text-3xl font-bold text-gray-800">2</p>
-                    <p className="text-xs text-gray-400 mt-1">expense types</p>
+                <div className="bg-white rounded-xl border border-gray-100 p-4 col-span-2">
+                    <p className="text-xs uppercase text-gray-500">Warehouse</p>
+                    <p className="text-lg font-semibold text-gray-800 mt-1">{expenses[0]?.warehouse?.warehouse_name || "Your warehouse"}</p>
                 </div>
             </div>
 
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-                <div className="flex flex-wrap gap-3 items-end">
-                    <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search expenses..." className="flex-1 min-w-[180px] bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300" />
-                    <select value={category} onChange={(e) => setCategory(e.target.value)} className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300">
-                        <option value="">All Categories</option>
-                        <option value="rent">Rent</option>
-                        <option value="office">Office</option>
+            <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-wrap gap-3">
+                {isSuperAdmin && (
+                    <select value={warehouseFilter} onChange={(e) => setWarehouseFilter(e.target.value)} className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm min-w-[160px]">
+                        <option value="">All Warehouses</option>
+                        {warehouses.map((w) => <option key={w.warehouse_id} value={w.warehouse_id}>{w.warehouse_name}</option>)}
                     </select>
-                    <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300" />
-                    <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300" />
-                </div>
+                )}
+                <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search expenses…" className="flex-1 min-w-[180px] bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+                <select value={category} onChange={(e) => setCategory(e.target.value)} className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm">
+                    <option value="">All Categories</option>
+                    {EXPENSE_CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+                </select>
+                <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+                <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm" />
             </div>
 
             <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
-                <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center">
-                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Expenses</span>
-                    <span className="text-xs text-gray-400 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded-full">2 records</span>
-                </div>
                 <table className="w-full text-sm">
                     <thead className="bg-gray-50 border-b border-gray-100">
                         <tr>
-                            <th className="px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide text-left">Expense ID</th>
-                            <th className="px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide text-left">Category</th>
-                            <th className="px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide text-left">Description</th>
-                            <th className="px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide text-left">Warehouse</th>
-                            <th className="px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide text-right">Amount</th>
-                            <th className="px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide text-left">Date</th>
-                            <th className="px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide text-left">Recorded By</th>
-                            <th className="px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide text-center">Actions</th>
+                            {["Expense #", "Category", "Description", "Warehouse", "Amount", "Date", "Paid via", "Recorded by", "Actions"].map((h) => (
+                                <th key={h} className="px-4 py-3 text-xs font-semibold text-gray-400 uppercase text-left">{h}</th>
+                            ))}
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
-                        {EXPENSES.map((row) => (
-                            <tr key={row.id} className="hover:bg-gray-50 transition-colors">
-                                <td className="px-4 py-3"><span className="font-mono text-xs bg-gray-50 border text-gray-600 border-gray-200 px-2 py-0.5 rounded">{row.id}</span></td>
-                                <td className="px-4 py-3 text-sm text-gray-700">{row.category}</td>
-                                <td className="px-4 py-3 text-sm text-gray-500">{row.description}</td>
-                                <td className="px-4 py-3 text-sm text-gray-500">{row.warehouse}</td>
-                                <td className="px-4 py-3 text-right font-semibold text-gray-800">{fmtCurrency(row.amount)}</td>
-                                <td className="px-4 py-3 text-xs text-gray-400">{row.date}</td>
-                                <td className="px-4 py-3 text-sm text-gray-500">{row.recordedBy}</td>
-                                <td className="px-4 py-3 text-center">
-                                    <button className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors mr-0.5" title="View"><Eye size={14} /></button>
-                                    <button className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors" title="Edit"><Edit2 size={14} /></button>
+                        {(isLoading || isFetching) && (
+                            <tr><td colSpan={9} className="px-4 py-10 text-center text-gray-400">Loading…</td></tr>
+                        )}
+                        {!isLoading && expenses.length === 0 && (
+                            <tr><td colSpan={9} className="px-4 py-12 text-center text-gray-400">No expenses recorded yet</td></tr>
+                        )}
+                        {expenses.map((e) => (
+                            <tr key={e.expense_id} className="hover:bg-gray-50">
+                                <td className="px-4 py-3 font-mono text-xs">{e.expense_number}</td>
+                                <td className="px-4 py-3">{getExpenseCategoryLabel(e.category)}</td>
+                                <td className="px-4 py-3">{e.description}</td>
+                                <td className="px-4 py-3 text-xs text-gray-500">{e.warehouse?.warehouse_name}</td>
+                                <td className="px-4 py-3 font-medium">{fmtCurrency(e.amount)}</td>
+                                <td className="px-4 py-3 text-xs text-gray-500">{fmtDate(e.expense_date)}</td>
+                                <td className="px-4 py-3 text-xs">{e.payment_method ? getPaymentMethodLabel(e.payment_method) : "—"}</td>
+                                <td className="px-4 py-3 text-xs text-gray-500">{e.recorded_by?.name}</td>
+                                <td className="px-4 py-3">
+                                    {canWrite && (
+                                        <div className="flex gap-1">
+                                            <button type="button" title="Edit" onClick={() => { setEditExpense(e); setShowForm(true); }} className="p-1.5 border border-gray-200 rounded-lg hover:bg-gray-50">
+                                                <Edit2 size={14} />
+                                            </button>
+                                            <button type="button" title="Cancel" onClick={() => handleCancel(e)} className="p-1.5 border border-red-100 rounded-lg hover:bg-red-50 text-red-600">
+                                                <XCircle size={14} />
+                                            </button>
+                                        </div>
+                                    )}
                                 </td>
                             </tr>
                         ))}
                     </tbody>
                 </table>
             </div>
+
+            <ExpenseFormModal
+                open={showForm}
+                onClose={() => { setShowForm(false); setEditExpense(null); }}
+                onSaved={refetch}
+                expense={editExpense}
+                warehouseId={effectiveWarehouseId}
+            />
         </div>
     );
 }
