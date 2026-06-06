@@ -46,6 +46,7 @@ export default function ShopProfileTab() {
                 shop_name: myShop.shop_name || "",
                 address: myShop.address || "",
                 city: myShop.city || "",
+                state_code: myShop.state_code || "",
                 pincode: myShop.pincode || "",
                 phone: myShop.phone || "",
                 email: myShop.email || "",

@@ -1,4 +1,5 @@
 import React from "react";
+import { formatStateWithCode } from "../../../../constants/indianStateCodes";
 
 const CHANNEL_LABELS = {
     WALK_IN: "Walk-in Store",
@@ -51,6 +52,16 @@ export default function ShopProfileFormBody({ formData, onChange, formErrors }) 
                     className={`${inputCls("address")} resize-none`}
                 />
                 {errorMsg("address")}
+            </div>
+
+            <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">State</label>
+                <input
+                    value={formData.state_code ? formatStateWithCode(formData.state_code) : "Not set"}
+                    disabled
+                    className={readOnlyCls}
+                />
+                <p className="text-xs text-gray-400 mt-1">Set by admin — used as Place of Dispatch on bills</p>
             </div>
 
             <div>

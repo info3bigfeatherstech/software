@@ -27,6 +27,7 @@ const initialState = {
         address: "",
         city: "",
         state_code: "",
+        pincode: "",
         remarks: "",
     },
     editForm: {
@@ -37,6 +38,7 @@ const initialState = {
         address: "",
         city: "",
         state_code: "",
+        pincode: "",
         remarks: "",
     },
 
@@ -81,6 +83,7 @@ const customerSlice = createSlice({
                 address: "",
                 city: "",
                 state_code: "",
+                pincode: "",
                 remarks: "",
             };
             state.formErrors = {};
@@ -112,6 +115,7 @@ const customerSlice = createSlice({
                 address: customer.address || "",
                 city: customer.city || "",
                 state_code: customer.state_code || "",
+                pincode: customer.pincode || "",
                 remarks: customer.remarks || "",
             };
             state.formErrors = {};

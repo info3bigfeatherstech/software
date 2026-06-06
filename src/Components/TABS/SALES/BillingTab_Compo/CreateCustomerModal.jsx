@@ -14,6 +14,11 @@ import {
 } from "../../../../REDUX_FEATURES/REDUX_SLICES/Billing_api/billingSlice";
 import IndianStatePicker from "../../../shared/IndianStatePicker";
 import { stateCodeFromGstin } from "../../../../utils/billingPlaceOfSupply";
+import {
+    validateCustomerForm,
+    buildCustomerSubmitPayload,
+    hasCustomerFormErrors,
+} from "../../../../utils/customerForm.utils";
 
 export default function CreateCustomerModal() {
     const dispatch = useDispatch();
@@ -28,6 +33,7 @@ export default function CreateCustomerModal() {
         address: "",
         city: "",
         state_code: "",
+        pincode: "",
         remarks: "",
     });
     const [errors, setErrors] = useState({});
@@ -54,24 +60,15 @@ export default function CreateCustomerModal() {
     };
 
     const handleSubmit = async () => {
-        if (!formData.mobile) {
-            setErrors({ mobile: "Mobile number is required" });
-            toast.error("Mobile number is required");
-            return;
-        }
-        if (formData.mobile.length !== 10) {
-            setErrors({ mobile: "Mobile number must be 10 digits" });
-            toast.error("Mobile number must be 10 digits");
-            return;
-        }
-        if (!formData.name) {
-            setErrors({ name: "Customer name is required" });
-            toast.error("Customer name is required");
+        const fieldErrors = validateCustomerForm(formData);
+        if (hasCustomerFormErrors(fieldErrors)) {
+            setErrors(fieldErrors);
+            toast.error("Please fill all required fields");
             return;
         }
 
         try {
-            const result = await createCustomer(formData).unwrap();
+            const result = await createCustomer(buildCustomerSubmitPayload(formData)).unwrap();
             toast.success(`Customer ${result.name} created successfully`);
             dispatch(setSelectedCustomer(result));
             dispatch(setCustomerMobileInput(result.mobile));
@@ -84,6 +81,7 @@ export default function CreateCustomerModal() {
                 address: "",
                 city: "",
                 state_code: "",
+                pincode: "",
                 remarks: "",
             });
         } catch (err) {
@@ -175,34 +173,63 @@ export default function CreateCustomerModal() {
                         />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
-                        <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">Address (Optional)</label>
-                            <input
-                                type="text"
-                                value={formData.address}
-                                onChange={(e) => handleChange("address", e.target.value)}
-                                placeholder="Street address"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">City (Optional)</label>
-                            <input
-                                type="text"
-                                value={formData.city}
-                                onChange={(e) => handleChange("city", e.target.value)}
-                                placeholder="City"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                            />
-                        </div>
+                    <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                            Address <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                            type="text"
+                            value={formData.address}
+                            onChange={(e) => handleChange("address", e.target.value)}
+                            placeholder="Street address"
+                            className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                                errors.address ? "border-red-400" : "border-gray-300"
+                            }`}
+                        />
+                        {errors.address && <p className="text-xs text-red-500 mt-1">{errors.address}</p>}
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                            City <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                            type="text"
+                            value={formData.city}
+                            onChange={(e) => handleChange("city", e.target.value)}
+                            placeholder="City"
+                            className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                                errors.city ? "border-red-400" : "border-gray-300"
+                            }`}
+                        />
+                        {errors.city && <p className="text-xs text-red-500 mt-1">{errors.city}</p>}
                     </div>
 
                     <IndianStatePicker
+                        label="State"
+                        required
                         value={formData.state_code}
                         onChange={(code) => handleChange("state_code", code)}
                         error={errors.state_code}
                     />
+
+                    <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                            Pincode <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                            type="text"
+                            inputMode="numeric"
+                            maxLength={6}
+                            value={formData.pincode}
+                            onChange={(e) => handleChange("pincode", e.target.value.replace(/\D/g, "").slice(0, 6))}
+                            placeholder="6-digit pincode"
+                            className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                                errors.pincode ? "border-red-400" : "border-gray-300"
+                            }`}
+                        />
+                        {errors.pincode && <p className="text-xs text-red-500 mt-1">{errors.pincode}</p>}
+                    </div>
 
                     <div>
                         <label className="block text-xs font-medium text-gray-700 mb-1">Remarks (Optional)</label>

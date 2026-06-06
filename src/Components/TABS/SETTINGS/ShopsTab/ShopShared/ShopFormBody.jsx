@@ -5,6 +5,7 @@
 
 import React from "react";
 import { SALES_CHANNELS } from "../../../../../REDUX_FEATURES/REDUX_SLICES/Shop_api/shopSlice";
+import IndianStatePicker from "../../../../shared/IndianStatePicker";
 const CHANNEL_LABELS = {
     WALK_IN: "Walk-in Store",
     ONLINE: "Online Store", 
@@ -94,6 +95,21 @@ export default function ShopFormBody({ formData, onChange, formErrors, isEdit = 
                     className={inputCls("city")}
                 />
                 {errorMsg("city")}
+            </div>
+
+            {/* State — used for Place of Dispatch on bills */}
+            <div>
+                <IndianStatePicker
+                    label="State"
+                    value={formData.state_code || ""}
+                    onChange={(code) => onChange({ state_code: code })}
+                    error={formErrors.state_code}
+                    required
+                    placeholder="Type state name e.g. Delhi"
+                />
+                <p className="text-xs text-gray-400 mt-1">
+                    Printed as Place of Dispatch on GST and non-GST invoices
+                </p>
             </div>
 
             {/* Pincode */}

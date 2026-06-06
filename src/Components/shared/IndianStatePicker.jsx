@@ -13,6 +13,7 @@ export default function IndianStatePicker({
   onChange,
   error,
   label = "State (for GST supply)",
+  required = false,
   placeholder = "Type state name e.g. Himachal",
   className = "",
 }) {
@@ -59,7 +60,10 @@ export default function IndianStatePicker({
   return (
     <div ref={wrapRef} className={`relative ${className}`}>
       {label ? (
-        <label className="block text-xs font-medium text-gray-700 mb-1">{label}</label>
+        <label className="block text-xs font-medium text-gray-700 mb-1">
+          {label}
+          {required ? <span className="text-red-500"> *</span> : null}
+        </label>
       ) : null}
       <div className="relative">
         <input

@@ -27,6 +27,7 @@ export default function ShopAddForm({ onSuccess }) {
         if (!formData.shop_code?.trim()) errors.shop_code = "Shop code is required";
         if (!formData.shop_name?.trim()) errors.shop_name = "Shop name is required";
         if (!formData.city?.trim()) errors.city = "City is required";
+        if (!formData.state_code?.trim()) errors.state_code = "State is required";
         return errors;
     };
 
@@ -45,6 +46,7 @@ export default function ShopAddForm({ onSuccess }) {
                 shop_name: formData.shop_name.trim(),
                 address: formData.address?.trim() || null,
                 city: formData.city.trim(),
+                state_code: formData.state_code.trim(),
                 pincode: formData.pincode?.trim() || null,
                 phone: formData.phone?.trim() || null,
                 email: formData.email?.trim() || null,
