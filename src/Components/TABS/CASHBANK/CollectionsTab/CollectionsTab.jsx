@@ -57,7 +57,7 @@ export default function CollectionsTab() {
                 <StatCard label="Card / Bank" value={fmtCurrency((summary.totals?.CARD || 0) + (summary.totals?.BANK_TRANSFER || 0))} tone="amber" />
             </div>
 
-            <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-wrap gap-3">
+            <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-wrap gap-3 text-gray-700">
                 <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm" />
                 <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm" />
                 <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm">
@@ -97,7 +97,7 @@ export default function CollectionsTab() {
                             <tr><td colSpan={7}><EmptyState message="No collections in this period" /></td></tr>
                         )}
                         {!isLoading && payments.map((p) => (
-                            <tr key={p.payment_id} className="hover:bg-gray-50">
+                            <tr key={p.payment_id} className="hover:bg-gray-50 text-gray-700">
                                 <td className="px-4 py-3 text-xs text-gray-500">{fmtDate(p.paid_at)}</td>
                                 <td className="px-4 py-3 font-mono text-xs">{p.bill?.bill_number}</td>
                                 <td className="px-4 py-3">{p.bill?.customer_name || "—"}</td>

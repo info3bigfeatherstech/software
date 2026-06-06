@@ -43,7 +43,7 @@ export default function CashInHandTab() {
                 Set opening balance manually each morning. Petty cash expenses and bank deposits will be added in a future update.
             </PhaseNotice>
 
-            <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-wrap gap-3 items-end">
+            <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-wrap gap-3 items-end text-gray-700">
                 <div>
                     <label className="block text-xs text-gray-500 mb-1">From</label>
                     <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm" />

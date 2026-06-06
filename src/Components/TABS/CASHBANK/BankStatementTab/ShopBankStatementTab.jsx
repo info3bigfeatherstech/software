@@ -65,7 +65,7 @@ export default function ShopBankStatementTab() {
             onRefresh={refetch}
             isRefreshing={isFetching}
         >
-            <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-wrap gap-3">
+            <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-wrap gap-3 text-gray-700">
                 <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm" />
                 <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm" />
                 <select value={bankAccountId} onChange={(e) => setBankAccountId(e.target.value)} className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm min-w-[200px]">

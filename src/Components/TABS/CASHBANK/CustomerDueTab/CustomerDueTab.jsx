@@ -71,7 +71,7 @@ export default function CustomerDueTab() {
                             <tr><td colSpan={8}><EmptyState message="No outstanding customer dues" detail="All bills are fully paid." /></td></tr>
                         )}
                         {!isLoading && bills.map((b) => (
-                            <tr key={b.bill_id} className="hover:bg-gray-50">
+                            <tr key={b.bill_id} className="hover:bg-gray-50 text-gray-700">
                                 <td className="px-4 py-3 font-mono text-xs">{b.bill_number}</td>
                                 <td className="px-4 py-3">
                                     <p className="font-medium text-gray-800">{b.customer_name || "Walk-in"}</p>
