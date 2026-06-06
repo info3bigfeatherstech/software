@@ -109,7 +109,7 @@ export default function PaymentOutTab() {
                 </div>
             </div>
 
-            <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-wrap gap-3">
+            <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-wrap gap-3 text-gray-700">
                 {isSuperAdmin && (
                     <select value={warehouseFilter} onChange={(e) => setWarehouseFilter(e.target.value)} className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm min-w-[160px]">
                         <option value="">All Warehouses</option>

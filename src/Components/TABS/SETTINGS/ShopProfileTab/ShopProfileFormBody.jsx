@@ -12,8 +12,7 @@ const CHANNEL_LABELS = {
 
 export default function ShopProfileFormBody({ formData, onChange, formErrors }) {
     const inputCls = (name) =>
-        `w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-            formErrors[name] ? "border-red-400" : "border-gray-300"
+        `w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${formErrors[name] ? "border-red-400" : "border-gray-300"
         }`;
 
     const readOnlyCls =

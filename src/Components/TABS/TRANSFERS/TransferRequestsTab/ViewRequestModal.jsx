@@ -35,6 +35,7 @@ const fmtDateTime = (iso) => {
 export default function ViewRequestModal({ onSuccess }) {
     const dispatch = useDispatch();
     const { showViewRequestModal, viewRequestData } = useSelector((state) => state.transferRequest);
+    const [downloadChallan, { isFetching: isDownloading }] = useLazyDownloadTransferChallanPdfQuery();
 
     if (!showViewRequestModal || !viewRequestData) return null;
 
@@ -42,7 +43,6 @@ export default function ViewRequestModal({ onSuccess }) {
     const isEmergency = request.priority === "HIGH";
     const isRejected = request.status === "REJECTED";
     const canPrintChallan = CHALLAN_READY_STATUSES.has(request.status);
-    const [downloadChallan, { isFetching: isDownloading }] = useLazyDownloadTransferChallanPdfQuery();
 
     const handleDownloadChallan = async () => {
         try {

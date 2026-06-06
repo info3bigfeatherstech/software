@@ -99,7 +99,7 @@ export default function ExpensesTab() {
                 </div>
             </div>
 
-            <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-wrap gap-3">
+            <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-wrap gap-3 text-gray-700">
                 {isSuperAdmin && (
                     <select value={warehouseFilter} onChange={(e) => setWarehouseFilter(e.target.value)} className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm min-w-[160px]">
                         <option value="">All Warehouses</option>
@@ -132,7 +132,7 @@ export default function ExpensesTab() {
                             <tr><td colSpan={9} className="px-4 py-12 text-center text-gray-400">No expenses recorded yet</td></tr>
                         )}
                         {expenses.map((e) => (
-                            <tr key={e.expense_id} className="hover:bg-gray-50">
+                            <tr key={e.expense_id} className="hover:bg-gray-50 text-gray-700">
                                 <td className="px-4 py-3 font-mono text-xs">{e.expense_number}</td>
                                 <td className="px-4 py-3">{getExpenseCategoryLabel(e.category)}</td>
                                 <td className="px-4 py-3">{e.description}</td>

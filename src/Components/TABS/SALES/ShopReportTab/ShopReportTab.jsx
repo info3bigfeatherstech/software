@@ -6,12 +6,12 @@
 
 import React, { useState } from "react";
 import { useSelector } from "react-redux";
-import { 
-    Calendar, 
-    Download, 
-    TrendingUp, 
-    Wallet, 
-    FileText, 
+import {
+    Calendar,
+    Download,
+    TrendingUp,
+    Wallet,
+    FileText,
     PieChart,
     IndianRupee,
     Receipt,
@@ -19,10 +19,10 @@ import {
     Loader2
 } from "lucide-react";
 import { toast } from "react-toastify";
-import { RefreshCw } from "lucide-react"; 
-import { 
-    useGetDailySummaryQuery, 
-    useGetGSTReportQuery 
+import { RefreshCw } from "lucide-react";
+import {
+    useGetDailySummaryQuery,
+    useGetGSTReportQuery
 } from "../../../../REDUX_FEATURES/REDUX_SLICES/Billing_api/billingApi";
 import { CURRENT_USER } from "../../../roles";
 
@@ -44,37 +44,37 @@ const formatDate = (date) => {
 export default function ShopReportTab() {
     const { user } = useSelector((state) => state.auth);
     const [reportType, setReportType] = useState("daily"); // "daily" or "gst"
-    
+
     // Daily Summary state
     const [dailyDate, setDailyDate] = useState(formatDate(new Date()));
-    
+
     // GST Report state
     const [fromDate, setFromDate] = useState(formatDate(new Date()));
     const [toDate, setToDate] = useState(formatDate(new Date()));
-    
+
     const shopId = user?.shop_id || "";
-    
+
     // Queries
-    const { 
-        data: dailyData, 
-        isLoading: dailyLoading, 
+    const {
+        data: dailyData,
+        isLoading: dailyLoading,
         isError: dailyError,
-        refetch: refetchDaily 
+        refetch: refetchDaily
     } = useGetDailySummaryQuery(
         { shop_id: shopId, date: dailyDate },
         { skip: !shopId || reportType !== "daily" }
     );
-    
-    const { 
-        data: gstData, 
-        isLoading: gstLoading, 
+
+    const {
+        data: gstData,
+        isLoading: gstLoading,
         isError: gstError,
-        refetch: refetchGST 
+        refetch: refetchGST
     } = useGetGSTReportQuery(
         { shop_id: shopId, from_date: fromDate, to_date: toDate },
         { skip: !shopId || reportType !== "gst" }
     );
-    
+
     const handleRefresh = () => {
         if (reportType === "daily") {
             refetchDaily();
@@ -83,7 +83,7 @@ export default function ShopReportTab() {
         }
         toast.success("Report refreshed");
     };
-    
+
     const handleDownload = () => {
         if (reportType === "daily") {
             const data = dailyData;
@@ -138,12 +138,12 @@ export default function ShopReportTab() {
             toast.success("CSV downloaded");
         }
     };
-    
+
     const isLoading = (reportType === "daily" && dailyLoading) || (reportType === "gst" && gstLoading);
-    
+
     return (
         <div className="space-y-5 bg-gray-50 min-h-screen px-4 py-4">
-            
+
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-gray-200">
                 <div>
@@ -169,33 +169,31 @@ export default function ShopReportTab() {
                     </button>
                 </div>
             </div>
-            
+
             {/* Report Type Toggle */}
             <div className="bg-white rounded-xl border border-gray-200 p-1 flex gap-1 w-fit">
                 <button
                     onClick={() => setReportType("daily")}
-                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                        reportType === "daily" 
-                            ? "bg-blue-600 text-white" 
-                            : "text-gray-600 hover:bg-gray-100"
-                    }`}
+                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${reportType === "daily"
+                        ? "bg-blue-600 text-white"
+                        : "text-gray-600 hover:bg-gray-100"
+                        }`}
                 >
                     <Calendar size={14} className="inline mr-2" />
                     Daily Summary
                 </button>
                 <button
                     onClick={() => setReportType("gst")}
-                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                        reportType === "gst" 
-                            ? "bg-blue-600 text-white" 
-                            : "text-gray-600 hover:bg-gray-100"
-                    }`}
+                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${reportType === "gst"
+                        ? "bg-blue-600 text-white"
+                        : "text-gray-600 hover:bg-gray-100"
+                        }`}
                 >
                     <FileText size={14} className="inline mr-2" />
                     GST Report (HSN-wise)
                 </button>
             </div>
-            
+
             {/* Date Filters */}
             <div className="bg-white rounded-xl border border-gray-200 p-4">
                 {reportType === "daily" ? (
@@ -227,7 +225,7 @@ export default function ShopReportTab() {
                     </div>
                 )}
             </div>
-            
+
             {/* Loading State */}
             {isLoading && (
                 <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
@@ -235,7 +233,7 @@ export default function ShopReportTab() {
                     <p className="text-gray-500">Loading report data...</p>
                 </div>
             )}
-            
+
             {/* Error State */}
             {!isLoading && ((reportType === "daily" && dailyError) || (reportType === "gst" && gstError)) && (
                 <div className="bg-red-50 border border-red-200 rounded-xl p-8 text-center">
@@ -243,7 +241,7 @@ export default function ShopReportTab() {
                     <button onClick={handleRefresh} className="mt-3 text-sm text-red-700 underline">Try Again</button>
                 </div>
             )}
-            
+
             {/* Daily Summary View */}
             {!isLoading && reportType === "daily" && dailyData && (
                 <div className="space-y-5">
@@ -257,7 +255,7 @@ export default function ShopReportTab() {
                             <p className="text-3xl font-bold text-blue-700">{dailyData.bill_count || 0}</p>
                             <p className="text-xs text-gray-400 mt-1">total bills</p>
                         </div>
-                        
+
                         <div className="bg-white rounded-xl border border-emerald-100 p-4">
                             <div className="flex items-center justify-between mb-2">
                                 <p className="text-xs text-emerald-500 uppercase tracking-wide">Total Amount</p>
@@ -266,7 +264,7 @@ export default function ShopReportTab() {
                             <p className="text-3xl font-bold text-emerald-600">{formatCurrency(dailyData.total_amount)}</p>
                             <p className="text-xs text-gray-400 mt-1">net sales</p>
                         </div>
-                        
+
                         <div className="bg-white rounded-xl border border-purple-100 p-4">
                             <div className="flex items-center justify-between mb-2">
                                 <p className="text-xs text-purple-400 uppercase tracking-wide">Total GST</p>
@@ -275,7 +273,7 @@ export default function ShopReportTab() {
                             <p className="text-3xl font-bold text-purple-600">{formatCurrency(dailyData.total_gst)}</p>
                             <p className="text-xs text-gray-400 mt-1">tax collected</p>
                         </div>
-                        
+
                         <div className="bg-white rounded-xl border border-orange-100 p-4">
                             <div className="flex items-center justify-between mb-2">
                                 <p className="text-xs text-orange-400 uppercase tracking-wide">Total Collected</p>
@@ -285,7 +283,7 @@ export default function ShopReportTab() {
                             <p className="text-xs text-gray-400 mt-1">after adjustments</p>
                         </div>
                     </div>
-                    
+
                     {/* Payment Methods Breakdown */}
                     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                         <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
@@ -305,7 +303,7 @@ export default function ShopReportTab() {
                             </div>
                         </div>
                     </div>
-                    
+
                     {/* GST Breakdown */}
                     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                         <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
@@ -330,7 +328,7 @@ export default function ShopReportTab() {
                     </div>
                 </div>
             )}
-            
+
             {/* GST Report View */}
             {!isLoading && reportType === "gst" && gstData && (
                 <div className="space-y-5">
@@ -344,7 +342,7 @@ export default function ShopReportTab() {
                             </div>
                         </div>
                     </div>
-                    
+
                     {/* HSN Summary Table */}
                     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                         <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
@@ -398,7 +396,7 @@ export default function ShopReportTab() {
                     </div>
                 </div>
             )}
-            
+
         </div>
     );
 }
