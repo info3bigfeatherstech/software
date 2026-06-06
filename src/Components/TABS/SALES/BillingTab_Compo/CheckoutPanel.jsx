@@ -86,16 +86,16 @@ const BillViewModal = ({ bill, onClose }) => {
                                 </div>
                             )}
                             <div><p className="text-xs text-gray-500">Payment Status</p><span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${bill.payment_status === "PAID" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}`}>{bill.payment_status || "PENDING"}</span></div>
-                        <div><p className="text-xs text-gray-500">Customer</p><p className="font-medium text-gray-800">{bill.customer_name || "Walk-in Customer"}</p></div>
-                        {bill.staff_code_value && (
-                            <div>
-                                <p className="text-xs text-gray-500">Billing Staff</p>
-                                <p className="font-medium text-gray-800">
-                                    {bill.staff_code_value} — {bill.staff_name_snapshot}
-                                </p>
-                            </div>
-                        )}
-                    </div>
+                            <div><p className="text-xs text-gray-500">Customer</p><p className="font-medium text-gray-800">{bill.customer_name || "Walk-in Customer"}</p></div>
+                            {bill.staff_code_value && (
+                                <div>
+                                    <p className="text-xs text-gray-500">Billing Staff</p>
+                                    <p className="font-medium text-gray-800">
+                                        {bill.staff_code_value} — {bill.staff_name_snapshot}
+                                    </p>
+                                </div>
+                            )}
+                        </div>
                         <div>
                             <p className="text-sm font-medium text-gray-700 mb-2">Items ({totalQty})</p>
                             <div className="border border-gray-200 rounded-lg overflow-hidden">
@@ -406,8 +406,8 @@ export default function CheckoutPanel({ shop_id }) {
                 response instanceof Blob
                     ? response
                     : response && typeof response === "object" && typeof response.size === "number"
-                      ? new Blob([response], { type: "application/pdf" })
-                      : null;
+                        ? new Blob([response], { type: "application/pdf" })
+                        : null;
             if (!blob || blob.type.includes("json")) {
                 toast.error("PDF generation failed");
                 return;
@@ -476,7 +476,7 @@ export default function CheckoutPanel({ shop_id }) {
 
     return (
         <div className="mt-4 pt-3 border-t border-gray-200">
-            <div className="mb-3 border border-gray-200 rounded-lg p-3">
+            {/* <div className="mb-3 border border-gray-200 rounded-lg p-3">
                 <p className="text-xs font-medium text-gray-700 mb-2 flex items-center gap-1">
                     <Search size={14} /> Search credit note (any shop)
                 </p>
@@ -513,7 +513,7 @@ export default function CheckoutPanel({ shop_id }) {
                         ))}
                     </div>
                 )}
-            </div>
+            </div> */}
 
             {showCreditAlert && totalCreditAvailable > 0 && (
                 <div className="mb-3 p-3 bg-purple-50 border border-purple-200 rounded-lg flex items-center justify-between">
@@ -554,78 +554,80 @@ export default function CheckoutPanel({ shop_id }) {
                 </div>
             )}
 
-            {staffCodesRequired && (
-                <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                    <label className="block text-xs font-semibold text-amber-900 mb-1">
-                        Billing Staff Code (required for this bill)
-                    </label>
-                    <select
-                        value={selectedStaffCodeId}
-                        onChange={(e) => setSelectedStaffCodeId(e.target.value)}
-                        className="w-full px-3 py-2 border border-amber-300 rounded-lg text-sm bg-white"
-                    >
-                        <option value="">— Select your code —</option>
-                        {staffCodes.map((sc) => (
-                            <option key={sc.staff_code_id} value={sc.staff_code_id}>
-                                {formatStaffCodeLabel(sc)}
-                            </option>
-                        ))}
-                    </select>
-                    <p className="text-[10px] text-amber-700 mt-1">
+            {/* 1. Added a 2-column grid container around everything */}
+            <div className="grid grid-cols-2 gap-3 mb-3">
+
+                {/* LEFT SIDE: Your exact billing staff section */}
+
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-gray-700 flex flex-col justify-between">
+                    <div>
+                        <label className="block text-xs font-semibold text-amber-900 mb-1">
+                            Billing Staff Code (required for this bill)
+                        </label>
+                        <select
+                            value={selectedStaffCodeId}
+                            onChange={(e) => setSelectedStaffCodeId(e.target.value)}
+                            className="w-full px-3 py-2 border border-amber-300 rounded-lg text-sm bg-white"
+                        >
+                            <option value="">— Select your code —</option>
+                            {staffCodes.map((sc) => (
+                                <option key={sc.staff_code_id} value={sc.staff_code_id}>
+                                    {formatStaffCodeLabel(sc)}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <p className="text-[10px] text-amber-700 mt-2">
                         Shared login stays active — pick your code for each bill. Cleared after bill is saved.
                     </p>
                 </div>
-            )}
 
-            <div className="mb-3">
-                <p className="text-xs font-semibold text-gray-600 mb-2">Bill type</p>
+
+                {/* RIGHT SIDE: Changed container to column layout */}
                 <div className="flex flex-col gap-2">
+                    <p className="text-xs font-semibold text-gray-600 mb-1">Bill type</p>
+
+                    {/* 2. Kept your exact buttons & classes but removed the description spans */}
                     <button
                         type="button"
                         onClick={() => dispatch(setBillType(BILL_TYPES.WITH_GST))}
-                        className={`w-full py-2.5 px-3 text-xs font-semibold rounded-lg border transition-all text-left ${billType === BILL_TYPES.WITH_GST
+                        className={`w-full py-2 px-3 text-xs font-semibold rounded-lg border transition-all text-left ${billType === BILL_TYPES.WITH_GST
                             ? "bg-blue-600 text-white border-blue-600"
                             : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
                             }`}
                     >
                         <span className="block">GST Tax Invoice</span>
-                        <span className={`block text-[10px] font-normal mt-0.5 ${billType === BILL_TYPES.WITH_GST ? "text-blue-100" : "text-gray-400"}`}>
-                            Full tax invoice — requires shop GSTIN
-                        </span>
                     </button>
+
                     <button
                         type="button"
                         onClick={() => dispatch(setBillType(BILL_TYPES.WITHOUT_GST))}
-                        className={`w-full py-2.5 px-3 text-xs font-semibold rounded-lg border transition-all text-left ${billType === BILL_TYPES.WITHOUT_GST
+                        className={`w-full py-2 px-3 text-xs font-semibold rounded-lg border transition-all text-left ${billType === BILL_TYPES.WITHOUT_GST
                             ? "bg-gray-800 text-white border-gray-800"
                             : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
                             }`}
                     >
                         <span className="block">Non-GST Bill</span>
-                        <span className={`block text-[10px] font-normal mt-0.5 ${billType === BILL_TYPES.WITHOUT_GST ? "text-gray-300" : "text-gray-400"}`}>
-                            Same layout — no GSTIN, no tax rows
-                        </span>
                     </button>
+
                     <button
                         type="button"
                         onClick={() => dispatch(setBillType(BILL_TYPES.ESTIMATE))}
-                        className={`w-full py-2.5 px-3 text-xs font-semibold rounded-lg border transition-all text-left ${billType === BILL_TYPES.ESTIMATE
+                        className={`w-full py-2 px-3 text-xs font-semibold rounded-lg border transition-all text-left ${billType === BILL_TYPES.ESTIMATE
                             ? "bg-amber-600 text-white border-amber-600"
                             : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
                             }`}
                     >
                         <span className="block">Estimate / Fake Bill</span>
-                        <span className={`block text-[10px] font-normal mt-0.5 ${billType === BILL_TYPES.ESTIMATE ? "text-amber-100" : "text-gray-400"}`}>
-                            Quotation only — ESTIMATE ONLY watermark, no tax
-                        </span>
                     </button>
                 </div>
             </div>
 
+            {/* Top Phase: Price Calculation Matrix */}
             <div className="space-y-1 mb-3">
                 <div className="flex justify-between text-sm">
                     <span className="text-gray-500">
-                        {isWithGstBill(billType) ? `Subtotal (${itemCount} items):` : `Subtotal (${itemCount} items):`}
+                        {isWithGstBill(billType) ? `Sub Total (${itemCount} items):` : `Sub Total (${itemCount} items):`}
                     </span>
                     <span className="font-medium text-gray-800">₹{toNumber(subtotal).toFixed(2)}</span>
                 </div>
@@ -669,49 +671,82 @@ export default function CheckoutPanel({ shop_id }) {
                 </div>
             </div>
 
-            {/* Payment Method */}
-            <div className="mb-3 text-gray-700">
-                <label className="block text-xs font-medium text-gray-700 mb-1">Payment Method</label>
-                <select value={paymentMethod} onChange={(e) => dispatch(setPaymentMethod(e.target.value))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
-                    <option value="CASH">💵 Cash</option>
-                    <option value="UPI">📱 UPI</option>
-                    <option value="CARD">💳 Card</option>
-                </select>
-            </div>
+            {/* Bottom Phase: Intelligent Conditional Layout */}
+            <div className="space-y-3">
 
-            {paymentMethod === "UPI" && finalPayable > 0 && (
-                <div className="mb-3 text-gray-700">
-                    <label className="block text-xs font-medium text-gray-700 mb-1">UPI Bank Account</label>
-                    {bankAccounts.length === 0 ? (
-                        <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
-                            No UPI account configured. Shop owner can add accounts in Settings → Bank Details.
-                        </p>
-                    ) : (
+                {/* Master Action Grid Controls */}
+                <div className="grid grid-cols-2 gap-3 items-end">
+
+                    {/* Column 1: Payment Method Selection */}
+                    <div className="text-gray-700">
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Payment Method</label>
                         <select
-                            value={selectedBankAccountId}
-                            onChange={(e) => setSelectedBankAccountId(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                            value={paymentMethod}
+                            onChange={(e) => dispatch(setPaymentMethod(e.target.value))}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none"
                         >
-                            {bankAccounts.map((account) => (
-                                <option key={account.bank_account_id} value={account.bank_account_id}>
-                                    {formatBankAccountLabel(account)} — {account.upi_id}
-                                </option>
-                            ))}
+                            <option value="CASH">💵 Cash</option>
+                            <option value="UPI">📱 UPI</option>
+                            <option value="CARD">💳 Card</option>
                         </select>
+                    </div>
+
+                    {/* Column 2: UPI Bank Account (Only shows when UPI is active) */}
+                    {paymentMethod === "UPI" && finalPayable > 0 ? (
+                        <div className="text-gray-700 max-w-full min-w-0">
+                            <label className="block text-xs font-medium text-gray-700 mb-1">UPI Bank Account</label>
+                            {bankAccounts.length === 0 ? (
+                                <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 truncate">
+                                    No UPI account configured.
+                                </p>
+                            ) : (
+                                <select
+                                    value={selectedBankAccountId}
+                                    onChange={(e) => setSelectedBankAccountId(e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none truncate"
+                                    style={{ textOverflow: 'ellipsis', maxWidth: '100%' }}
+                                >
+                                    {bankAccounts.map((account) => (
+                                        <option key={account.bank_account_id} value={account.bank_account_id} className="text-xs">
+                                            {formatBankAccountLabel(account)} — {account.upi_id}
+                                        </option>
+                                    ))}
+                                </select>
+                            )}
+                        </div>
+                    ) : (
+                        /* Column 2 Alternative: Inline Action button for Cash & Card selection types */
+                        <button
+                            onClick={handleCreateBill}
+                            disabled={cart.length === 0 || isCreating}
+                            className={`w-full py-2.5 rounded-lg font-bold text-white shadow-md transition-all flex items-center justify-center gap-2 ${cart.length === 0 ? "bg-gray-300 cursor-not-allowed shadow-none" : "bg-green-600 hover:bg-green-700"
+                                }`}
+                        >
+                            {isCreating ? (
+                                <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Creating...</>
+                            ) : (
+                                <><Printer size={16} /> Create Bill & {totalSelectedCredit > 0 ? "Apply Credit" : "Print"}</>
+                            )}
+                        </button>
                     )}
                 </div>
-            )}
 
-            {/* Create Bill Button */}
-            <button onClick={handleCreateBill} disabled={cart.length === 0 || isCreating} className={`w-full py-3 rounded-xl font-bold text-white shadow-md transition-all flex items-center justify-center gap-2 ${cart.length === 0 ? "bg-gray-300 cursor-not-allowed shadow-none" : "bg-green-600 hover:bg-green-700 hover:shadow-lg"}`}>
-                {isCreating ? (
-                    <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Creating Bill...</>
-                ) : paymentMethod === "UPI" && finalPayable > 0 ? (
-                    <><Printer size={18} /> Show UPI QR & Collect ₹{finalPayable.toFixed(2)}</>
-                ) : (
-                    <><Printer size={18} /> Create Bill & {totalSelectedCredit > 0 ? "Apply Credit" : "Print"}</>
+                {/* Full-Width Lower Execution Area: Renders only when UPI selection mode shifts down here */}
+                {paymentMethod === "UPI" && finalPayable > 0 && (
+                    <button
+                        onClick={handleCreateBill}
+                        disabled={cart.length === 0 || isCreating}
+                        className={`w-full py-3 rounded-xl font-bold text-white shadow-md transition-all flex items-center justify-center gap-2 ${cart.length === 0 ? "bg-gray-300 cursor-not-allowed shadow-none" : "bg-green-600 hover:bg-green-700 hover:shadow-lg"
+                            }`}
+                    >
+                        {isCreating ? (
+                            <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Creating Bill...</>
+                        ) : (
+                            <><Printer size={18} /> Show UPI QR & Collect ₹{finalPayable.toFixed(2)}</>
+                        )}
+                    </button>
                 )}
-            </button>
+            </div>
 
             <UpiPaymentModal
                 open={showUpiModal}

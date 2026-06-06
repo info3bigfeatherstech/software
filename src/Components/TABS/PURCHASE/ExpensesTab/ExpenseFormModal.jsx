@@ -92,7 +92,7 @@ export default function ExpenseFormModal({ open, onClose, onSaved, expense, ware
     });
 
     return (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
+        <div className="fixed inset-0 z-50 overflow-y-auto text-gray-700">
             <div className="flex items-center justify-center min-h-screen px-4 py-8">
                 <div className="fixed inset-0 bg-black/40" onClick={onClose} />
                 <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 space-y-4">

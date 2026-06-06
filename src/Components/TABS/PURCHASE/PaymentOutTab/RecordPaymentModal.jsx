@@ -96,7 +96,7 @@ export default function RecordPaymentModal({ open, onClose, onSaved, warehouseId
     if (!open) return null;
 
     return (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
+        <div className="fixed inset-0 z-50 overflow-y-auto text-gray-700">
             <div className="flex items-center justify-center min-h-screen px-4 py-8">
                 <div className="fixed inset-0 bg-black/40" onClick={onClose} />
                 <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-2xl p-6 space-y-4 max-h-[90vh] overflow-y-auto">

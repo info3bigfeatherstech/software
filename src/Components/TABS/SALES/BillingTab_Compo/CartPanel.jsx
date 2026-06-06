@@ -143,7 +143,7 @@ export default function CartPanel() {
     );
 }
 
-// down code old use upper code they have new price updates 
+// down code old use upper code they have new price updates
 
 // // TABS/SALES/BillingTab_Compo/CartPanel.jsx
 // //

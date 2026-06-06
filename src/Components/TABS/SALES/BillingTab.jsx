@@ -33,12 +33,12 @@ export default function BillingTab() {
     return (
         <div className="grid grid-cols-12 gap-4 h-[calc(100vh-8rem)]">
             {/* Left Panel - Product Entry */}
-            <div className="col-span-7 bg-white border border-gray-200 rounded-xl p-4 shadow-sm flex flex-col h-full">
+            <div className="col-span-6 bg-white border border-gray-200 rounded-xl p-4 shadow-sm flex flex-col h-full">
                 <ProductPicker shop_id={shop_id} />
             </div>
 
             {/* Right Panel - Cart & Checkout */}
-            <div className="col-span-5 bg-white border border-gray-200 rounded-xl p-4 shadow-sm flex flex-col h-full">
+            <div className="col-span-6 bg-white border border-gray-200 rounded-xl p-4 shadow-sm flex flex-col h-full">
                 <CustomerSearch />
                 <CartPanel />
                 <CheckoutPanel shop_id={shop_id} />

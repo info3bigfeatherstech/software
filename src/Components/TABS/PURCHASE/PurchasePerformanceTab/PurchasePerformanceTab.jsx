@@ -52,7 +52,7 @@ export default function PurchasePerformanceTab() {
                 </button>
             </div>
 
-            <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-wrap gap-3">
+            <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-wrap gap-3 text-gray-700">
                 {isSuperAdmin && (
                     <select value={warehouseFilter} onChange={(e) => setWarehouseFilter(e.target.value)} className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm min-w-[160px]">
                         <option value="">All Warehouses</option>
@@ -69,7 +69,7 @@ export default function PurchasePerformanceTab() {
 
             {!isLoading && (
                 <>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 ">
                         {[
                             { label: "Total Orders", value: summary.total_orders ?? 0 },
                             { label: "Total Value", value: fmtCurrency(summary.total_amount) },
@@ -137,7 +137,7 @@ export default function PurchasePerformanceTab() {
                                     <tr><td colSpan={7} className="px-4 py-12 text-center text-gray-400">No vendor data</td></tr>
                                 )}
                                 {vendors.map((v) => (
-                                    <tr key={v.vendor_id} className="hover:bg-gray-50">
+                                    <tr key={v.vendor_id} className="hover:bg-gray-50 text-gray-700">
                                         <td className="px-4 py-3 font-medium">{v.vendor_name}</td>
                                         <td className="px-4 py-3">{v.order_count}</td>
                                         <td className="px-4 py-3">{fmtCurrency(v.total_amount)}</td>
