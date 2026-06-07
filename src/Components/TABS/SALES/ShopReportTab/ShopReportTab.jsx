@@ -18,7 +18,7 @@ import {
     Building2,
     Loader2
 } from "lucide-react";
-import { toast } from "react-toastify";
+import { toast } from "../../../shared/ToastConfig";
 import { RefreshCw } from "lucide-react";
 import {
     useGetDailySummaryQuery,
@@ -349,7 +349,7 @@ export default function ShopReportTab() {
                             <h3 className="text-sm font-semibold text-gray-700">HSN-wise GST Summary</h3>
                         </div>
                         <div className="overflow-x-auto">
-                            <table className="w-full text-sm">
+                            <table className="w-full min-w-[720px] lg:min-w-0 text-sm">
                                 <thead className="bg-gray-50">
                                     <tr>
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">HSN Code</th>

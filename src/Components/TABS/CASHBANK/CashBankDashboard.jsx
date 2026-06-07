@@ -1,27 +1,13 @@
-// TABS/CASHBANK/CashBankDashboard.jsx
-//
-// Owns the horizontal tab bar for the Cash & Bank section.
-// Add new sub-tabs in cashbankTabRegistry.js only — nothing here changes.
-// Sub-tabs are filtered by role using filterInternalTabsByRole()
-
-import React, { Suspense } from "react";
+import React from "react";
 import { useSearchParams } from "react-router-dom";
 import { CASHBANK_TAB_REGISTRY } from "./cashbankTabRegistry";
 import { filterInternalTabsByRole } from "../../../Components/roles";
+import SubTabBar from "../../shared/SubTabBar";
+
 const CashBankDashboard = () => {
     const [searchParams, setSearchParams] = useSearchParams();
 
     const filteredTabs = filterInternalTabsByRole("cashbank", CASHBANK_TAB_REGISTRY);
-    
-    // If no tabs visible, show nothing
-    if (filteredTabs.length === 0) {
-        return (
-            <div className="text-center py-20 text-gray-400 text-sm">
-                No CashBank tabs available for your role.
-            </div>
-        );
-    }
-
     const activeCtab = searchParams.get("ctab") || filteredTabs[0]?.id;
     const activeConfig = filteredTabs.find(t => t.id === activeCtab) || filteredTabs[0];
     const SubComponent = activeConfig?.component ?? null;
@@ -31,41 +17,17 @@ const CashBankDashboard = () => {
     };
 
     return (
-        <div className="w-full">
-            {/* ── Horizontal tab bar ─────────────────────────────────────────── */}
-            <div className="flex items-center gap-1 border-b border-gray-200 mb-6">
-                {filteredTabs.map((tab) => {
-                    const isActive = activeCtab === tab.id;
-                    return (
-                        <button
-                            key={tab.id}
-                            onClick={() => handleTabClick(tab.id)}
-                            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-t-lg border-b-2 transition-all duration-150 cursor-pointer -mb-px ${isActive
-                                ? "border-blue-500 text-blue-600 bg-blue-50"
-                                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                                }`}
-                        >
-                            <svg className={`w-4 h-4 ${isActive ? "text-blue-500" : "text-gray-400"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={tab.icon} />
-                            </svg>
-                            {tab.label}
-                        </button>
-                    );
-                })}
-            </div>
-
-            {/* ── Sub-tab content ─────────────────────────────────────────────── */}
-            <Suspense fallback={
-                <div className="flex items-center justify-center h-64">
-                    <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                </div>
-            }>
-                {SubComponent
-                    ? <SubComponent />
-                    : <div className="text-gray-400 text-sm text-center py-20">Sub-tab not found</div>
-                }
-            </Suspense>
-        </div>
+        <SubTabBar
+            tabs={filteredTabs}
+            activeTabId={activeCtab}
+            onTabClick={handleTabClick}
+            parentTabId="cashbank"
+        >
+            {SubComponent
+                ? <SubComponent />
+                : <div className="app-loading">Sub-tab not found</div>
+            }
+        </SubTabBar>
     );
 };
 

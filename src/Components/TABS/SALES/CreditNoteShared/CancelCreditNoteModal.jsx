@@ -5,7 +5,7 @@
 import React, { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { X, Ban } from "lucide-react";
-import { toast } from "react-toastify";
+import { toast } from "../../../shared/ToastConfig";
 import { updateCancelForm, setActionErrors } from "../../../../REDUX_FEATURES/REDUX_SLICES/CreditNote_api/creditNoteSlice";
 
 export default function CancelCreditNoteModal({ creditNote, onSuccess, onClose }) {

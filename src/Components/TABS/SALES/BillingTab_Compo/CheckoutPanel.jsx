@@ -10,7 +10,7 @@
 import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Printer, Download, PlusCircle, Eye, X, Receipt, CheckCircle, Search } from "lucide-react";
-import { toast } from "react-toastify";
+import { toast } from "../../../shared/ToastConfig";
 import { useCreateBillMutation, useLazyGetBillPdfQuery, useGetBillByIdQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/Billing_api/billingApi";
 import { useGetShopBankAccountsQuery, useGetShopStaffCodesQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/Shop_api/shopApi";
 import { useGetCreditNotesQuery, useLazyLookupCreditNoteQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/CreditNote_api/creditNoteApi";
@@ -99,7 +99,8 @@ const BillViewModal = ({ bill, onClose }) => {
                         <div>
                             <p className="text-sm font-medium text-gray-700 mb-2">Items ({totalQty})</p>
                             <div className="border border-gray-200 rounded-lg overflow-hidden">
-                                <table className="w-full text-sm">
+                                <div className="w-full overflow-x-auto overflow-y-hidden overscroll-x-contain">
+                                <table className="w-full min-w-[720px] lg:min-w-0 text-sm">
                                     <thead className="bg-gray-50"><tr><th className="px-3 py-2 text-left text-xs font-semibold text-gray-500">Product</th><th className="px-3 py-2 text-right text-xs font-semibold text-gray-500">Qty</th><th className="px-3 py-2 text-right text-xs font-semibold text-gray-500">Price</th><th className="px-3 py-2 text-right text-xs font-semibold text-gray-500">Total</th></tr></thead>
                                     <tbody className="divide-y divide-gray-100">
                                         {bill.items?.map((item, idx) => (
@@ -122,6 +123,7 @@ const BillViewModal = ({ bill, onClose }) => {
                                         <tr className="border-t border-gray-200"><td colSpan="3" className="px-3 py-2 text-right font-bold text-lg">Total:</td><td className="px-3 py-2 text-right font-bold text-lg text-blue-600">₹{toNumber(bill.total_amount).toFixed(2)}</td></tr>
                                     </tfoot>
                                 </table>
+                                </div>
                             </div>
                         </div>
                         {bill.payments && bill.payments.length > 0 && (
@@ -555,7 +557,7 @@ export default function CheckoutPanel({ shop_id }) {
             )}
 
             {/* 1. Added a 2-column grid container around everything */}
-            <div className="grid grid-cols-2 gap-3 mb-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
 
                 {/* LEFT SIDE: Your exact billing staff section */}
 
@@ -675,7 +677,7 @@ export default function CheckoutPanel({ shop_id }) {
             <div className="space-y-3">
 
                 {/* Master Action Grid Controls */}
-                <div className="grid grid-cols-2 gap-3 items-end">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
 
                     {/* Column 1: Payment Method Selection */}
                     <div className="text-gray-700">

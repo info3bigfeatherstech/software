@@ -116,7 +116,7 @@ export default function PurchaseReturnsTab() {
                     <span className="text-xs font-semibold text-gray-500 uppercase">Debit notes</span>
                     {isLoading && <span className="text-xs text-gray-400">Loading...</span>}
                 </div>
-                <table className="w-full text-sm">
+                <table className="w-full min-w-[720px] lg:min-w-0 text-sm">
                     <thead className="bg-gray-50 border-b">
                         <tr>
                             <th className="px-4 py-3 text-xs font-semibold text-gray-400 uppercase text-left">DN No</th>

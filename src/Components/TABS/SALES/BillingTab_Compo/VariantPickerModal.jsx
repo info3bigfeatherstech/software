@@ -8,7 +8,7 @@ import React from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { X } from "lucide-react";
 import { addToCart, closeVariantPicker } from "../../../../REDUX_FEATURES/REDUX_SLICES/Billing_api/billingSlice";
-import { toast } from "react-toastify";
+import { toast } from "../../../shared/ToastConfig";
 import {
     buildBillingCartItem,
     formatGstPercentLabel,

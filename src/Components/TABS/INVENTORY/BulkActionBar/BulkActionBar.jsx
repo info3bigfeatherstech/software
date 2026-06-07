@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useDispatch } from "react-redux";
-import { toast } from "react-toastify";
+import { toast } from "../../../shared/ToastConfig";
 import { CheckSquare, Square, Trash2, Power, PowerOff, X } from "lucide-react";
 import { clearSelectedProducts } from "../../../../REDUX_FEATURES/REDUX_SLICES/Product_api/productSlice";
 

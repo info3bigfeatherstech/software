@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { toast } from "react-toastify";
+import { toast } from "../../../shared/ToastConfig";
 import { Package, Eye, RotateCcw, Trash2, AlertTriangle, X, Square, CheckSquare } from "lucide-react";
 import {
   useGetInactiveProductsQuery,
@@ -237,7 +237,8 @@ export default function ArchiveTab() {
 
       {/* Table */}
       <div className="bg-white rounded-xl text-gray-700 border border-gray-200 overflow-hidden">
-        <table className="w-full text-sm">
+        <div className="w-full overflow-x-auto overflow-y-hidden overscroll-x-contain">
+        <table className="w-full min-w-[720px] lg:min-w-0 text-sm">
           <thead className="bg-gray-50 border-b">
             <tr>
               <th className="px-4 py-3 w-10">
@@ -309,6 +310,7 @@ export default function ArchiveTab() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* Pagination */}

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { X, Plus, Package, Tag, TrendingUp,RefreshCw, Layers, Eye, Upload, FolderPlus, CheckSquare, Square, ChevronDown, ChevronRight, Barcode, Printer } from "lucide-react";
-import { toast } from "react-toastify";
+import { toast } from "../../shared/ToastConfig";
 import {
   useGetProductsQuery,
   useDeleteProductMutation,
@@ -323,7 +323,8 @@ export default function InventoryTab() {
           <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Products & Inventory</span>
           <span className="text-xs text-gray-400 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded-full">{meta.total} records</span>
         </div>
-        <table className="w-full text-sm">
+        <div className="w-full overflow-x-auto overflow-y-hidden overscroll-x-contain">
+        <table className="w-full min-w-[720px] lg:min-w-0 text-sm">
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
               {/* Expand/Collapse column - only shown for multi-variant products */}
@@ -546,7 +547,7 @@ export default function InventoryTab() {
                     <td colSpan={9} className="px-0 py-0 bg-gray-50">
                       <div className="p-4 pl-12 border-t border-gray-100">
                         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                          <table className="w-full text-sm">
+                          <table className="w-full min-w-[720px] lg:min-w-0 text-sm">
                             <thead className="bg-gray-50">
                               <tr>
                                 <th className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide text-left">Variant SKU</th>
@@ -620,6 +621,7 @@ export default function InventoryTab() {
             )})}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* Pagination */}

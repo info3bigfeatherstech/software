@@ -7,7 +7,7 @@
 import React from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { X, Trash2 } from "lucide-react";
-import { toast } from "react-toastify";
+import { toast } from "../../../../shared/ToastConfig";
 import { useUpdateShopMutation, useDeleteShopMutation } from "../../../../../REDUX_FEATURES/REDUX_SLICES/Shop_api/shopApi";
 import {
     closeEditForm,

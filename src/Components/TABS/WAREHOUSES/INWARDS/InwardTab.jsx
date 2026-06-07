@@ -180,7 +180,8 @@ export default function InwardTab() {
 
             {/* Table */}
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                <table className="w-full text-sm">
+                <div className="w-full overflow-x-auto overflow-y-hidden overscroll-x-contain">
+                <table className="w-full min-w-[720px] lg:min-w-0 text-sm">
                     <thead className="bg-gray-50">
                         <tr>
                             {["Inward #", "Vendor", "Warehouse", "Expected", "Arrived", "Invoice / Challan", "Status", "Actions"].map((h) => (
@@ -274,6 +275,7 @@ export default function InwardTab() {
                         ))}
                     </tbody>
                 </table>
+                </div>
             </div>
 
             {/* Pagination */}

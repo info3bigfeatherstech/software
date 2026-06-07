@@ -180,7 +180,8 @@ export default function InwardEditForm({ selectedInward, onSave }) {
                                 Items ({inward.items.length})
                             </p>
                             <div className="border border-gray-100 rounded-xl overflow-hidden">
-                                <table className="w-full text-xs">
+                                <div className="w-full overflow-x-auto overflow-y-hidden overscroll-x-contain">
+                                <table className="w-full min-w-[720px] lg:min-w-0 text-xs">
                                     <thead>
                                         <tr className="bg-gray-50 border-b border-gray-100">
                                             <th className="text-left px-4 py-2 font-medium text-gray-500">Item</th>
@@ -200,6 +201,7 @@ export default function InwardEditForm({ selectedInward, onSave }) {
                                         ))}
                                     </tbody>
                                 </table>
+                                </div>
                             </div>
                         </div>
                     )}

@@ -7,7 +7,7 @@
 import React, { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Plus, RefreshCw, Eye, Edit2, Trash2, X, User, Phone, Mail, MapPin, Building } from "lucide-react";
-import { toast } from "react-toastify";
+import { toast } from "../../shared/ToastConfig";
 import {
     useGetCustomersQuery,
     useDeleteCustomerMutation,
@@ -255,7 +255,7 @@ export default function CustomersTab() {
                     <p className="text-xs font-semibold uppercase tracking-widest text-gray-500">Customers</p>
                     <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{filteredCustomers.length} records</span>
                 </div>
-                <table className="w-full text-sm">
+                <table className="w-full min-w-[720px] lg:min-w-0 text-sm">
                     <thead className="bg-gray-50 border-b border-gray-100">
                         <tr>
                             <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Customer</th>

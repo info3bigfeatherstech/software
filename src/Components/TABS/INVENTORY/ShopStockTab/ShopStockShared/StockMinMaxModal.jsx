@@ -6,7 +6,7 @@
 import React, { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { X, AlertTriangle, Save } from "lucide-react";
-import { toast } from "react-toastify";
+import { toast } from "../../../../shared/ToastConfig";
 import { useSetProductLevelsMutation } from "../../../../../REDUX_FEATURES/REDUX_SLICES/ShopStock_api/shopStockApi";
 import {
     closeMinMaxModal,

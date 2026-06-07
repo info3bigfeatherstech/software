@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Save, RefreshCw, Store } from "lucide-react";
-import { toast } from "react-toastify";
+import { toast } from "../../../shared/ToastConfig";
 import {
     useGetMyShopQuery,
     useUpdateMyShopMutation,

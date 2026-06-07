@@ -389,6 +389,7 @@ export default function InwardItemsModal({
                     </div>
 
                     <div style={S.sheetWrap}>
+                        <div className="w-full overflow-x-auto overflow-y-hidden overscroll-x-contain">
                         <table style={{
                             borderCollapse: "collapse", fontSize: "12px",
                             tableLayout: "fixed", width: "100%", minWidth: "920px",
@@ -631,6 +632,7 @@ export default function InwardItemsModal({
                                 ))}
                             </tbody>
                         </table>
+                        </div>
                     </div>
 
                     <div style={S.statusBar}>

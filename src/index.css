@@ -3,102 +3,278 @@
 @tailwind utilities;
 
 @layer base {
-    body {
-        @apply bg-background text-text-primary antialiased selection:bg-brand/30;
-    }
+  *,
+  *::before,
+  *::after {
+    @apply border-app-border-light;
+  }
 
-    /* High-density scrollbar */
-    ::-webkit-scrollbar {
-        width: 6px;
-        height: 6px;
-    }
+  html {
+    font-size: 14px;
+  }
 
-    ::-webkit-scrollbar-thumb {
-        @apply bg-surface-secondary rounded-full;
-    }
+  body {
+    @apply bg-app-bg text-app-text antialiased;
+    font-family: Arial, Helvetica Neue, Helvetica, Segoe UI, sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold text-app-text;
+    font-style: normal;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-app-accent ring-offset-1 ring-offset-white;
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-gray-100;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-300;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-400;
+  }
 }
 
-/* @tailwind base;
-@tailwind components;
-@tailwind utilities;
+@layer components {
+  /* ── Layout ── */
+  .app-page {
+    @apply space-y-4;
+  }
 
+  .app-page-header {
+    @apply flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-3 border-b border-app-border;
+  }
 
-@layer base {
-    * {
-        @apply border-gray-200;
-    }
+  .app-page-title {
+    @apply text-base font-semibold text-app-text;
+  }
 
-    body {
-        @apply bg-gray-50 text-gray-900 antialiased;
-        font-feature-settings: "ss02", "cv02", "cv03";
-    }
+  .app-page-subtitle {
+    @apply text-xs text-app-text-muted mt-0.5;
+  }
 
-   
-    html {
-        scroll-behavior: smooth;
-    }
+  /* ── Cards & Panels ── */
+  .app-card {
+    @apply bg-app-surface border border-app-border rounded-app shadow-app;
+  }
 
-   
-    :focus-visible {
-        @apply outline-none ring-2 ring-blue-500 ring-offset-2 ring-offset-white;
-    }
+  .app-card-header {
+    @apply px-4 py-2.5 border-b border-app-border-light bg-gray-50 flex items-center justify-between;
+  }
 
+  .app-card-body {
+    @apply p-4;
+  }
 
-    ::-webkit-scrollbar {
-        width: 6px;
-        height: 6px;
-    }
+  .app-stat-card {
+    @apply bg-app-surface border border-app-border rounded-app p-3 shadow-app;
+  }
 
-    ::-webkit-scrollbar-track {
-        @apply bg-gray-100 rounded-full;
-    }
+  .app-stat-label {
+    @apply text-xs text-app-text-muted font-normal;
+  }
 
-    ::-webkit-scrollbar-thumb {
-        @apply bg-gray-300 rounded-full hover:bg-gray-400 transition-colors;
-    }
+  .app-stat-value {
+    @apply text-xl font-semibold text-app-text mt-1;
+  }
+
+  .app-stat-hint {
+    @apply text-xs text-app-text-muted mt-1;
+  }
+
+  /* ── Buttons ── */
+  .app-btn {
+    @apply inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm font-normal rounded-app border cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .app-btn-primary {
+    @apply app-btn bg-app-accent text-white border-app-accent hover:bg-app-accent-hover;
+  }
+
+  .app-btn-secondary {
+    @apply app-btn bg-app-surface text-app-text-secondary border-app-border hover:bg-gray-50;
+  }
+
+  .app-btn-danger {
+    @apply app-btn bg-white text-app-danger border-red-300 hover:bg-red-50;
+  }
+
+  /* ── Form Controls ── */
+  .app-input,
+  .app-select,
+  .app-textarea {
+    @apply w-full px-2.5 py-1.5 text-sm text-app-text bg-white border border-app-border rounded-app;
+  }
+
+  .app-input:focus,
+  .app-select:focus,
+  .app-textarea:focus {
+    @apply outline-none border-app-accent ring-1 ring-app-accent;
+  }
+
+  .app-label {
+    @apply block text-xs text-app-text-secondary mb-1;
+  }
+
+  /* ── Tables ── */
+  .app-table-wrap {
+    @apply app-card overflow-hidden;
+  }
+
+  .app-table {
+    @apply w-full text-sm border-collapse;
+  }
+
+  .app-table thead {
+    @apply bg-gray-100 border-b border-app-border;
+  }
+
+  .app-table th {
+    @apply px-3 py-2 text-left text-xs font-semibold text-app-text-secondary border-b border-app-border whitespace-nowrap;
+  }
+
+  .app-table td {
+    @apply px-3 py-2 border-b border-app-border-light text-app-text align-middle;
+  }
+
+  .app-table tbody tr:hover {
+    @apply bg-app-accent-light;
+  }
+
+  .app-table tbody tr:last-child td {
+    @apply border-b-0;
+  }
+
+  /* ── Sub-tab navigation (inner section tabs) ── */
+  .app-subtab-bar {
+    @apply flex items-stretch gap-0 border-b border-app-border mb-4 bg-white;
+  }
+
+  .app-subtab-item {
+    @apply flex items-center gap-1.5 px-4 py-2 text-sm text-app-text-muted border-b-2 border-transparent cursor-pointer hover:text-app-text hover:bg-gray-50;
+  }
+
+  .app-subtab-item-active {
+    @apply text-app-accent border-app-accent bg-app-accent-light font-medium;
+  }
+
+  /* ── Sidebar navigation ── */
+  .app-nav-item {
+    @apply w-full flex items-center gap-2.5 px-3 py-2 text-sm text-app-text-secondary rounded-app cursor-pointer hover:bg-gray-100 hover:text-app-text;
+  }
+
+  .app-nav-item-active {
+    @apply bg-app-accent-light text-app-accent font-medium border-l-[3px] border-app-accent pl-[9px];
+  }
+
+  .app-nav-subitem {
+    @apply w-full flex items-center gap-2 px-3 py-1.5 text-xs text-app-text-muted rounded-app cursor-pointer text-left hover:bg-gray-100 hover:text-app-text;
+  }
+
+  .app-nav-subitem-active {
+    @apply bg-app-accent-light text-app-accent font-medium;
+  }
+
+  /* ── Badges & Alerts ── */
+  .app-badge {
+    @apply inline-flex items-center px-2 py-0.5 text-xs font-normal rounded-app border;
+  }
+
+  .app-badge-blue {
+    @apply app-badge bg-blue-50 text-blue-800 border-blue-200;
+  }
+
+  .app-badge-green {
+    @apply app-badge bg-green-50 text-green-800 border-green-200;
+  }
+
+  .app-badge-red {
+    @apply app-badge bg-red-50 text-red-800 border-red-200;
+  }
+
+  .app-badge-amber {
+    @apply app-badge bg-amber-50 text-amber-800 border-amber-200;
+  }
+
+  .app-badge-gray {
+    @apply app-badge bg-gray-50 text-gray-700 border-gray-200;
+  }
+
+  .app-alert {
+    @apply px-3 py-2 text-sm border rounded-app;
+  }
+
+  .app-alert-info {
+    @apply app-alert bg-blue-50 border-blue-200 text-blue-900;
+  }
+
+  .app-alert-warning {
+    @apply app-alert bg-amber-50 border-amber-200 text-amber-900;
+  }
+
+  .app-alert-danger {
+    @apply app-alert bg-red-50 border-red-200 text-red-900;
+  }
+
+  /* ── Modal ── */
+  .app-modal-overlay {
+    @apply fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4;
+  }
+
+  .app-modal {
+    @apply bg-white border border-app-border rounded-app shadow-app-md w-full max-h-[90vh] overflow-y-auto;
+  }
+
+  .app-modal-header {
+    @apply flex items-center justify-between px-4 py-3 border-b border-app-border bg-gray-50;
+  }
+
+  .app-modal-body {
+    @apply p-4;
+  }
+
+  .app-modal-footer {
+    @apply flex items-center justify-end gap-2 px-4 py-3 border-t border-app-border bg-gray-50;
+  }
+
+  /* ── Loading ── */
+  .app-loading {
+    @apply flex items-center justify-center py-16 text-app-text-muted text-sm;
+  }
+
+  .app-spinner {
+    @apply w-6 h-6 border-2 border-app-accent border-t-transparent rounded-full animate-spin;
+  }
 }
-
 
 @layer utilities {
-    .scrollbar-hide {
-        -ms-overflow-style: none;
-        scrollbar-width: none;
-    }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 
-    .scrollbar-hide::-webkit-scrollbar {
-        display: none;
-    }
-} */
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
 
-
-
-/* Mobile responsiveness for collapsible sidebar */
 @media (max-width: 768px) {
   aside {
     position: fixed !important;
     z-index: 40 !important;
-    transform: translateX(0);
-    transition: transform 0.3s ease-in-out !important;
   }
-  
-  aside.collapsed-mobile {
-    transform: translateX(-100%);
-  }
-  
+
   main {
     margin-left: 0 !important;
-  }
-  
-  /* Overlay when sidebar is open on mobile */
-  .sidebar-overlay {
-    position: fixed;
-    inset: 0;
-    background-color: rgba(0, 0, 0, 0.5);
-    z-index: 35;
-    display: none;
-  }
-  
-  .sidebar-overlay.active {
-    display: block;
   }
 }

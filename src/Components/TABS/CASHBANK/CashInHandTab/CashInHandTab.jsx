@@ -80,7 +80,7 @@ export default function CashInHandTab() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
                     <div className="px-4 py-3 border-b border-gray-100 text-xs font-semibold text-gray-500 uppercase">Cash In</div>
-                    <table className="w-full text-sm">
+                    <table className="w-full min-w-[720px] lg:min-w-0 text-sm">
                         <tbody className="divide-y divide-gray-50">
                             {(isLoading || isFetching) && (
                                 <tr><td className="px-4 py-8 text-center text-gray-400">Loading…</td></tr>
@@ -101,7 +101,7 @@ export default function CashInHandTab() {
 
                 <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
                     <div className="px-4 py-3 border-b border-gray-100 text-xs font-semibold text-gray-500 uppercase">Cash Out (Refunds)</div>
-                    <table className="w-full text-sm">
+                    <table className="w-full min-w-[720px] lg:min-w-0 text-sm">
                         <tbody className="divide-y divide-gray-50">
                             {!isLoading && cashOutEntries.length === 0 && (
                                 <tr><td><EmptyState message="No cash refunds in period" /></td></tr>

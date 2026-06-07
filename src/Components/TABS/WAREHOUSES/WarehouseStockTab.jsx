@@ -92,7 +92,8 @@ export default function WarehouseStockTab() {
                         {warehouses.find(w => w.id === selectedWH)?.name} — Stock
                     </h3>
                 </div>
-                <table className="w-full text-sm">
+                <div className="w-full overflow-x-auto overflow-y-hidden overscroll-x-contain">
+                <table className="w-full min-w-[720px] lg:min-w-0 text-sm">
                     <thead className="bg-gray-50"><tr>
                         {["Product", "Barcode/SKU", "Location (Room → Rack → Pos)", "Stock", "Min Stock", "Prices", "Status"].map(h => (
                             <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
@@ -142,6 +143,7 @@ export default function WarehouseStockTab() {
                             })}
                     </tbody>
                 </table>
+                </div>
             </div>
         </div>
     );

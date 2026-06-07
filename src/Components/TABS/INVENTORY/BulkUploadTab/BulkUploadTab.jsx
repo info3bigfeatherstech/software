@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { toast } from "react-toastify";
+import { toast } from "../../../shared/ToastConfig";
 import {
   Upload, FileText, Archive, CheckCircle, AlertTriangle,
   XCircle, ChevronDown, ChevronRight, X, Download,
@@ -380,7 +380,7 @@ const BulkUploadTab = ({ isOpen, onClose }) => {
                     </button>
                   </div>
                   <div className="overflow-y-auto max-h-64 overflow-x-auto">
-                    <table className="w-full text-left text-xs">
+                    <table className="w-full min-w-[720px] lg:min-w-0 text-left text-xs">
                       <thead>
                         <tr className="border-b border-slate-700/60 bg-slate-800/40 sticky top-0">
                           {["#","Name","Code","Variants","Images","Status"].map(h => (
@@ -652,7 +652,7 @@ const BulkUploadTab = ({ isOpen, onClose }) => {
                       ))}
                     </div>
                     <div className="overflow-y-auto max-h-48 overflow-x-auto">
-                      <table className="w-full text-left text-xs">
+                      <table className="w-full min-w-[720px] lg:min-w-0 text-left text-xs">
                         <thead className="sticky top-0 bg-slate-800/80">
                           <tr className="border-b border-slate-700/60">
                             {["Product","Code","Status","Detail"].map(h => (

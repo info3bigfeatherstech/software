@@ -8,7 +8,7 @@
 import React, { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { X, Package, AlertTriangle, TrendingUp, Layers, Edit2, CheckSquare, Square, RefreshCw, Bell, Truck, Target, ChevronDown, ChevronRight, Barcode } from "lucide-react";
-import { toast } from "react-toastify";
+import { toast } from "../../../shared/ToastConfig";
 import { useGetShopStocksQuery, useGetLowStockAlertsQuery, useGetReorderSuggestionsQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/ShopStock_api/shopStockApi";
 import {
     setSearch,
@@ -420,7 +420,7 @@ export default function ShopStockTab() {
 
             {/* Table */}
             <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="w-full min-w-[720px] lg:min-w-0 text-sm">
                     <thead className="bg-gray-50 border-b border-gray-100">
                         <tr>
                             <th className="px-4 py-3 w-8"></th>
@@ -638,7 +638,8 @@ export default function ShopStockTab() {
                                             <td colSpan={13} className="px-0 py-0 bg-gray-50">
                                                 <div className="p-4 pl-16 border-t border-gray-100">
                                                     <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                                                        <table className="w-full text-sm">
+                                                        <div className="w-full overflow-x-auto overflow-y-hidden overscroll-x-contain">
+                                                        <table className="w-full min-w-[720px] lg:min-w-0 text-sm">
                                                             <thead className="bg-gray-50">
                                                                 <tr>
                                                                     <th className="px-4 py-2 w-8"></th>
@@ -761,6 +762,7 @@ export default function ShopStockTab() {
                                                                 })}
                                                             </tbody>
                                                         </table>
+                                                        </div>
                                                     </div>
                                                 </div>
                                              </td>

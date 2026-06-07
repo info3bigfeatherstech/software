@@ -6,7 +6,7 @@
 import React from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { X, Plus, Eye, Edit, Building2, MapPin, Phone, Mail, Hash } from "lucide-react";
-import { toast } from "react-toastify";
+import { toast } from "../../../shared/ToastConfig";
 import { useGetShopsQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/Shop_api/shopApi";
 import {
     openAddForm,

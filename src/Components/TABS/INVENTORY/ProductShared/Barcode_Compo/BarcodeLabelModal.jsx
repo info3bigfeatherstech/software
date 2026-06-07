@@ -11,7 +11,7 @@
 import React, { useState, useEffect } from "react";
 import { X, Download, Printer, Loader2, ChevronLeft, ChevronRight, Grid, LayoutGrid, FileDown } from "lucide-react";
 import { generateBarcodeLabel, generateBatchLabels, downloadCanvasAsPNG, printCanvas } from "../../../../../utils/barcodeLabelGenerator";
-import { toast } from "react-toastify";
+import { toast } from "../../../../shared/ToastConfig";
 
 const BarcodeLabelModal = ({ isOpen, onClose, variantsWithProducts }) => {
     const [loading, setLoading] = useState(false);

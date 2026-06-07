@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { X, Copy, CheckCircle } from "lucide-react";
 import QRCode from "qrcode";
-import { toast } from "react-toastify";
+import { toast } from "../../../shared/ToastConfig";
 import { buildUpiPaymentUri } from "../../../../utils/upiPayment";
 
 export default function UpiPaymentModal({

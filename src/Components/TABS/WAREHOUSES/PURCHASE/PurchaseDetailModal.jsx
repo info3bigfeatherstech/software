@@ -6,7 +6,7 @@
 import React from "react";
 import { useDispatch } from "react-redux";
 import { X, Package, Building2, MapPin, Calendar, FileText, Hash, Layers, Download } from "lucide-react";
-import { toast } from "react-toastify";
+import { toast } from "../../../shared/ToastConfig";
 import { useGetPurchaseByIdQuery, useLazyDownloadPurchasePdfQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/Purchase_api/purchaseApi";
 import { downloadBlobFile } from "../../../../utils/downloadBlob";
 import { closeDetailModal } from "../../../../REDUX_FEATURES/REDUX_SLICES/Purchase_api/purchaseSlice";
@@ -159,7 +159,8 @@ export default function PurchaseDetailModal({ purchase, onClose }) {
                                 </div>
                             ) : (
                                 <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                                    <table className="w-full text-sm">
+                                    <div className="w-full overflow-x-auto overflow-y-hidden overscroll-x-contain">
+                                    <table className="w-full min-w-[720px] lg:min-w-0 text-sm">
                                         <thead className="bg-gray-50">
                                             <tr>
                                                 <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500">Product</th>
@@ -235,6 +236,7 @@ export default function PurchaseDetailModal({ purchase, onClose }) {
                                             })}
                                         </tbody>
                                     </table>
+                                    </div>
                                 </div>
                             )}
                         </div>

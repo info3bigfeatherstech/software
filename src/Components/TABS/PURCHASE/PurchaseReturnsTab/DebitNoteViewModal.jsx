@@ -1,6 +1,6 @@
 import React from "react";
 import { X, Download } from "lucide-react";
-import { toast } from "react-toastify";
+import { toast } from "../../../shared/ToastConfig";
 import { useGetDebitNoteByIdQuery, useLazyDownloadDebitNotePdfQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/DebitNote_api/debitNoteApi";
 import { downloadBlobFile } from "../../../../utils/downloadBlob";
 
@@ -77,7 +77,8 @@ export default function DebitNoteViewModal({ debitNoteId, onClose }) {
                                 </div>
                             </div>
                             <div className="border rounded-lg overflow-hidden">
-                                <table className="w-full text-sm">
+                                <div className="w-full overflow-x-auto overflow-y-hidden overscroll-x-contain">
+                                <table className="w-full min-w-[720px] lg:min-w-0 text-sm">
                                     <thead className="bg-gray-50">
                                         <tr>
                                             <th className="px-3 py-2 text-left text-xs text-gray-400">Item</th>
@@ -98,6 +99,7 @@ export default function DebitNoteViewModal({ debitNoteId, onClose }) {
                                         ))}
                                     </tbody>
                                 </table>
+                                </div>
                             </div>
                             <div className="text-right space-y-1">
                                 <p>Subtotal: {fmtCurrency(dn.subtotal)}</p>

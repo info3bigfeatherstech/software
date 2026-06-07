@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useSelector } from "react-redux";
 import { Package, Send } from "lucide-react";
-import { toast } from "react-toastify";
+import { toast } from "../../../shared/ToastConfig";
 import { useGetWarehousesQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/Warehouse_api/warehouseApi";
 import { useLazyGetPeerStockCatalogQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/WarehousePeerCatalog_api/warehousePeerCatalogApi";
 import {

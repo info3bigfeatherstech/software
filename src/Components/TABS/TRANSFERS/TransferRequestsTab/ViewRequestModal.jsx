@@ -6,7 +6,7 @@
 import React, { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { X, CheckCircle, XCircle, Truck, Package, Ban, Calendar, MapPin, User, FileText, Download } from "lucide-react";
-import { toast } from "react-toastify";
+import { toast } from "../../../shared/ToastConfig";
 import { closeViewRequestModal } from "../../../../REDUX_FEATURES/REDUX_SLICES/TransferRequest_api/transferRequestSlice";
 import { useLazyDownloadTransferChallanPdfQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/TransferRequest_api/transferRequestApi";
 import { downloadBlobFile, CHALLAN_READY_STATUSES } from "../../../../utils/downloadBlob";

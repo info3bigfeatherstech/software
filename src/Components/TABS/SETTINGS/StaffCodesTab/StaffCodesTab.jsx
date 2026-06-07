@@ -6,7 +6,7 @@
 import React, { useMemo, useState } from "react";
 import { useSelector } from "react-redux";
 import { Pencil, Trash2, Plus, RefreshCw, BarChart3, Users, Receipt, ShieldCheck, AlertCircle, Building2, UserCheck, UserX } from "lucide-react";
-import { toast } from "react-toastify";
+import { toast } from "../../../shared/ToastConfig";
 import {
     useGetShopsQuery,
     useGetMyShopQuery,
@@ -190,7 +190,7 @@ export default function StaffCodesTab() {
                         <span className="text-[11px] font-bold text-gray-600 uppercase tracking-wider">Today — Bills by Staff</span>
                     </div>
                     <div className="overflow-x-auto">
-                        <table className="w-full text-sm text-left">
+                        <table className="w-full min-w-[720px] lg:min-w-0 text-sm text-left">
                             <thead className="bg-gray-50/40 border-b border-gray-100">
                                 <tr>
                                     {["Code", "Name", "Bills", "Total", "Collected"].map((h) => (
@@ -249,7 +249,7 @@ export default function StaffCodesTab() {
                 {/* Data Grid Vector Block */}
                 {!isLoading && staffCodes.length > 0 && (
                     <div className="overflow-x-auto">
-                        <table className="w-full text-sm text-left border-collapse">
+                        <table className="w-full min-w-[720px] lg:min-w-0 text-sm text-left border-collapse">
                             <thead>
                                 <tr className="bg-gray-50/40 border-b border-gray-100">
                                     {["Code", "Name", "Phone", "Status", "Actions"].map((h) => (

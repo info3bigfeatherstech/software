@@ -132,7 +132,7 @@ export default function UsersTab() {
             </div>
 
             {/* ── Summary Cards ───────────────────────────────────────────────── */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 <div className="bg-white rounded-xl border border-blue-100 p-4">
                     <p className="text-xs uppercase tracking-wide font-medium text-blue-400">Total Users</p>
                     <p className="text-3xl font-bold text-blue-700 mt-1">{totalItems}</p>
@@ -141,16 +141,16 @@ export default function UsersTab() {
                     <p className="text-xs uppercase tracking-wide font-medium text-green-500">Active (this page)</p>
                     <p className="text-3xl font-bold text-green-600 mt-1">{activeCount}</p>
                 </div>
-                <div className="bg-white rounded-xl border border-gray-200 p-4">
+                <div className="bg-white rounded-xl border border-gray-200 p-4 sm:col-span-2 lg:col-span-1">
                     <p className="text-xs uppercase tracking-wide text-gray-400 mb-3">Role Breakdown</p>
-                    <div className="space-y-1">
+                    <div className="space-y-1.5">
                         {USER_ROLES.map(r => {
                             const count = users.filter(u => u.role === r.value).length;
                             if (!count) return null;
                             return (
-                                <div key={r.value} className="flex justify-between items-center py-1">
-                                    <span className={getRoleBreakdownBadgeClass(r.value)}>{r.label}</span>
-                                    <span className="text-sm font-semibold text-gray-700">{count}</span>
+                                <div key={r.value} className="flex justify-between items-center gap-2 py-0.5 min-w-0">
+                                    <span className={`${getRoleBreakdownBadgeClass(r.value)} truncate max-w-[75%]`}>{r.label}</span>
+                                    <span className="text-sm font-semibold text-gray-700 shrink-0">{count}</span>
                                 </div>
                             );
                         })}
@@ -160,26 +160,26 @@ export default function UsersTab() {
 
             {/* ── Filters Bar ─────────────────────────────────────────────────── */}
             <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
-                <div className="flex gap-3">
+                <div className="flex flex-col sm:flex-row gap-2">
                     <input
                         value={search}
                         onChange={(e) => dispatch(setSearch(e.target.value))}
                         placeholder="Search by name or phone…"
-                        className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300"
+                        className="flex-1 min-w-0 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300"
                     />
                     <button
                         onClick={() => dispatch(resetFilters())}
-                        className="bg-gray-50 border border-gray-200 text-gray-500 text-sm px-3 py-2 rounded-lg hover:bg-gray-100 inline-flex items-center gap-1.5 transition-colors"
+                        className="shrink-0 bg-gray-50 border border-gray-200 text-gray-500 text-sm px-3 py-2 rounded-lg hover:bg-gray-100 inline-flex items-center justify-center gap-1.5 transition-colors"
                     >
                         <X size={14} /> Clear
                     </button>
                 </div>
-                <div className="flex gap-3 flex-wrap">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                     {/* Role filter */}
                     <select
                         value={roleFilter}
                         onChange={(e) => dispatch(setRoleFilter(e.target.value))}
-                        className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300"
                     >
                         <option value="">All Roles</option>
                         {USER_ROLES.map(r => (
@@ -202,7 +202,7 @@ export default function UsersTab() {
                     <select
                         value={pageSize}
                         onChange={(e) => dispatch(setPageSize(Number(e.target.value)))}
-                        className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300 ml-auto"
+                        className="w-full sm:w-auto sm:ml-auto bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300"
                     >
                         {[10, 20, 50].map(s => <option key={s} value={s}>{s} per page</option>)}
                     </select>
@@ -219,12 +219,13 @@ export default function UsersTab() {
             )}
 
             {/* ── Table ───────────────────────────────────────────────────────── */}
-            <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
+            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                 <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center">
                     <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Users & Roles</span>
                     <span className="text-xs text-gray-400 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded-full">{totalItems} records</span>
                 </div>
-                <table className="w-full text-sm">
+                <div className="w-full overflow-x-auto overflow-y-hidden overscroll-x-contain">
+                <table className="w-full min-w-[720px] lg:min-w-0 text-sm">
                     <thead className="bg-gray-50 border-b border-gray-100">
                         <tr>
                             {["User", "Phone", "Role", "Assigned To", "Status", "Created", "Actions"].map(h => (
@@ -313,6 +314,7 @@ export default function UsersTab() {
                         ))}
                     </tbody>
                 </table>
+                </div>
             </div>
 
             {/* ── Pagination ───────────────────────────────────────────────────── */}

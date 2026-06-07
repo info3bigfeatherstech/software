@@ -53,7 +53,8 @@ export default function CartPanel() {
 
     return (
         <div className="flex-1 overflow-y-auto border border-gray-200 rounded-lg bg-gray-50 text-gray-700">
-            <table className="w-full text-sm">
+            <div className="w-full overflow-x-auto overflow-y-hidden overscroll-x-contain">
+            <table className="w-full min-w-[720px] lg:min-w-0 text-sm">
                 <thead className="bg-white sticky top-0 border-b border-gray-200 shadow-sm z-10">
                     <tr>
                         <th className="px-3 py-2 text-left text-xs text-gray-500 font-semibold">Item & Price Type</th>
@@ -139,6 +140,7 @@ export default function CartPanel() {
                     ))}
                 </tbody>
             </table>
+            </div>
         </div>
     );
 }

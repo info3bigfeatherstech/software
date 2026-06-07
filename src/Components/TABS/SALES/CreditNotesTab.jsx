@@ -8,7 +8,7 @@
 import React, { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { RefreshCw, Eye, CreditCard, Receipt, Ban, X, Plus, Search, User } from "lucide-react";
-import { toast } from "react-toastify";
+import { toast } from "../../shared/ToastConfig";
 import {
     useGetCreditNotesQuery,
     useRedeemCreditNoteMutation,
@@ -280,7 +280,7 @@ export default function CreditNotesTab() {
                     <h2 className="text-xl font-bold text-gray-900 tracking-tight">Credit Notes</h2>
                     <p className="text-sm text-gray-400 mt-0.5">Manage customer credit notes — created from returns, redeemable against future purchases</p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                     {canCreate && (
                         <button onClick={() => setShowCreateModal(true)} className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-gray-900 hover:bg-gray-800 rounded-lg cursor-pointer">
                             <Plus size={15} /> Create Credit Note
@@ -293,7 +293,7 @@ export default function CreditNotesTab() {
             </div>
 
             {/* Stats - FIXED: Use credit_amount instead of amount */}
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 <div className="bg-white border border-gray-200 rounded-xl p-5">
                     <p className="text-xs uppercase tracking-widest text-gray-400 font-medium mb-2">Total Credit Notes</p>
                     <p className="text-3xl font-bold text-gray-900">{meta.total}</p>
@@ -314,8 +314,8 @@ export default function CreditNotesTab() {
 
             {/* Filters */}
             <div className="bg-white rounded-xl border border-gray-200 p-4 text-gray-700">
-                <div className="flex gap-3 flex-wrap">
-                    <select value={statusFilter} onChange={(e) => dispatch(setStatusFilter(e.target.value))} className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-2">
+                    <select value={statusFilter} onChange={(e) => dispatch(setStatusFilter(e.target.value))} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white">
                         <option value="">All Status</option>
                         <option value="ACTIVE">Active</option>
                         <option value="PARTIALLY_REDEEMED">Partially Redeemed</option>
@@ -324,22 +324,23 @@ export default function CreditNotesTab() {
                         <option value="REFUNDED">Refunded</option>
                         <option value="CANCELLED">Cancelled</option>
                     </select>
-                    <input type="date" value={fromDate} onChange={(e) => dispatch(setFromDate(e.target.value))} className="px-3 py-2 border border-gray-200 rounded-lg text-sm" />
-                    <input type="date" value={toDate} onChange={(e) => dispatch(setToDate(e.target.value))} className="px-3 py-2 border border-gray-200 rounded-lg text-sm" />
-                    <button onClick={() => { dispatch(setStatusFilter("")); dispatch(setFromDate("")); dispatch(setToDate("")); dispatch(setCurrentPage(1)); }} className="px-3 py-2 text-gray-500 border border-gray-200 rounded-lg text-sm hover:bg-gray-50 flex items-center gap-1 bg-white"><X size={14} /> Clear</button>
-                    <select value={pageSize} onChange={(e) => dispatch(setPageSize(Number(e.target.value)))} className="px-3 py-2 border border-gray-200 rounded-lg text-sm ml-auto bg-white">
+                    <input type="date" value={fromDate} onChange={(e) => dispatch(setFromDate(e.target.value))} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+                    <input type="date" value={toDate} onChange={(e) => dispatch(setToDate(e.target.value))} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+                    <button onClick={() => { dispatch(setStatusFilter("")); dispatch(setFromDate("")); dispatch(setToDate("")); dispatch(setCurrentPage(1)); }} className="w-full sm:w-auto px-3 py-2 text-gray-500 border border-gray-200 rounded-lg text-sm hover:bg-gray-50 flex items-center justify-center gap-1 bg-white"><X size={14} /> Clear</button>
+                    <select value={pageSize} onChange={(e) => dispatch(setPageSize(Number(e.target.value)))} className="w-full sm:w-auto sm:ml-auto px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white">
                         {[10, 20, 50].map(s => <option key={s} value={s}>{s} per page</option>)}
                     </select>
                 </div>
             </div>
 
             {/* Credit Notes Table - FIXED: Use correct field names */}
-            <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
+            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                 <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
                     <p className="text-xs font-semibold uppercase tracking-widest text-gray-500">Credit Notes</p>
                     <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{creditNotes.length} records</span>
                 </div>
-                <table className="w-full text-sm">
+                <div className="w-full overflow-x-auto overflow-y-hidden overscroll-x-contain">
+                <table className="w-full min-w-[720px] lg:min-w-0 text-sm">
                     <thead className="bg-gray-50 border-b border-gray-100">
                         <tr>
                             <th className="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Credit Note #</th>
@@ -406,6 +407,7 @@ export default function CreditNotesTab() {
                         })}
                     </tbody>
                 </table>
+                </div>
             </div>
 
             {/* Pagination */}

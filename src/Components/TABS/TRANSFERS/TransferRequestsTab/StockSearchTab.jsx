@@ -8,7 +8,7 @@
 import React, { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Search, MapPin, Warehouse, Store, Truck, RefreshCw, X } from "lucide-react";
-import { toast } from "react-toastify";
+import { toast } from "../../../shared/ToastConfig";
 import { useLazySearchStockQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/StockSearch_api/stockSearchApi";
 import {
     setSearchType,

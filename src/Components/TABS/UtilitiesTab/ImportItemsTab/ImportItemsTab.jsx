@@ -98,7 +98,7 @@ export default function ImportItemsTab() {
                     <h3 className="text-sm font-semibold text-gray-700">Import Preview</h3>
                     <p className="text-sm text-gray-600">45 products found · 45 new · 0 duplicates · 0 errors</p>
                     <div className="overflow-x-auto border border-gray-100 rounded-lg">
-                        <table className="w-full text-sm text-gray-600">
+                        <table className="w-full min-w-[720px] lg:min-w-0 text-sm text-gray-600">
                             <thead className="bg-gray-50 border-b text-gray-600 border-gray-100">
                                 <tr>
                                     {["Product Code", "Name", "MRP", "Purchase Price", "GST%"].map((h) => (
@@ -142,7 +142,7 @@ export default function ImportItemsTab() {
                     <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Import History</span>
                     <span className="text-xs text-gray-400 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded-full">3 records</span>
                 </div>
-                <table className="w-full text-sm">
+                <table className="w-full min-w-[720px] lg:min-w-0 text-sm">
                     <thead className="bg-gray-50 border-b border-gray-100">
                         <tr>
                             {["Import ID", "File", "Type", "Products", "Status", "Imported By", "Date"].map((h) => (

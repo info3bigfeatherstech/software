@@ -153,23 +153,25 @@ const BarcodeScanner = ({
 
       {/* Barcode Scanner Input */}
       <div className="mb-4">
-        <form onSubmit={handleBarcodeSubmit} className="relative mb-2">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <span className="text-gray-500">⌨️</span>
+        <form onSubmit={handleBarcodeSubmit} className="flex gap-2 mb-2 min-w-0">
+          <div className="relative flex-1 min-w-0">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <span className="text-gray-500">⌨️</span>
+            </div>
+            <input
+              ref={barcodeRef}
+              type="text"
+              placeholder="Type barcode & Enter..."
+              value={barcodeInput}
+              onChange={(e) => setBarcodeInput(e.target.value)}
+              className="w-full min-w-0 pl-10 pr-3 py-2.5 bg-blue-50 border border-blue-200 rounded-lg font-mono text-sm text-blue-900 focus:ring-2 focus:ring-blue-500 shadow-inner"
+              disabled={disabled || showScanner}
+            />
           </div>
-          <input
-            ref={barcodeRef}
-            type="text"
-            placeholder="Type barcode & Enter..."
-            value={barcodeInput}
-            onChange={(e) => setBarcodeInput(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 bg-blue-50 border border-blue-200 rounded-lg font-mono text-blue-900 focus:ring-2 focus:ring-blue-500 shadow-inner"
-            disabled={disabled || showScanner}
-          />
           <button
             type="submit"
             disabled={disabled || showScanner}
-            className="absolute inset-y-0 right-0 px-4 text-sm font-medium text-white bg-blue-600 rounded-r-lg hover:bg-blue-700 disabled:opacity-50"
+            className="shrink-0 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50"
           >
             Add
           </button>

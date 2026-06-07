@@ -6,7 +6,7 @@
 import React from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { X } from "lucide-react";
-import { toast } from "react-toastify";
+import { toast } from "../../../../shared/ToastConfig";
 import { useCreateShopMutation } from "../../../../../REDUX_FEATURES/REDUX_SLICES/Shop_api/shopApi";
 import {
     closeAddForm,

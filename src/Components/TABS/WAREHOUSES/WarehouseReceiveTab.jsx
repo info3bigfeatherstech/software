@@ -704,7 +704,8 @@ export default function WarehouseReceiveTab() {
                                         </span>
                                     </div>
                                     <div className="max-h-48 overflow-y-auto">
-                                        <table className="w-full text-xs">
+                                        <div className="w-full overflow-x-auto overflow-y-hidden overscroll-x-contain">
+                                        <table className="w-full min-w-[720px] lg:min-w-0 text-xs">
                                             <thead className="bg-gray-50 sticky top-0">
                                                 <tr className="text-gray-500">
                                                     <th className="px-3 py-2 text-left">Product</th>
@@ -757,6 +758,7 @@ export default function WarehouseReceiveTab() {
                                                 ))}
                                             </tbody>
                                         </table>
+                                        </div>
                                     </div>
                                 </div>
                             )}
@@ -791,7 +793,8 @@ export default function WarehouseReceiveTab() {
 
                             {/* Full Cart Table for Review */}
                             <div className="border border-gray-200 rounded-xl overflow-hidden">
-                                <table className="w-full text-sm">
+                                <div className="w-full overflow-x-auto overflow-y-hidden overscroll-x-contain">
+                                <table className="w-full min-w-[720px] lg:min-w-0 text-sm">
                                     <thead className="bg-gray-50">
                                         <tr className="text-gray-500 text-xs">
                                             <th className="px-4 py-3 text-left">Product</th>
@@ -852,6 +855,7 @@ export default function WarehouseReceiveTab() {
                                         </tr>
                                     </tfoot>
                                 </table>
+                                </div>
                             </div>
 
                             {/* Action Buttons */}
@@ -887,7 +891,7 @@ export default function WarehouseReceiveTab() {
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
+                        <table className="w-full min-w-[720px] lg:min-w-0 text-sm">
                             <thead className="bg-gray-50">
                                 <tr className="text-gray-500 text-xs">
                                     <th className="px-4 py-3 text-left">GRN #</th>

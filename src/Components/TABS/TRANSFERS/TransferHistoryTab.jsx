@@ -8,7 +8,7 @@
 import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { RefreshCw, Eye, X, Download } from "lucide-react";
-import { toast } from "react-toastify";
+import { toast } from "../../shared/ToastConfig";
 import {
     useGetStockLedgerQuery,
     useGetVariantLedgerQuery,
@@ -250,7 +250,8 @@ export default function TransferHistoryTab() {
                 )}
                 
                 {!isLoading && !isFetching && ledger.length > 0 && (
-                    <table className="w-full text-sm">
+                    <div className="w-full overflow-x-auto overflow-y-hidden overscroll-x-contain">
+                    <table className="w-full min-w-[720px] lg:min-w-0 text-sm">
                         <thead className="bg-gray-50">
                             <tr>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">Type</th>
@@ -320,6 +321,7 @@ export default function TransferHistoryTab() {
                             ))}
                         </tbody>
                     </table>
+                    </div>
                 )}
             </div>
             
@@ -387,7 +389,8 @@ export default function TransferHistoryTab() {
                                 </div>
                             )}
                             {!isFetchingVariant && variantLedger?.ledger && variantLedger.ledger.length > 0 && (
-                                <table className="w-full text-sm">
+                                <div className="w-full overflow-x-auto overflow-y-hidden overscroll-x-contain">
+                                <table className="w-full min-w-[720px] lg:min-w-0 text-sm">
                                     <thead className="bg-gray-50">
                                         <tr>
                                             <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500">Type</th>
@@ -430,6 +433,7 @@ export default function TransferHistoryTab() {
                                         </tr>
                                     </tfoot>
                                 </table>
+                                </div>
                             )}
                         </div>
                         

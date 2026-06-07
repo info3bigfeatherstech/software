@@ -5,7 +5,7 @@
 
 import React, { useState } from "react";
 import { X, Search, User, Receipt } from "lucide-react";
-import { toast } from "react-toastify";
+import { toast } from "../../../shared/ToastConfig";
 import { useCreateCreditNoteMutation } from "../../../../REDUX_FEATURES/REDUX_SLICES/CreditNote_api/creditNoteApi";
 import { useLazySearchCustomersQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/Customer_api/customerApi"
 import { useGetBillsQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/Billing_api/billingApi";

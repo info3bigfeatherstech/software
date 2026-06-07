@@ -149,7 +149,7 @@ export default function PurchaseTab() {
                 </div>
                 <div className="bg-white rounded-xl border border-gray-100 p-4">
                     <p className="text-xs uppercase tracking-wide font-medium text-gray-500">Date Range</p>
-                    <p className="text-base font-semibold text-gray-800 mt-1">
+                    <p className="text-sm sm:text-base font-semibold text-gray-800 mt-1 break-words">
                         {fromDate ? fmtDate(fromDate) : "All"} - {toDate ? fmtDate(toDate) : "Present"}
                     </p>
                     <p className="text-xs text-gray-400 mt-1">filter applied</p>
@@ -158,26 +158,26 @@ export default function PurchaseTab() {
 
             {/* Filters */}
             <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
-                <div className="flex gap-3">
+                <div className="flex flex-col sm:flex-row gap-2">
                     <input
                         value={search}
                         onChange={(e) => dispatch(setSearch(e.target.value))}
                         placeholder="Search by PO number, invoice, vendor name..."
-                        className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300"
+                        className="flex-1 min-w-0 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300"
                     />
                     <button
                         onClick={() => dispatch(resetFilters())}
-                        className="inline-flex items-center gap-1.5 bg-gray-50 border border-gray-200 text-gray-500 text-sm px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+                        className="shrink-0 inline-flex items-center justify-center gap-1.5 bg-gray-50 border border-gray-200 text-gray-500 text-sm px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
                     >
                         <X size={14} /> Clear
                     </button>
                 </div>
-                <div className="flex gap-3 flex-wrap">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
                     {/* Vendor Filter */}
                     <select
                         value={vendorFilter}
                         onChange={(e) => dispatch(setVendorFilter(e.target.value))}
-                        className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300 cursor-pointer"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300 cursor-pointer"
                     >
                         <option value="">All Vendors</option>
                         {vendors.map(v => (
@@ -192,7 +192,7 @@ export default function PurchaseTab() {
                         <select
                             value={warehouseFilter}
                             onChange={(e) => dispatch(setWarehouseFilter(e.target.value))}
-                            className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300 cursor-pointer"
+                            className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300 cursor-pointer"
                         >
                             <option value="">All Warehouses</option>
                             {warehouses.map(w => (
@@ -219,7 +219,7 @@ export default function PurchaseTab() {
                         type="date"
                         value={fromDate}
                         onChange={(e) => dispatch(setFromDate(e.target.value))}
-                        className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300"
                         placeholder="From Date"
                     />
 
@@ -228,7 +228,7 @@ export default function PurchaseTab() {
                         type="date"
                         value={toDate}
                         onChange={(e) => dispatch(setToDate(e.target.value))}
-                        className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300"
                         placeholder="To Date"
                     />
 
@@ -236,7 +236,7 @@ export default function PurchaseTab() {
                     <select
                         value={pageSize}
                         onChange={(e) => dispatch(setPageSize(Number(e.target.value)))}
-                        className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 ml-auto focus:outline-none focus:ring-2 focus:ring-gray-300 cursor-pointer"
+                        className="w-full sm:w-auto sm:col-span-2 lg:col-span-1 xl:col-span-1 sm:ml-auto bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300 cursor-pointer"
                     >
                         {[10, 20, 50].map(s => <option key={s} value={s}>{s} per page</option>)}
                     </select>
@@ -250,7 +250,7 @@ export default function PurchaseTab() {
                         <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Vendor-wise Summary</span>
                     </div>
                     <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
+                        <table className="w-full min-w-[720px] lg:min-w-0 text-sm">
                             <thead className="bg-gray-50 border-b border-gray-100">
                                 <tr>
                                     <th className="px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide text-left">Vendor</th>
@@ -280,7 +280,8 @@ export default function PurchaseTab() {
                     <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Purchase History</span>
                     <span className="text-xs text-gray-400 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded-full">{meta.total} records</span>
                 </div>
-                <table className="w-full text-sm">
+                <div className="w-full overflow-x-auto overflow-y-hidden overscroll-x-contain">
+                <table className="w-full min-w-[720px] lg:min-w-0 text-sm">
                     <thead className="bg-gray-50 border-b border-gray-100">
                         <tr>
                             <th className="px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide text-left">Purchase #</th>
@@ -358,6 +359,7 @@ export default function PurchaseTab() {
                         ))}
                     </tbody>
                 </table>
+                </div>
             </div>
 
             {/* Pagination */}

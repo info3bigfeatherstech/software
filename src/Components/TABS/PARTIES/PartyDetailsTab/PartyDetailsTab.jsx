@@ -197,7 +197,7 @@ export default function PartyDetailsTab() {
                         {activeView === "customers" ? customerMeta.total : vendorMeta.total} records
                     </span>
                 </div>
-                <table className="w-full text-sm">
+                <table className="w-full min-w-[720px] lg:min-w-0 text-sm">
                     <thead className="bg-gray-50 border-b border-gray-100">
                         {activeView === "customers" ? (
                             <tr>

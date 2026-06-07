@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { X } from "lucide-react";
-import { toast } from "react-toastify";
+import { toast } from "../../../shared/ToastConfig";
 import {
     useCreateDebitNoteMutation,
     useLazyGetPurchaseReturnableLinesQuery,
@@ -216,7 +216,8 @@ export default function CreateDebitNoteModal({ onSuccess, onClose }) {
                             <div className="px-3 py-2 bg-gray-50 text-xs font-semibold text-gray-500 uppercase">
                                 Return lines {loadingLines ? "(loading...)" : ""}
                             </div>
-                            <table className="w-full text-sm">
+                            <div className="w-full overflow-x-auto overflow-y-hidden overscroll-x-contain">
+                            <table className="w-full min-w-[720px] lg:min-w-0 text-sm">
                                 <thead className="bg-gray-50 border-b">
                                     <tr>
                                         <th className="px-3 py-2 text-left text-xs text-gray-400">Product</th>
@@ -287,6 +288,7 @@ export default function CreateDebitNoteModal({ onSuccess, onClose }) {
                                     )}
                                 </tbody>
                             </table>
+                            </div>
                         </div>
                     )}
 

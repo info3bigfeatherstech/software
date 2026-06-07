@@ -9,9 +9,10 @@ import {
     clearCredentials,
     setAuthChecked,
 } from "../../REDUX_FEATURES/REDUX_SLICES/Login_Api/authSlice";
+import AppLoading from "../shared/AppLoading";
+import Notification from "../shared/notification/Notification";
 
-const LOGO = "https://www.thebigfeathers.com/static/media/logo.de8b004c787675511bd3.png"
-// ─────────────────────────────────────────────────────────────────────────────
+const LOGO = "https://www.thebigfeathers.com/static/media/logo.de8b004c787675511bd3.png";
 
 const SideBarDashboard = () => {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -21,14 +22,12 @@ const SideBarDashboard = () => {
     const user = useSelector((state) => state.auth.user);
     const [logout, { isLoading: isLogoutLoading }] = useLogoutMutation();
 
-    // ── Role & permissions ────────────────────────────────────────────────────
     const activeRole = user?.role || ROLES.SUPER_ADMIN;
     const locationId = user?.warehouse_id || user?.shop_id || "";
     const allowedTabIds = ROLE_PERMISSIONS[activeRole] || [];
     const allowedTabs = TAB_REGISTRY.filter((tab) => allowedTabIds.includes(tab.id));
     const defaultTab = allowedTabs[0]?.id || "dashboard";
 
-    // ── Derive activeTab synchronously from URL + permissions ─────────────────
     const tabFromUrl = searchParams.get("tab");
     const activeTab = tabFromUrl && allowedTabIds.includes(tabFromUrl)
         ? tabFromUrl
@@ -36,26 +35,22 @@ const SideBarDashboard = () => {
 
     const activeCtab = searchParams.get("ctab") || null;
 
-    // ── Dropdown state — MANUAL control only, no auto-expand ───────────────────
     const [expandedTab, setExpandedTab] = useState(() => {
-        // Only auto-expand on initial load if the active tab has subitems
         const initialTab = new URLSearchParams(window.location.search).get("tab");
         const entry = allowedTabs.find((t) => t.id === initialTab && t.subItems?.length);
         return entry ? entry.id : null;
     });
 
-    // ── Close mobile menu when window resizes to desktop ──────────────────────
     useEffect(() => {
         const handleResize = () => {
             if (window.innerWidth >= 768) {
                 setIsMobileMenuOpen(false);
             }
         };
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
+        window.addEventListener("resize", handleResize);
+        return () => window.removeEventListener("resize", handleResize);
     }, []);
 
-    // ── Keep URL honest ───────────────────────────────────────────────────────
     useEffect(() => {
         const urlTab = searchParams.get("tab");
         const urlIsWrong = !urlTab || !allowedTabIds.includes(urlTab);
@@ -65,9 +60,6 @@ const SideBarDashboard = () => {
         }
     }, [activeRole, locationId, searchParams, setSearchParams, defaultTab, allowedTabIds]);
 
-
-    console.log("LOCATION_ID", locationId, activeRole);
-    // ── Parent tab click ──────────────────────────────────────────────────────
     const handleTabClick = (tab) => {
         if (!allowedTabIds.includes(tab.id)) return;
 
@@ -76,57 +68,40 @@ const SideBarDashboard = () => {
 
         if (hasSubItems) {
             if (isCurrentlyExpanded) {
-                // User wants to CLOSE the dropdown
                 setExpandedTab(null);
-                // Keep the parent tab active, but no sub-item selected
                 setSearchParams({ tab: tab.id });
             } else {
-                // User wants to OPEN this dropdown
-                // First close any other open dropdown
                 setExpandedTab(tab.id);
                 const firstSub = tab.subItems[0];
                 setSearchParams({ tab: tab.id, ctab: firstSub.id });
             }
         } else {
-            // Tab without dropdown - close any open dropdown and switch
             setExpandedTab(null);
             setSearchParams({ tab: tab.id });
         }
 
-        // Close mobile menu after selection on mobile
         if (window.innerWidth < 768) {
             setIsMobileMenuOpen(false);
         }
     };
 
-    // ── Sub-item click (sidebar dropdown) ─────────────────────────────────────
     const handleSubItemClick = (parentId, subId) => {
         if (!allowedTabIds.includes(parentId)) return;
-        // Ensure dropdown stays open when clicking sub-items
         setExpandedTab(parentId);
         setSearchParams({ tab: parentId, ctab: subId });
 
-        // Close mobile menu after selection on mobile
         if (window.innerWidth < 768) {
             setIsMobileMenuOpen(false);
         }
     };
 
-    // ── Switch tab from inside components ─────────────────────────────────────
     const handleSwitchTab = (tabId) => {
         const tab = allowedTabs.find((t) => t.id === tabId);
         if (tab) handleTabClick(tab);
     };
 
-    // ── Toggle sidebar collapse ───────────────────────────────────────────────
-    const toggleSidebar = () => {
-        setIsSidebarCollapsed(!isSidebarCollapsed);
-    };
-
-    // ── Toggle mobile menu ────────────────────────────────────────────────────
-    const toggleMobileMenu = () => {
-        setIsMobileMenuOpen(!isMobileMenuOpen);
-    };
+    const toggleSidebar = () => setIsSidebarCollapsed(!isSidebarCollapsed);
+    const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
 
     const handleLogout = async () => {
         try {
@@ -139,66 +114,65 @@ const SideBarDashboard = () => {
             setSearchParams({}, { replace: true });
         }
     };
-    // That's the only change to SideBarDashboard.jsx. Now any subItem with a component directly on it will render that instead of the parent dashboard.
+
     const activeTabConfig = allowedTabs.find((t) => t.id === activeTab);
     const activeSubItem = activeTabConfig?.subItems?.find((s) => s.id === activeCtab);
     const TabComponent = (activeCtab && activeSubItem?.component)
         ? activeSubItem.component
         : activeTabConfig?.component ?? null;
 
-    return (
-        <div className="flex min-h-screen bg-gray-50 relative">
+    const activeSubLabel = activeSubItem?.label;
+    const headerTitle = activeSubLabel
+        ? `${activeTabConfig?.label || "Dashboard"} / ${activeSubLabel}`
+        : activeTabConfig?.label || "Dashboard";
 
-            {/* ── Mobile Menu Overlay ─────────────────────────────────────────────── */}
+    return (
+        <div className="flex h-screen overflow-hidden bg-[#f0f2f5] relative">
+
             {isMobileMenuOpen && (
                 <div
-                    className="fixed inset-0 bg-black bg-opacity-60 z-30 md:hidden"
+                    className="fixed inset-0 bg-black/30 z-30 md:hidden"
                     onClick={() => setIsMobileMenuOpen(false)}
                 />
             )}
 
-            {/* ── Sidebar ──────────────────────────────────────────────────────── */}
             <aside
                 className={`
-                    fixed md:sticky top-0 h-screen z-40
-                    flex flex-col transition-all duration-300 ease-in-out
-                    bg-[#0f172a] border-r border-[#1e293b]
-                    ${isSidebarCollapsed ? 'w-20' : 'w-64'}
-                    ${isMobileMenuOpen ? 'left-0' : '-left-full md:left-0'}
+                    fixed md:relative top-0 h-full z-40
+                    flex flex-col bg-white border-r border-gray-300 shrink-0
+                    ${isSidebarCollapsed ? "w-[52px]" : "w-[180px]"}
+                    ${isMobileMenuOpen ? "left-0" : "-left-full md:left-0"}
                 `}
             >
-                {/* Logo / Brand Container */}
-                <div className={`flex flex-col items-center border-b border-[#1e293b] transition-all duration-300 ${isSidebarCollapsed ? 'px-2 py-4' : 'px-5 py-5'}`}>
-                    <div className="relative group flex items-center justify-center mb-3">
+                <div className={`border-b border-gray-300 shrink-0 ${isSidebarCollapsed ? "px-1.5 py-2" : "px-2 py-2.5"}`}>
+                    <div className="flex items-center justify-center w-full">
                         <img
                             src={LOGO}
-                            alt="Brand Logo"
-                            className={`relative z-10 object-contain transition-all duration-300 rounded-xl ${isSidebarCollapsed ? 'w-10 h-10' : 'w-28 h-14'}`}
+                            alt="Logo"
+                            className={`object-contain object-center ${
+                                isSidebarCollapsed
+                                    ? "w-9 h-9 max-w-full"
+                                    : "w-full max-w-[164px] h-auto max-h-14"
+                            }`}
                         />
                     </div>
                     {!isSidebarCollapsed && (
-                        <div className="text-center transition-all duration-300">
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-900/40 text-blue-300 border border-blue-700/40 tracking-widest uppercase">
-                                {ROLE_LABELS[activeRole] || `${activeRole}-${locationId}`}
-                            </span>
-                        </div>
-                    )}
-                    {isSidebarCollapsed && (
-                        <div className="text-center transition-all duration-300">
-                            <span className="inline-flex items-center justify-center w-7 h-7 rounded-full text-[10px] font-bold bg-blue-900/40 text-blue-300 border border-blue-700/40">
-                                {ROLE_LABELS[activeRole]?.charAt(0) || `${activeRole?.charAt(0)}-${locationId}`}
+                        <div className="mt-2 text-center">
+                            <span className="inline-block px-2 py-0.5 text-[10px] text-blue-800 bg-blue-50 border border-blue-200 rounded">
+                                {ROLE_LABELS[activeRole] || activeRole}
                             </span>
                         </div>
                     )}
                 </div>
 
-                {/* Collapse Toggle Button */}
                 <button
+                    type="button"
                     onClick={toggleSidebar}
-                    className="absolute -right-3 top-16 bg-[#1e293b] border border-[#334155] rounded-full p-1.5 shadow-md hover:bg-[#334155] transition-all duration-200 hidden md:block"
+                    className="absolute -right-3 top-14 bg-white border border-gray-300 rounded-full p-1 hidden md:block hover:bg-gray-50"
+                    title={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
                 >
                     <svg
-                        className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-300 ${isSidebarCollapsed ? 'rotate-180' : ''}`}
+                        className={`w-3 h-3 text-gray-500 ${isSidebarCollapsed ? "rotate-180" : ""}`}
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -207,154 +181,153 @@ const SideBarDashboard = () => {
                     </svg>
                 </button>
 
-                {/* Navigation */}
-                <nav className="flex-1 px-3 space-y-0.5 mt-3 overflow-y-auto scrollbar-none">
-                    {allowedTabs.map((tab) => {
-                        const isActive = activeTab === tab.id;
-                        const hasSubItems = tab.subItems?.length > 0;
-                        const isExpanded = expandedTab === tab.id;
+                <nav className="flex-1 min-h-0 px-2 py-2 overflow-y-auto overflow-x-hidden">
+                    <div className="flex flex-col gap-1">
+                        {allowedTabs.map((tab) => {
+                            const isActive = activeTab === tab.id;
+                            const hasSubItems = tab.subItems?.length > 0;
+                            const isExpanded = expandedTab === tab.id;
 
-                        return (
-                            <div key={tab.id}>
-                                <button
-                                    onClick={() => handleTabClick(tab)}
-                                    className={`
-                                        w-full flex items-center cursor-pointer rounded-lg transition-all duration-200
-                                        ${isActive
-                                            ? "bg-[#1e3a5f] text-white"
-                                            : "text-slate-400 hover:bg-[#1e293b] hover:text-slate-200"
-                                        }
-                                        ${isSidebarCollapsed ? 'justify-center px-2 py-3' : 'justify-between px-3 py-2.5'}
-                                    `}
-                                    title={isSidebarCollapsed ? tab.label : ""}
+                            return (
+                                <div
+                                    key={tab.id}
+                                    className={`flex flex-col min-w-0 ${isExpanded && !isSidebarCollapsed ? "pb-1" : ""}`}
                                 >
-                                    <div className={`flex items-center gap-3 ${isSidebarCollapsed ? 'justify-center' : ''}`}>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleTabClick(tab)}
+                                        className={`
+                                            w-full flex items-center gap-2 min-w-0 rounded text-sm
+                                            ${isSidebarCollapsed ? "justify-center px-2 py-2.5" : "px-2.5 py-2"}
+                                            ${isActive
+                                                ? "bg-blue-50 text-blue-700 font-medium border-l-[3px] border-blue-600 pl-2"
+                                                : "text-gray-600 hover:bg-gray-100 hover:text-gray-800 border-l-[3px] border-transparent pl-2"
+                                            }
+                                        `}
+                                        title={isSidebarCollapsed ? tab.label : ""}
+                                    >
                                         <svg
-                                            className={`w-[18px] h-[18px] shrink-0 ${isActive ? "text-blue-400" : "text-slate-500"}`}
-                                            fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                            className="w-4 h-4 shrink-0"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
                                         >
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d={tab.icon} />
                                         </svg>
                                         {!isSidebarCollapsed && (
-                                            <span className="text-sm font-medium">{tab.label}</span>
+                                            <>
+                                                <span className="flex-1 min-w-0 text-left truncate leading-tight">
+                                                    {tab.label}
+                                                </span>
+                                                {hasSubItems && (
+                                                    <svg
+                                                        className={`w-3 h-3 shrink-0 ml-0.5 ${isExpanded ? "rotate-180" : ""}`}
+                                                        fill="none"
+                                                        stroke="currentColor"
+                                                        viewBox="0 0 24 24"
+                                                    >
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                    </svg>
+                                                )}
+                                            </>
                                         )}
-                                    </div>
+                                    </button>
 
-                                    {hasSubItems && !isSidebarCollapsed && (
-                                        <svg
-                                            className={`w-3.5 h-3.5 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""} ${isActive ? "text-blue-400" : "text-slate-600"}`}
-                                            fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                                        >
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                        </svg>
+                                    {hasSubItems && isExpanded && !isSidebarCollapsed && (
+                                        <div className="mt-0.5 ml-4 pl-2 border-l border-gray-200 flex flex-col gap-0.5 min-w-0">
+                                            {filterSubItemsByRole(tab.id, tab.subItems).map((sub) => {
+                                                const isSubActive = isActive && activeCtab === sub.id;
+                                                return (
+                                                    <button
+                                                        key={sub.id}
+                                                        type="button"
+                                                        onClick={() => handleSubItemClick(tab.id, sub.id)}
+                                                        title={sub.label}
+                                                        className={`
+                                                            w-full min-w-0 flex items-center px-2 py-1.5 text-xs text-left rounded truncate
+                                                            ${isSubActive
+                                                                ? "bg-blue-50 text-blue-700 font-medium"
+                                                                : "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                                                            }
+                                                        `}
+                                                    >
+                                                        <span className="truncate block w-full">{sub.label}</span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
                                     )}
-                                </button>
-                                {hasSubItems && isExpanded && !isSidebarCollapsed && (
-                                    <div className="mt-0.5 ml-3 pl-3 border-l border-[#334155] space-y-0.5 py-0.5">
-                                        {filterSubItemsByRole(tab.id, tab.subItems).map((sub) => {
-                                            const isSubActive = isActive && activeCtab === sub.id;
-                                            return (
-                                                <button
-                                                    key={sub.id}
-                                                    onClick={() => handleSubItemClick(tab.id, sub.id)}
-                                                    className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-lg transition-all duration-150 cursor-pointer text-left ${isSubActive
-                                                        ? "bg-[#1e3a5f] text-blue-300"
-                                                        : "text-slate-500 hover:bg-[#1e293b] hover:text-slate-300"
-                                                        }`}
-                                                >
-                                                    <svg
-                                                        className={`w-3.5 h-3.5 shrink-0 ${isSubActive ? "text-blue-400" : "text-slate-600"}`}
-                                                        fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                                                    >
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={sub.icon} />
-                                                    </svg>
-                                                    {sub.label}
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                )}
-                                {/* {hasSubItems && isExpanded && !isSidebarCollapsed && (
-                                    <div className="mt-1 ml-4 pl-4 border-l-2 border-blue-100 space-y-0.5">
-                                        {tab.subItems.map((sub) => {
-                                            const isSubActive = isActive && activeCtab === sub.id;
-                                            return (
-                                                <button
-                                                    key={sub.id}
-                                                    onClick={() => handleSubItemClick(tab.id, sub.id)}
-                                                    className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-lg transition-all duration-150 cursor-pointer text-left ${isSubActive
-                                                        ? "bg-blue-50 text-blue-700"
-                                                        : "text-gray-500 hover:bg-gray-50 hover:text-gray-800"
-                                                        }`}
-                                                >
-                                                    <svg
-                                                        className={`w-3.5 h-3.5 shrink-0 ${isSubActive ? "text-blue-600" : "text-gray-400"}`}
-                                                        fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                                                    >
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={sub.icon} />
-                                                    </svg>
-                                                    {sub.label}
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                )} */}
-                            </div>
-                        );
-                    })}
+                                </div>
+                            );
+                        })}
+                    </div>
                 </nav>
 
-                {/* Footer */}
-                <div className={`p-3 border-t border-[#1e293b] ${isSidebarCollapsed ? 'text-center' : ''}`}>
+                <div className={`p-2 border-t border-gray-300 shrink-0 ${isSidebarCollapsed ? "text-center" : ""}`}>
                     <button
+                        type="button"
                         onClick={handleLogout}
                         disabled={isLogoutLoading}
-                        className={`w-full mb-3 rounded-lg border border-red-900/50 bg-red-950/40 px-3 py-2 text-sm font-medium text-red-400 hover:bg-red-900/40 hover:text-red-300 transition ${isLogoutLoading ? "cursor-not-allowed opacity-70" : ""}`}
+                        title="Logout"
+                        className={`
+                            w-full mb-2 text-sm text-red-700 bg-white border border-red-300 rounded hover:bg-red-50 disabled:opacity-50
+                            ${isSidebarCollapsed ? "flex items-center justify-center px-2 py-2.5" : "px-3 py-1.5"}
+                        `}
                     >
-                        {isLogoutLoading ? "Logging out..." : "Logout"}
+                        {isLogoutLoading ? (
+                            <span>...</span>
+                        ) : isSidebarCollapsed ? (
+                            <svg
+                                className="w-4 h-4 shrink-0"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={1.8}
+                                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                                />
+                            </svg>
+                        ) : (
+                            "Logout"
+                        )}
                     </button>
-                    <p className={`text-[10px] text-slate-600 uppercase tracking-widest font-bold ${isSidebarCollapsed ? 'text-center' : 'mb-2'}`}>
-                        {isSidebarCollapsed ? 'v1.0' : 'Vyapar v1.0.0'}
-                    </p>
+                    {!isSidebarCollapsed && (
+                        <p className="text-[10px] text-gray-500 text-center">Vyapar v1.0.0</p>
+                    )}
                 </div>
             </aside>
 
-            {/* ── Main Content ──────────────────────────────────────────────────── */}
-            <main className="flex-1 overflow-y-auto">
-                <header className="bg-white h-16 border-b border-gray-200 flex items-center justify-between px-4 md:px-8 sticky top-0 z-10">
-                    {/* Mobile Menu Button */}
-                    <button
-                        onClick={toggleMobileMenu}
-                        className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200"
-                    >
-                        <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                        </svg>
-                    </button>
+            <main className="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden">
+                <header className="bg-white h-11 border-b border-gray-300 flex items-center justify-between px-4 shrink-0 z-10">
+                    <div className="flex items-center gap-3 min-w-0">
+                        <button
+                            type="button"
+                            onClick={toggleMobileMenu}
+                            className="md:hidden p-1.5 border border-gray-300 rounded hover:bg-gray-50"
+                        >
+                            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                            </svg>
+                        </button>
+                        <h2 className="text-sm font-semibold text-gray-800 truncate">{headerTitle}</h2>
+                    </div>
 
-                    <h2 className="text-lg font-semibold text-gray-800 capitalize">
-                        {activeTabConfig?.label || "Dashboard"}
-                    </h2>
-
-                    {/* Placeholder for right side actions if needed */}
-                    <div className="w-8 md:w-0"></div>
+                    <div className="flex items-center gap-3 text-xs text-gray-500 shrink-0">
+                        {user?.name && <span className="hidden sm:inline">{user.name}</span>}
+                        <Notification />
+                    </div>
                 </header>
 
-                <div className="p-4 md:p-8">
-                    <Suspense fallback={
-                        <div className="flex items-center justify-center h-64">
-                            <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                        </div>
-                    }>
+                <div className="flex-1 min-h-0 p-4 overflow-y-auto overflow-x-hidden">
+                    <Suspense fallback={<AppLoading />}>
                         {TabComponent ? (
                             <TabComponent onSwitchTab={handleSwitchTab} />
                         ) : (
-                            <div className="flex flex-col items-center justify-center h-64 text-gray-400">
-                                <svg className="w-12 h-12 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                                        d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                                </svg>
-                                <p className="text-sm font-medium">This section is coming soon</p>
+                            <div className="bg-white border border-gray-300 rounded p-6 text-center text-gray-500">
+                                <p className="text-sm">This section is coming soon.</p>
                             </div>
                         )}
                     </Suspense>
@@ -365,1650 +338,3 @@ const SideBarDashboard = () => {
 };
 
 export default SideBarDashboard;
-
-// down code is working but upper code have updated ui
-// // src/Components/SideBarDashboard/SideBarDashboard.jsx
-// import React, { useState, useEffect, Suspense } from "react";
-// import { useSearchParams } from "react-router-dom";
-// import { useDispatch, useSelector } from "react-redux";
-// import { TAB_REGISTRY } from "../TabRegistry";
-// import { ROLE_PERMISSIONS, ROLE_LABELS, ROLES, filterSubItemsByRole } from "../roles";
-// import { useLogoutMutation } from "../../REDUX_FEATURES/REDUX_SLICES/Login_Api/authApi";
-// import {
-//     clearCredentials,
-//     setAuthChecked,
-// } from "../../REDUX_FEATURES/REDUX_SLICES/Login_Api/authSlice";
-
-// const LOGO = "https://www.thebigfeathers.com/static/media/logo.de8b004c787675511bd3.png"
-// // ─────────────────────────────────────────────────────────────────────────────
-
-// const SideBarDashboard = () => {
-//     const [searchParams, setSearchParams] = useSearchParams();
-//     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-//     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-//     const dispatch = useDispatch();
-//     const user = useSelector((state) => state.auth.user);
-//     const [logout, { isLoading: isLogoutLoading }] = useLogoutMutation();
-
-//     // ── Role & permissions ────────────────────────────────────────────────────
-//     const activeRole = user?.role || ROLES.SUPER_ADMIN;
-//     const locationId = user?.warehouse_id || user?.shop_id || "";
-//     const allowedTabIds = ROLE_PERMISSIONS[activeRole] || [];
-//     const allowedTabs = TAB_REGISTRY.filter((tab) => allowedTabIds.includes(tab.id));
-//     const defaultTab = allowedTabs[0]?.id || "dashboard";
-
-//     // ── Derive activeTab synchronously from URL + permissions ─────────────────
-//     const tabFromUrl = searchParams.get("tab");
-//     const activeTab = tabFromUrl && allowedTabIds.includes(tabFromUrl)
-//         ? tabFromUrl
-//         : defaultTab;
-
-//     const activeCtab = searchParams.get("ctab") || null;
-
-//     // ── Dropdown state — MANUAL control only, no auto-expand ───────────────────
-//     const [expandedTab, setExpandedTab] = useState(() => {
-//         // Only auto-expand on initial load if the active tab has subitems
-//         const initialTab = new URLSearchParams(window.location.search).get("tab");
-//         const entry = allowedTabs.find((t) => t.id === initialTab && t.subItems?.length);
-//         return entry ? entry.id : null;
-//     });
-
-//     // ── Close mobile menu when window resizes to desktop ──────────────────────
-//     useEffect(() => {
-//         const handleResize = () => {
-//             if (window.innerWidth >= 768) {
-//                 setIsMobileMenuOpen(false);
-//             }
-//         };
-//         window.addEventListener('resize', handleResize);
-//         return () => window.removeEventListener('resize', handleResize);
-//     }, []);
-
-//     // ── Keep URL honest ───────────────────────────────────────────────────────
-//     useEffect(() => {
-//         const urlTab = searchParams.get("tab");
-//         const urlIsWrong = !urlTab || !allowedTabIds.includes(urlTab);
-
-//         if (urlIsWrong) {
-//             setSearchParams({ tab: defaultTab }, { replace: true });
-//         }
-//     }, [activeRole, locationId, searchParams, setSearchParams, defaultTab, allowedTabIds]);
-
-
-//     console.log("LOCATION_ID", locationId, activeRole);
-//     // ── Parent tab click ──────────────────────────────────────────────────────
-//     const handleTabClick = (tab) => {
-//         if (!allowedTabIds.includes(tab.id)) return;
-
-//         const hasSubItems = tab.subItems?.length > 0;
-//         const isCurrentlyExpanded = expandedTab === tab.id;
-
-//         if (hasSubItems) {
-//             if (isCurrentlyExpanded) {
-//                 // User wants to CLOSE the dropdown
-//                 setExpandedTab(null);
-//                 // Keep the parent tab active, but no sub-item selected
-//                 setSearchParams({ tab: tab.id });
-//             } else {
-//                 // User wants to OPEN this dropdown
-//                 // First close any other open dropdown
-//                 setExpandedTab(tab.id);
-//                 const firstSub = tab.subItems[0];
-//                 setSearchParams({ tab: tab.id, ctab: firstSub.id });
-//             }
-//         } else {
-//             // Tab without dropdown - close any open dropdown and switch
-//             setExpandedTab(null);
-//             setSearchParams({ tab: tab.id });
-//         }
-
-//         // Close mobile menu after selection on mobile
-//         if (window.innerWidth < 768) {
-//             setIsMobileMenuOpen(false);
-//         }
-//     };
-
-//     // ── Sub-item click (sidebar dropdown) ─────────────────────────────────────
-//     const handleSubItemClick = (parentId, subId) => {
-//         if (!allowedTabIds.includes(parentId)) return;
-//         // Ensure dropdown stays open when clicking sub-items
-//         setExpandedTab(parentId);
-//         setSearchParams({ tab: parentId, ctab: subId });
-
-//         // Close mobile menu after selection on mobile
-//         if (window.innerWidth < 768) {
-//             setIsMobileMenuOpen(false);
-//         }
-//     };
-
-//     // ── Switch tab from inside components ─────────────────────────────────────
-//     const handleSwitchTab = (tabId) => {
-//         const tab = allowedTabs.find((t) => t.id === tabId);
-//         if (tab) handleTabClick(tab);
-//     };
-
-//     // ── Toggle sidebar collapse ───────────────────────────────────────────────
-//     const toggleSidebar = () => {
-//         setIsSidebarCollapsed(!isSidebarCollapsed);
-//     };
-
-//     // ── Toggle mobile menu ────────────────────────────────────────────────────
-//     const toggleMobileMenu = () => {
-//         setIsMobileMenuOpen(!isMobileMenuOpen);
-//     };
-
-//     const handleLogout = async () => {
-//         try {
-//             await logout().unwrap();
-//         } catch (_error) {
-//             // Clear local session even if backend logout fails.
-//         } finally {
-//             dispatch(clearCredentials());
-//             dispatch(setAuthChecked(true));
-//             setSearchParams({}, { replace: true });
-//         }
-//     };
-//     // That's the only change to SideBarDashboard.jsx. Now any subItem with a component directly on it will render that instead of the parent dashboard.
-//     const activeTabConfig = allowedTabs.find((t) => t.id === activeTab);
-//     const activeSubItem = activeTabConfig?.subItems?.find((s) => s.id === activeCtab);
-//     const TabComponent = (activeCtab && activeSubItem?.component)
-//         ? activeSubItem.component
-//         : activeTabConfig?.component ?? null;
-
-//     return (
-//         <div className="flex min-h-screen bg-gray-50 relative">
-
-//             {/* ── Mobile Menu Overlay ─────────────────────────────────────────────── */}
-//             {isMobileMenuOpen && (
-//                 <div
-//                     className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden"
-//                     onClick={() => setIsMobileMenuOpen(false)}
-//                 />
-//             )}
-
-//             {/* ── Sidebar ──────────────────────────────────────────────────────── */}
-//             <aside
-//                 className={`
-//                     fixed md:sticky top-0 h-screen z-40 bg-white border-r border-gray-200
-//                     flex flex-col transition-all duration-300 ease-in-out
-//                     ${isSidebarCollapsed ? 'w-20' : 'w-64'}
-//                     ${isMobileMenuOpen ? 'left-0' : '-left-full md:left-0'}
-//                 `}
-//             >
-//                 {/* Logo / Brand Container */}
-//                 <div className={`p-6 flex flex-col items-center border-b border-gray-50 bg-white transition-all duration-300 ${isSidebarCollapsed ? 'px-2' : 'px-6'}`}>
-//                     <div className="relative group flex items-center justify-center mb-4">
-//                         <div className="absolute inset-0 bg-gradient-to-tr from-gray-50 to-white rounded-2xl border border-gray-100 shadow-sm transition-all duration-300 group-hover:shadow-md" />
-//                         <img
-//                             src={LOGO}
-//                             alt="Brand Logo"
-//                             className={`relative z-10 object-contain transition-all duration-300 ${isSidebarCollapsed ? 'w-16 h-16' : 'w-40 h-40'}`}
-//                         />
-//                     </div>
-//                     {!isSidebarCollapsed && (
-//                         <div className="text-center transition-all duration-300">
-//                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100 tracking-widest uppercase">
-//                                 {ROLE_LABELS[activeRole] || `${activeRole}-${locationId}`}
-//                             </span>
-//                         </div>
-//                     )}
-//                     {isSidebarCollapsed && (
-//                         <div className="text-center transition-all duration-300">
-//                             <span className="inline-flex items-center justify-center w-8 h-8 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100">
-//                                 {ROLE_LABELS[activeRole]?.charAt(0) || `${activeRole?.charAt(0)}-${locationId}`}
-//                             </span>
-//                         </div>
-//                     )}
-//                 </div>
-
-//                 {/* Collapse Toggle Button */}
-//                 <button
-//                     onClick={toggleSidebar}
-//                     className="absolute -right-3 top-20 bg-white border border-gray-200 rounded-full p-1.5 shadow-md hover:bg-gray-50 transition-all duration-200 hidden md:block"
-//                 >
-//                     <svg
-//                         className={`w-4 h-4 text-gray-600 transition-transform duration-300 ${isSidebarCollapsed ? 'rotate-180' : ''}`}
-//                         fill="none"
-//                         stroke="currentColor"
-//                         viewBox="0 0 24 24"
-//                     >
-//                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-//                     </svg>
-//                 </button>
-
-//                 {/* Navigation */}
-//                 <nav className="flex-1 px-4 space-y-1 mt-4 overflow-y-auto">
-//                     {allowedTabs.map((tab) => {
-//                         const isActive = activeTab === tab.id;
-//                         const hasSubItems = tab.subItems?.length > 0;
-//                         const isExpanded = expandedTab === tab.id;
-
-//                         return (
-//                             <div key={tab.id}>
-//                                 <button
-//                                     onClick={() => handleTabClick(tab)}
-//                                     className={`
-//                                         w-full flex items-center cursor-pointer rounded-lg transition-all duration-200
-//                                         ${isActive
-//                                             ? "bg-blue-50 text-blue-600 shadow-sm"
-//                                             : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-//                                         }
-//                                         ${isSidebarCollapsed ? 'justify-center px-2 py-3' : 'justify-between px-4 py-3'}
-//                                     `}
-//                                     title={isSidebarCollapsed ? tab.label : ""}
-//                                 >
-//                                     <div className={`flex items-center space-x-3 ${isSidebarCollapsed ? 'justify-center' : ''}`}>
-//                                         <svg
-//                                             className={`w-5 h-5 shrink-0 ${isActive ? "text-blue-600" : "text-gray-400"}`}
-//                                             fill="none" stroke="currentColor" viewBox="0 0 24 24"
-//                                         >
-//                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={tab.icon} />
-//                                         </svg>
-//                                         {!isSidebarCollapsed && <span>{tab.label}</span>}
-//                                     </div>
-
-//                                     {hasSubItems && !isSidebarCollapsed && (
-//                                         <svg
-//                                             className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""} ${isActive ? "text-blue-500" : "text-gray-400"
-//                                                 }`}
-//                                             fill="none" stroke="currentColor" viewBox="0 0 24 24"
-//                                         >
-//                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-//                                         </svg>
-//                                     )}
-//                                 </button>
-//                                 {hasSubItems && isExpanded && !isSidebarCollapsed && (
-//                                     <div className="mt-1 ml-4 pl-4 border-l-2 border-blue-100 space-y-0.5">
-//                                         {filterSubItemsByRole(tab.id, tab.subItems).map((sub) => {
-//                                             const isSubActive = isActive && activeCtab === sub.id;
-//                                             return (
-//                                                 <button
-//                                                     key={sub.id}
-//                                                     onClick={() => handleSubItemClick(tab.id, sub.id)}
-//                                                     className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-lg transition-all duration-150 cursor-pointer text-left ${isSubActive
-//                                                         ? "bg-blue-50 text-blue-700"
-//                                                         : "text-gray-500 hover:bg-gray-50 hover:text-gray-800"
-//                                                         }`}
-//                                                 >
-//                                                     <svg
-//                                                         className={`w-3.5 h-3.5 shrink-0 ${isSubActive ? "text-blue-600" : "text-gray-400"}`}
-//                                                         fill="none" stroke="currentColor" viewBox="0 0 24 24"
-//                                                     >
-//                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={sub.icon} />
-//                                                     </svg>
-//                                                     {sub.label}
-//                                                 </button>
-//                                             );
-//                                         })}
-//                                     </div>
-//                                 )}
-//                                 {/* {hasSubItems && isExpanded && !isSidebarCollapsed && (
-//                                     <div className="mt-1 ml-4 pl-4 border-l-2 border-blue-100 space-y-0.5">
-//                                         {tab.subItems.map((sub) => {
-//                                             const isSubActive = isActive && activeCtab === sub.id;
-//                                             return (
-//                                                 <button
-//                                                     key={sub.id}
-//                                                     onClick={() => handleSubItemClick(tab.id, sub.id)}
-//                                                     className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-lg transition-all duration-150 cursor-pointer text-left ${isSubActive
-//                                                         ? "bg-blue-50 text-blue-700"
-//                                                         : "text-gray-500 hover:bg-gray-50 hover:text-gray-800"
-//                                                         }`}
-//                                                 >
-//                                                     <svg
-//                                                         className={`w-3.5 h-3.5 shrink-0 ${isSubActive ? "text-blue-600" : "text-gray-400"}`}
-//                                                         fill="none" stroke="currentColor" viewBox="0 0 24 24"
-//                                                     >
-//                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={sub.icon} />
-//                                                     </svg>
-//                                                     {sub.label}
-//                                                 </button>
-//                                             );
-//                                         })}
-//                                     </div>
-//                                 )} */}
-//                             </div>
-//                         );
-//                     })}
-//                 </nav>
-
-//                 <div className={`p-4 border-t border-gray-100 ${isSidebarCollapsed ? 'text-center' : ''}`}>
-//                     <button
-//                         onClick={handleLogout}
-//                         disabled={isLogoutLoading}
-//                         className={`w-full mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-100 transition ${isLogoutLoading ? "cursor-not-allowed opacity-70" : ""}`}
-//                     >
-//                         {isLogoutLoading ? "Logging out..." : "Logout"}
-//                     </button>
-//                     <p className={`text-[10px] text-gray-400 uppercase tracking-widest font-bold ${isSidebarCollapsed ? 'text-center' : 'mb-2'}`}>
-//                         {isSidebarCollapsed ? 'v1.0' : 'Vyapar v1.0.0'}
-//                     </p>
-//                 </div>
-//             </aside>
-
-//             {/* ── Main Content ──────────────────────────────────────────────────── */}
-//             <main className="flex-1 overflow-y-auto">
-//                 <header className="bg-white h-16 border-b border-gray-200 flex items-center justify-between px-4 md:px-8 sticky top-0 z-10">
-//                     {/* Mobile Menu Button */}
-//                     <button
-//                         onClick={toggleMobileMenu}
-//                         className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200"
-//                     >
-//                         <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-//                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-//                         </svg>
-//                     </button>
-
-//                     <h2 className="text-lg font-semibold text-gray-800 capitalize">
-//                         {activeTabConfig?.label || "Dashboard"}
-//                     </h2>
-
-//                     {/* Placeholder for right side actions if needed */}
-//                     <div className="w-8 md:w-0"></div>
-//                 </header>
-
-//                 <div className="p-4 md:p-8">
-//                     <Suspense fallback={
-//                         <div className="flex items-center justify-center h-64">
-//                             <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-//                         </div>
-//                     }>
-//                         {TabComponent ? (
-//                             <TabComponent onSwitchTab={handleSwitchTab} />
-//                         ) : (
-//                             <div className="flex flex-col items-center justify-center h-64 text-gray-400">
-//                                 <svg className="w-12 h-12 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-//                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-//                                         d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-//                                 </svg>
-//                                 <p className="text-sm font-medium">This section is coming soon</p>
-//                             </div>
-//                         )}
-//                     </Suspense>
-//                 </div>
-//             </main>
-//         </div>
-//     );
-// };
-
-// export default SideBarDashboard;
-
-// // src/Components/SideBarDashboard/SideBarDashboard.jsx
-// import React, { useState, useEffect, Suspense } from "react";
-// import { useSearchParams } from "react-router-dom";
-// import { TAB_REGISTRY } from "../TabRegistry";
-// import { ROLE_PERMISSIONS, ROLE_LABELS, ROLES } from "../roles";
-
-// // ── HARDCODED ROLE (change this to test different permissions) ───────────────
-// const HARDCODED_ROLE = ROLES.OWNER;
-
-// const LOGO = "https://www.thebigfeathers.com/static/media/logo.de8b004c787675511bd3.png"
-// // ─────────────────────────────────────────────────────────────────────────────
-
-// const SideBarDashboard = () => {
-//     const [searchParams, setSearchParams] = useSearchParams();
-
-//     // ── Role & permissions ────────────────────────────────────────────────────
-//     const activeRole = HARDCODED_ROLE;
-//     const allowedTabIds = ROLE_PERMISSIONS[activeRole] || [];
-//     const allowedTabs = TAB_REGISTRY.filter((tab) => allowedTabIds.includes(tab.id));
-//     const defaultTab = allowedTabs[0]?.id || "dashboard";
-
-//     // ── Derive activeTab synchronously from URL + permissions ─────────────────
-//     const tabFromUrl = searchParams.get("tab");
-//     const activeTab = tabFromUrl && allowedTabIds.includes(tabFromUrl)
-//         ? tabFromUrl
-//         : defaultTab;
-
-//     const activeCtab = searchParams.get("ctab") || null;
-
-//     // ── Dropdown state — MANUAL control only, no auto-expand ───────────────────
-//     const [expandedTab, setExpandedTab] = useState(() => {
-//         // Only auto-expand on initial load if the active tab has subitems
-//         const initialTab = new URLSearchParams(window.location.search).get("tab");
-//         const entry = allowedTabs.find((t) => t.id === initialTab && t.subItems?.length);
-//         return entry ? entry.id : null;
-//     });
-
-//     // ── Keep URL honest ───────────────────────────────────────────────────────
-//     useEffect(() => {
-//         const urlTab = searchParams.get("tab");
-//         const urlIsWrong = !urlTab || !allowedTabIds.includes(urlTab);
-
-//         if (urlIsWrong) {
-//             setSearchParams({ tab: defaultTab }, { replace: true });
-//         }
-//     }, [activeRole, searchParams, setSearchParams, defaultTab, allowedTabIds]);
-
-//     // ── REMOVED: auto-expand useEffect that was causing the bug ─────────────────
-//     // The bug was here - this useEffect kept forcing dropdowns open
-
-//     // ── Parent tab click ──────────────────────────────────────────────────────
-//     const handleTabClick = (tab) => {
-//         if (!allowedTabIds.includes(tab.id)) return;
-
-//         const hasSubItems = tab.subItems?.length > 0;
-//         const isCurrentlyExpanded = expandedTab === tab.id;
-
-//         if (hasSubItems) {
-//             if (isCurrentlyExpanded) {
-//                 // User wants to CLOSE the dropdown
-//                 setExpandedTab(null);
-//                 // Keep the parent tab active, but no sub-item selected
-//                 // Option A: Clear ctab (show parent overview)
-//                 setSearchParams({ tab: tab.id });
-//                 // Option B: Keep showing last sub-item (uncomment below)
-//                 // Keep current ctab as is, no URL change needed
-//             } else {
-//                 // User wants to OPEN this dropdown
-//                 // First close any other open dropdown
-//                 setExpandedTab(tab.id);
-//                 const firstSub = tab.subItems[0];
-//                 setSearchParams({ tab: tab.id, ctab: firstSub.id });
-//             }
-//         } else {
-//             // Tab without dropdown - close any open dropdown and switch
-//             setExpandedTab(null);
-//             setSearchParams({ tab: tab.id });
-//         }
-//     };
-
-//     // ── Sub-item click (sidebar dropdown) ─────────────────────────────────────
-//     const handleSubItemClick = (parentId, subId) => {
-//         if (!allowedTabIds.includes(parentId)) return;
-//         // Ensure dropdown stays open when clicking sub-items
-//         setExpandedTab(parentId);
-//         setSearchParams({ tab: parentId, ctab: subId });
-//     };
-
-//     // ── Switch tab from inside components ─────────────────────────────────────
-//     const handleSwitchTab = (tabId) => {
-//         const tab = allowedTabs.find((t) => t.id === tabId);
-//         if (tab) handleTabClick(tab);
-//     };
-
-//     const activeTabConfig = allowedTabs.find((t) => t.id === activeTab);
-//     const TabComponent = activeTabConfig?.component ?? null;
-
-//     return (
-//         <div className="flex min-h-screen bg-gray-50">
-
-//             {/* ── Sidebar ──────────────────────────────────────────────────────── */}
-//             <aside className="w-64 bg-white border-r border-gray-200 flex flex-col sticky top-0 h-screen z-20">
-
-//                 {/* Logo / Brand Container */}
-//                 <div className="p-6 flex flex-col items-center border-b border-gray-50 bg-white">
-//                     <div className="relative group flex items-center justify-center w-24 h-24 mb-4">
-//                         <div className="absolute inset-0 bg-gradient-to-tr from-gray-50 to-white rounded-2xl border border-gray-100 shadow-sm transition-all duration-300 group-hover:shadow-md" />
-//                         <img
-//                             src={LOGO}
-//                             alt="Brand Logo"
-//                             className="relative z-10 w-40 h-40 object-contain"
-//                         />
-//                     </div>
-//                     <div className="text-center">
-//                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100 tracking-widest uppercase">
-//                             {ROLE_LABELS[activeRole] || activeRole}
-//                         </span>
-//                     </div>
-//                 </div>
-
-//                 {/* Navigation */}
-//                 <nav className="flex-1 px-4 space-y-1 mt-4 overflow-y-auto">
-//                     {allowedTabs.map((tab) => {
-//                         const isActive = activeTab === tab.id;
-//                         const hasSubItems = tab.subItems?.length > 0;
-//                         const isExpanded = expandedTab === tab.id;
-
-//                         return (
-//                             <div key={tab.id}>
-//                                 <button
-//                                     onClick={() => handleTabClick(tab)}
-//                                     className={`w-full flex items-center cursor-pointer justify-between px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 ${isActive
-//                                         ? "bg-blue-50 text-blue-600 shadow-sm"
-//                                         : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-//                                         }`}
-//                                 >
-//                                     <div className="flex items-center space-x-3">
-//                                         <svg
-//                                             className={`w-5 h-5 shrink-0 ${isActive ? "text-blue-600" : "text-gray-400"}`}
-//                                             fill="none" stroke="currentColor" viewBox="0 0 24 24"
-//                                         >
-//                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={tab.icon} />
-//                                         </svg>
-//                                         <span>{tab.label}</span>
-//                                     </div>
-
-//                                     {hasSubItems && (
-//                                         <svg
-//                                             className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""} ${isActive ? "text-blue-500" : "text-gray-400"
-//                                                 }`}
-//                                             fill="none" stroke="currentColor" viewBox="0 0 24 24"
-//                                         >
-//                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-//                                         </svg>
-//                                     )}
-//                                 </button>
-
-//                                 {hasSubItems && isExpanded && (
-//                                     <div className="mt-1 ml-4 pl-4 border-l-2 border-blue-100 space-y-0.5">
-//                                         {tab.subItems.map((sub) => {
-//                                             const isSubActive = isActive && activeCtab === sub.id;
-//                                             return (
-//                                                 <button
-//                                                     key={sub.id}
-//                                                     onClick={() => handleSubItemClick(tab.id, sub.id)}
-//                                                     className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-lg transition-all duration-150 cursor-pointer text-left ${isSubActive
-//                                                         ? "bg-blue-50 text-blue-700"
-//                                                         : "text-gray-500 hover:bg-gray-50 hover:text-gray-800"
-//                                                         }`}
-//                                                 >
-//                                                     <svg
-//                                                         className={`w-3.5 h-3.5 shrink-0 ${isSubActive ? "text-blue-600" : "text-gray-400"}`}
-//                                                         fill="none" stroke="currentColor" viewBox="0 0 24 24"
-//                                                     >
-//                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={sub.icon} />
-//                                                     </svg>
-//                                                     {sub.label}
-//                                                 </button>
-//                                             );
-//                                         })}
-//                                     </div>
-//                                 )}
-//                             </div>
-//                         );
-//                     })}
-//                 </nav>
-
-//                 <div className="p-4 border-t border-gray-100">
-//                     <p className="text-[10px] text-gray-400 uppercase mb-2 tracking-widest font-bold">
-//                         Vyapar v1.0.0
-//                     </p>
-//                 </div>
-//             </aside>
-
-//             {/* ── Main Content ──────────────────────────────────────────────────── */}
-//             <main className="flex-1 overflow-y-auto">
-//                 <header className="bg-white h-16 border-b border-gray-200 flex items-center px-8 sticky top-0 z-10">
-//                     <h2 className="text-lg font-semibold text-gray-800 capitalize">
-//                         {activeTabConfig?.label || "Dashboard"}
-//                     </h2>
-//                 </header>
-
-//                 <div className="p-8">
-//                     <Suspense fallback={
-//                         <div className="flex items-center justify-center h-64">
-//                             <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-//                         </div>
-//                     }>
-//                         {TabComponent ? (
-//                             <TabComponent onSwitchTab={handleSwitchTab} />
-//                         ) : (
-//                             <div className="flex flex-col items-center justify-center h-64 text-gray-400">
-//                                 <svg className="w-12 h-12 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-//                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-//                                         d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-//                                 </svg>
-//                                 <p className="text-sm font-medium">This section is coming soon</p>
-//                             </div>
-//                         )}
-//                     </Suspense>
-//                 </div>
-//             </main>
-//         </div>
-//     );
-// };
-
-// export default SideBarDashboard;
-
-// // src/Components/SideBarDashboard/SideBarDashboard.jsx
-// import React, { useState, useEffect, Suspense } from "react";
-// import { useSearchParams } from "react-router-dom";
-// import { TAB_REGISTRY } from "../TabRegistry";
-// import { ROLE_PERMISSIONS, ROLE_LABELS, ROLES } from "../roles";
-// // import LOGO from "../assets/logo.png";
-
-// // ── HARDCODED ROLE (change this to test different permissions) ───────────────
-// const HARDCODED_ROLE = ROLES.OWNER;
-
-// const LOGO = "https://www.thebigfeathers.com/static/media/logo.de8b004c787675511bd3.png"
-// // ─────────────────────────────────────────────────────────────────────────────
-
-// const SideBarDashboard = () => {
-//     const [searchParams, setSearchParams] = useSearchParams();
-
-//     // ── Role & permissions ────────────────────────────────────────────────────
-//     const activeRole = HARDCODED_ROLE;
-//     const allowedTabIds = ROLE_PERMISSIONS[activeRole] || [];
-//     const allowedTabs = TAB_REGISTRY.filter((tab) => allowedTabIds.includes(tab.id));
-//     const defaultTab = allowedTabs[0]?.id || "dashboard";
-
-//     // ── Derive activeTab synchronously from URL + permissions ─────────────────
-//     const tabFromUrl = searchParams.get("tab");
-//     const activeTab = tabFromUrl && allowedTabIds.includes(tabFromUrl)
-//         ? tabFromUrl
-//         : defaultTab;
-
-//     const activeCtab = searchParams.get("ctab") || null;
-
-//     // ── Dropdown state — auto-expand parent of currently active tab ───────────
-//     const [expandedTab, setExpandedTab] = useState(() => {
-//         const urlTab = new URLSearchParams(window.location.search).get("tab");
-//         const entry = allowedTabs.find((t) => t.id === urlTab && t.subItems?.length);
-//         return entry ? entry.id : null;
-//     });
-
-//     // ── Keep URL honest ───────────────────────────────────────────────────────
-//     useEffect(() => {
-//         const urlTab = searchParams.get("tab");
-//         const urlIsWrong = !urlTab || !allowedTabIds.includes(urlTab);
-
-//         if (urlIsWrong) {
-//             setSearchParams({ tab: defaultTab }, { replace: true });
-//         }
-//     }, [activeRole, searchParams, setSearchParams, defaultTab, allowedTabIds]);
-
-//     // ── Auto-expand parent when activeTab changes ─────────────────────────────
-//     useEffect(() => {
-//         const entry = allowedTabs.find((t) => t.id === activeTab && t.subItems?.length);
-//         if (entry) {
-//             setExpandedTab((prev) => (prev === entry.id ? prev : entry.id));
-//         }
-//     }, [activeTab, allowedTabs]);
-
-//     // ── Parent tab click ──────────────────────────────────────────────────────
-//     const handleTabClick = (tab) => {
-//         if (!allowedTabIds.includes(tab.id)) return;
-
-//         if (tab.subItems?.length) {
-//             if (expandedTab === tab.id) {
-//                 setExpandedTab(null);
-//             } else {
-//                 setExpandedTab(tab.id);
-//                 const firstSub = tab.subItems[0];
-//                 setSearchParams({ tab: tab.id, ctab: firstSub.id });
-//             }
-//         } else {
-//             setExpandedTab(null);
-//             setSearchParams({ tab: tab.id });
-//         }
-//     };
-
-//     // ── Sub-item click (sidebar dropdown) ─────────────────────────────────────
-//     const handleSubItemClick = (parentId, subId) => {
-//         if (!allowedTabIds.includes(parentId)) return;
-//         setSearchParams({ tab: parentId, ctab: subId });
-//     };
-
-//     // ── Switch tab from inside components ─────────────────────────────────────
-//     const handleSwitchTab = (tabId) => {
-//         const tab = allowedTabs.find((t) => t.id === tabId);
-//         if (tab) handleTabClick(tab);
-//     };
-
-//     const activeTabConfig = allowedTabs.find((t) => t.id === activeTab);
-//     const TabComponent = activeTabConfig?.component ?? null;
-
-//     return (
-//         <div className="flex min-h-screen bg-gray-50">
-
-//             {/* ── Sidebar ──────────────────────────────────────────────────────── */}
-//             <aside className="w-64 bg-white border-r border-gray-200 flex flex-col sticky top-0 h-screen z-20">
-
-//                 {/* Logo / Brand Container */}
-//                 <div className="p-6 flex flex-col items-center border-b border-gray-50 bg-white">
-//                     {/* Logo Wrapper */}
-//                     <div className="relative group flex items-center justify-center w-24 h-24 mb-4">
-//                         {/* Decorative background element for depth */}
-//                         <div className="absolute inset-0 bg-gradient-to-tr from-gray-50 to-white rounded-2xl border border-gray-100 shadow-sm transition-all duration-300 group-hover:shadow-md" />
-
-//                         {/* Actual Logo */}
-//                         <img
-//                             src={LOGO}
-//                             alt="Brand Logo"
-//                             className="relative z-10 w-40 h-40 object-contain"
-//                         />
-//                     </div>
-
-//                     {/* Identity Section */}
-//                     <div className="text-center">
-//                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100 tracking-widest uppercase">
-//                             {ROLE_LABELS[activeRole] || activeRole}
-//                         </span>
-//                     </div>
-//                 </div>
-
-//                 {/* Navigation */}
-//                 <nav className="flex-1 px-4 space-y-1 mt-4 overflow-y-auto">
-//                     {allowedTabs.map((tab) => {
-//                         const isActive = activeTab === tab.id;
-//                         const hasSubItems = tab.subItems?.length > 0;
-//                         const isExpanded = expandedTab === tab.id;
-
-//                         return (
-//                             <div key={tab.id}>
-//                                 {/* Parent button */}
-//                                 <button
-//                                     onClick={() => handleTabClick(tab)}
-//                                     className={`w-full flex items-center cursor-pointer justify-between px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 ${isActive
-//                                         ? "bg-blue-50 text-blue-600 shadow-sm"
-//                                         : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-//                                         }`}
-//                                 >
-//                                     <div className="flex items-center space-x-3">
-//                                         <svg
-//                                             className={`w-5 h-5 shrink-0 ${isActive ? "text-blue-600" : "text-gray-400"}`}
-//                                             fill="none" stroke="currentColor" viewBox="0 0 24 24"
-//                                         >
-//                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={tab.icon} />
-//                                         </svg>
-//                                         <span>{tab.label}</span>
-//                                     </div>
-
-//                                     {/* Chevron for dropdown tabs */}
-//                                     {hasSubItems && (
-//                                         <svg
-//                                             className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""} ${isActive ? "text-blue-500" : "text-gray-400"
-//                                                 }`}
-//                                             fill="none" stroke="currentColor" viewBox="0 0 24 24"
-//                                         >
-//                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-//                                         </svg>
-//                                     )}
-//                                 </button>
-
-//                                 {/* Dropdown sub-items */}
-//                                 {hasSubItems && isExpanded && (
-//                                     <div className="mt-1 ml-4 pl-4 border-l-2 border-blue-100 space-y-0.5">
-//                                         {tab.subItems.map((sub) => {
-//                                             const isSubActive = isActive && activeCtab === sub.id;
-//                                             return (
-//                                                 <button
-//                                                     key={sub.id}
-//                                                     onClick={() => handleSubItemClick(tab.id, sub.id)}
-//                                                     className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-lg transition-all duration-150 cursor-pointer text-left ${isSubActive
-//                                                         ? "bg-blue-50 text-blue-700"
-//                                                         : "text-gray-500 hover:bg-gray-50 hover:text-gray-800"
-//                                                         }`}
-//                                                 >
-//                                                     <svg
-//                                                         className={`w-3.5 h-3.5 shrink-0 ${isSubActive ? "text-blue-600" : "text-gray-400"}`}
-//                                                         fill="none" stroke="currentColor" viewBox="0 0 24 24"
-//                                                     >
-//                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={sub.icon} />
-//                                                     </svg>
-//                                                     {sub.label}
-//                                                 </button>
-//                                             );
-//                                         })}
-//                                     </div>
-//                                 )}
-//                             </div>
-//                         );
-//                     })}
-//                 </nav>
-
-//                 {/* Footer */}
-//                 <div className="p-4 border-t border-gray-100">
-//                     <p className="text-[10px] text-gray-400 uppercase mb-2 tracking-widest font-bold">
-//                         Vyapar v1.0.0
-//                     </p>
-//                 </div>
-//             </aside>
-
-//             {/* ── Main Content ──────────────────────────────────────────────────── */}
-//             <main className="flex-1 overflow-y-auto">
-//                 <header className="bg-white h-16 border-b border-gray-200 flex items-center px-8 sticky top-0 z-10">
-//                     <h2 className="text-lg font-semibold text-gray-800 capitalize">
-//                         {activeTabConfig?.label || "Dashboard"}
-//                     </h2>
-//                 </header>
-
-//                 <div className="p-8">
-//                     <Suspense fallback={
-//                         <div className="flex items-center justify-center h-64">
-//                             <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-//                         </div>
-//                     }>
-//                         {TabComponent ? (
-//                             <TabComponent onSwitchTab={handleSwitchTab} />
-//                         ) : (
-//                             <div className="flex flex-col items-center justify-center h-64 text-gray-400">
-//                                 <svg className="w-12 h-12 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-//                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-//                                         d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-//                                 </svg>
-//                                 <p className="text-sm font-medium">This section is coming soon</p>
-//                             </div>
-//                         )}
-//                     </Suspense>
-//                 </div>
-//             </main>
-//         </div>
-//     );
-// };
-
-// export default SideBarDashboard;
-// down code is working but upper code have updated ui
-// // src/Components/SideBarDashboard/SideBarDashboard.jsx
-// import React, { useState, useEffect, Suspense } from "react";
-// import { useSearchParams } from "react-router-dom";
-// import { useDispatch, useSelector } from "react-redux";
-// import { TAB_REGISTRY } from "../TabRegistry";
-// import { ROLE_PERMISSIONS, ROLE_LABELS, ROLES, filterSubItemsByRole } from "../roles";
-// import { useLogoutMutation } from "../../REDUX_FEATURES/REDUX_SLICES/Login_Api/authApi";
-// import {
-//     clearCredentials,
-//     setAuthChecked,
-// } from "../../REDUX_FEATURES/REDUX_SLICES/Login_Api/authSlice";
-
-// const LOGO = "https://www.thebigfeathers.com/static/media/logo.de8b004c787675511bd3.png"
-// // ─────────────────────────────────────────────────────────────────────────────
-
-// const SideBarDashboard = () => {
-//     const [searchParams, setSearchParams] = useSearchParams();
-//     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-//     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-//     const dispatch = useDispatch();
-//     const user = useSelector((state) => state.auth.user);
-//     const [logout, { isLoading: isLogoutLoading }] = useLogoutMutation();
-
-//     // ── Role & permissions ────────────────────────────────────────────────────
-//     const activeRole = user?.role || ROLES.SUPER_ADMIN;
-//     const locationId = user?.warehouse_id || user?.shop_id || "";
-//     const allowedTabIds = ROLE_PERMISSIONS[activeRole] || [];
-//     const allowedTabs = TAB_REGISTRY.filter((tab) => allowedTabIds.includes(tab.id));
-//     const defaultTab = allowedTabs[0]?.id || "dashboard";
-
-//     // ── Derive activeTab synchronously from URL + permissions ─────────────────
-//     const tabFromUrl = searchParams.get("tab");
-//     const activeTab = tabFromUrl && allowedTabIds.includes(tabFromUrl)
-//         ? tabFromUrl
-//         : defaultTab;
-
-//     const activeCtab = searchParams.get("ctab") || null;
-
-//     // ── Dropdown state — MANUAL control only, no auto-expand ───────────────────
-//     const [expandedTab, setExpandedTab] = useState(() => {
-//         // Only auto-expand on initial load if the active tab has subitems
-//         const initialTab = new URLSearchParams(window.location.search).get("tab");
-//         const entry = allowedTabs.find((t) => t.id === initialTab && t.subItems?.length);
-//         return entry ? entry.id : null;
-//     });
-
-//     // ── Close mobile menu when window resizes to desktop ──────────────────────
-//     useEffect(() => {
-//         const handleResize = () => {
-//             if (window.innerWidth >= 768) {
-//                 setIsMobileMenuOpen(false);
-//             }
-//         };
-//         window.addEventListener('resize', handleResize);
-//         return () => window.removeEventListener('resize', handleResize);
-//     }, []);
-
-//     // ── Keep URL honest ───────────────────────────────────────────────────────
-//     useEffect(() => {
-//         const urlTab = searchParams.get("tab");
-//         const urlIsWrong = !urlTab || !allowedTabIds.includes(urlTab);
-
-//         if (urlIsWrong) {
-//             setSearchParams({ tab: defaultTab }, { replace: true });
-//         }
-//     }, [activeRole, locationId, searchParams, setSearchParams, defaultTab, allowedTabIds]);
-
-
-//     console.log("LOCATION_ID", locationId, activeRole);
-//     // ── Parent tab click ──────────────────────────────────────────────────────
-//     const handleTabClick = (tab) => {
-//         if (!allowedTabIds.includes(tab.id)) return;
-
-//         const hasSubItems = tab.subItems?.length > 0;
-//         const isCurrentlyExpanded = expandedTab === tab.id;
-
-//         if (hasSubItems) {
-//             if (isCurrentlyExpanded) {
-//                 // User wants to CLOSE the dropdown
-//                 setExpandedTab(null);
-//                 // Keep the parent tab active, but no sub-item selected
-//                 setSearchParams({ tab: tab.id });
-//             } else {
-//                 // User wants to OPEN this dropdown
-//                 // First close any other open dropdown
-//                 setExpandedTab(tab.id);
-//                 const firstSub = tab.subItems[0];
-//                 setSearchParams({ tab: tab.id, ctab: firstSub.id });
-//             }
-//         } else {
-//             // Tab without dropdown - close any open dropdown and switch
-//             setExpandedTab(null);
-//             setSearchParams({ tab: tab.id });
-//         }
-
-//         // Close mobile menu after selection on mobile
-//         if (window.innerWidth < 768) {
-//             setIsMobileMenuOpen(false);
-//         }
-//     };
-
-//     // ── Sub-item click (sidebar dropdown) ─────────────────────────────────────
-//     const handleSubItemClick = (parentId, subId) => {
-//         if (!allowedTabIds.includes(parentId)) return;
-//         // Ensure dropdown stays open when clicking sub-items
-//         setExpandedTab(parentId);
-//         setSearchParams({ tab: parentId, ctab: subId });
-
-//         // Close mobile menu after selection on mobile
-//         if (window.innerWidth < 768) {
-//             setIsMobileMenuOpen(false);
-//         }
-//     };
-
-//     // ── Switch tab from inside components ─────────────────────────────────────
-//     const handleSwitchTab = (tabId) => {
-//         const tab = allowedTabs.find((t) => t.id === tabId);
-//         if (tab) handleTabClick(tab);
-//     };
-
-//     // ── Toggle sidebar collapse ───────────────────────────────────────────────
-//     const toggleSidebar = () => {
-//         setIsSidebarCollapsed(!isSidebarCollapsed);
-//     };
-
-//     // ── Toggle mobile menu ────────────────────────────────────────────────────
-//     const toggleMobileMenu = () => {
-//         setIsMobileMenuOpen(!isMobileMenuOpen);
-//     };
-
-//     const handleLogout = async () => {
-//         try {
-//             await logout().unwrap();
-//         } catch (_error) {
-//             // Clear local session even if backend logout fails.
-//         } finally {
-//             dispatch(clearCredentials());
-//             dispatch(setAuthChecked(true));
-//             setSearchParams({}, { replace: true });
-//         }
-//     };
-//     // That's the only change to SideBarDashboard.jsx. Now any subItem with a component directly on it will render that instead of the parent dashboard.
-//     const activeTabConfig = allowedTabs.find((t) => t.id === activeTab);
-//     const activeSubItem = activeTabConfig?.subItems?.find((s) => s.id === activeCtab);
-//     const TabComponent = (activeCtab && activeSubItem?.component)
-//         ? activeSubItem.component
-//         : activeTabConfig?.component ?? null;
-
-//     return (
-//         <div className="flex min-h-screen bg-gray-50 relative">
-
-//             {/* ── Mobile Menu Overlay ─────────────────────────────────────────────── */}
-//             {isMobileMenuOpen && (
-//                 <div
-//                     className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden"
-//                     onClick={() => setIsMobileMenuOpen(false)}
-//                 />
-//             )}
-
-//             {/* ── Sidebar ──────────────────────────────────────────────────────── */}
-//             <aside
-//                 className={`
-//                     fixed md:sticky top-0 h-screen z-40 bg-white border-r border-gray-200
-//                     flex flex-col transition-all duration-300 ease-in-out
-//                     ${isSidebarCollapsed ? 'w-20' : 'w-64'}
-//                     ${isMobileMenuOpen ? 'left-0' : '-left-full md:left-0'}
-//                 `}
-//             >
-//                 {/* Logo / Brand Container */}
-//                 <div className={`p-6 flex flex-col items-center border-b border-gray-50 bg-white transition-all duration-300 ${isSidebarCollapsed ? 'px-2' : 'px-6'}`}>
-//                     <div className="relative group flex items-center justify-center mb-4">
-//                         <div className="absolute inset-0 bg-gradient-to-tr from-gray-50 to-white rounded-2xl border border-gray-100 shadow-sm transition-all duration-300 group-hover:shadow-md" />
-//                         <img
-//                             src={LOGO}
-//                             alt="Brand Logo"
-//                             className={`relative z-10 object-contain transition-all duration-300 ${isSidebarCollapsed ? 'w-16 h-16' : 'w-40 h-40'}`}
-//                         />
-//                     </div>
-//                     {!isSidebarCollapsed && (
-//                         <div className="text-center transition-all duration-300">
-//                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100 tracking-widest uppercase">
-//                                 {ROLE_LABELS[activeRole] || `${activeRole}-${locationId}`}
-//                             </span>
-//                         </div>
-//                     )}
-//                     {isSidebarCollapsed && (
-//                         <div className="text-center transition-all duration-300">
-//                             <span className="inline-flex items-center justify-center w-8 h-8 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100">
-//                                 {ROLE_LABELS[activeRole]?.charAt(0) || `${activeRole?.charAt(0)}-${locationId}`}
-//                             </span>
-//                         </div>
-//                     )}
-//                 </div>
-
-//                 {/* Collapse Toggle Button */}
-//                 <button
-//                     onClick={toggleSidebar}
-//                     className="absolute -right-3 top-20 bg-white border border-gray-200 rounded-full p-1.5 shadow-md hover:bg-gray-50 transition-all duration-200 hidden md:block"
-//                 >
-//                     <svg
-//                         className={`w-4 h-4 text-gray-600 transition-transform duration-300 ${isSidebarCollapsed ? 'rotate-180' : ''}`}
-//                         fill="none"
-//                         stroke="currentColor"
-//                         viewBox="0 0 24 24"
-//                     >
-//                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-//                     </svg>
-//                 </button>
-
-//                 {/* Navigation */}
-//                 <nav className="flex-1 px-4 space-y-1 mt-4 overflow-y-auto">
-//                     {allowedTabs.map((tab) => {
-//                         const isActive = activeTab === tab.id;
-//                         const hasSubItems = tab.subItems?.length > 0;
-//                         const isExpanded = expandedTab === tab.id;
-
-//                         return (
-//                             <div key={tab.id}>
-//                                 <button
-//                                     onClick={() => handleTabClick(tab)}
-//                                     className={`
-//                                         w-full flex items-center cursor-pointer rounded-lg transition-all duration-200
-//                                         ${isActive
-//                                             ? "bg-blue-50 text-blue-600 shadow-sm"
-//                                             : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-//                                         }
-//                                         ${isSidebarCollapsed ? 'justify-center px-2 py-3' : 'justify-between px-4 py-3'}
-//                                     `}
-//                                     title={isSidebarCollapsed ? tab.label : ""}
-//                                 >
-//                                     <div className={`flex items-center space-x-3 ${isSidebarCollapsed ? 'justify-center' : ''}`}>
-//                                         <svg
-//                                             className={`w-5 h-5 shrink-0 ${isActive ? "text-blue-600" : "text-gray-400"}`}
-//                                             fill="none" stroke="currentColor" viewBox="0 0 24 24"
-//                                         >
-//                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={tab.icon} />
-//                                         </svg>
-//                                         {!isSidebarCollapsed && <span>{tab.label}</span>}
-//                                     </div>
-
-//                                     {hasSubItems && !isSidebarCollapsed && (
-//                                         <svg
-//                                             className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""} ${isActive ? "text-blue-500" : "text-gray-400"
-//                                                 }`}
-//                                             fill="none" stroke="currentColor" viewBox="0 0 24 24"
-//                                         >
-//                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-//                                         </svg>
-//                                     )}
-//                                 </button>
-//                                 {hasSubItems && isExpanded && !isSidebarCollapsed && (
-//                                     <div className="mt-1 ml-4 pl-4 border-l-2 border-blue-100 space-y-0.5">
-//                                         {filterSubItemsByRole(tab.id, tab.subItems).map((sub) => {
-//                                             const isSubActive = isActive && activeCtab === sub.id;
-//                                             return (
-//                                                 <button
-//                                                     key={sub.id}
-//                                                     onClick={() => handleSubItemClick(tab.id, sub.id)}
-//                                                     className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-lg transition-all duration-150 cursor-pointer text-left ${isSubActive
-//                                                         ? "bg-blue-50 text-blue-700"
-//                                                         : "text-gray-500 hover:bg-gray-50 hover:text-gray-800"
-//                                                         }`}
-//                                                 >
-//                                                     <svg
-//                                                         className={`w-3.5 h-3.5 shrink-0 ${isSubActive ? "text-blue-600" : "text-gray-400"}`}
-//                                                         fill="none" stroke="currentColor" viewBox="0 0 24 24"
-//                                                     >
-//                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={sub.icon} />
-//                                                     </svg>
-//                                                     {sub.label}
-//                                                 </button>
-//                                             );
-//                                         })}
-//                                     </div>
-//                                 )}
-//                                 {/* {hasSubItems && isExpanded && !isSidebarCollapsed && (
-//                                     <div className="mt-1 ml-4 pl-4 border-l-2 border-blue-100 space-y-0.5">
-//                                         {tab.subItems.map((sub) => {
-//                                             const isSubActive = isActive && activeCtab === sub.id;
-//                                             return (
-//                                                 <button
-//                                                     key={sub.id}
-//                                                     onClick={() => handleSubItemClick(tab.id, sub.id)}
-//                                                     className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-lg transition-all duration-150 cursor-pointer text-left ${isSubActive
-//                                                         ? "bg-blue-50 text-blue-700"
-//                                                         : "text-gray-500 hover:bg-gray-50 hover:text-gray-800"
-//                                                         }`}
-//                                                 >
-//                                                     <svg
-//                                                         className={`w-3.5 h-3.5 shrink-0 ${isSubActive ? "text-blue-600" : "text-gray-400"}`}
-//                                                         fill="none" stroke="currentColor" viewBox="0 0 24 24"
-//                                                     >
-//                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={sub.icon} />
-//                                                     </svg>
-//                                                     {sub.label}
-//                                                 </button>
-//                                             );
-//                                         })}
-//                                     </div>
-//                                 )} */}
-//                             </div>
-//                         );
-//                     })}
-//                 </nav>
-
-//                 <div className={`p-4 border-t border-gray-100 ${isSidebarCollapsed ? 'text-center' : ''}`}>
-//                     <button
-//                         onClick={handleLogout}
-//                         disabled={isLogoutLoading}
-//                         className={`w-full mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-100 transition ${isLogoutLoading ? "cursor-not-allowed opacity-70" : ""}`}
-//                     >
-//                         {isLogoutLoading ? "Logging out..." : "Logout"}
-//                     </button>
-//                     <p className={`text-[10px] text-gray-400 uppercase tracking-widest font-bold ${isSidebarCollapsed ? 'text-center' : 'mb-2'}`}>
-//                         {isSidebarCollapsed ? 'v1.0' : 'Vyapar v1.0.0'}
-//                     </p>
-//                 </div>
-//             </aside>
-
-//             {/* ── Main Content ──────────────────────────────────────────────────── */}
-//             <main className="flex-1 overflow-y-auto">
-//                 <header className="bg-white h-16 border-b border-gray-200 flex items-center justify-between px-4 md:px-8 sticky top-0 z-10">
-//                     {/* Mobile Menu Button */}
-//                     <button
-//                         onClick={toggleMobileMenu}
-//                         className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200"
-//                     >
-//                         <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-//                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-//                         </svg>
-//                     </button>
-
-//                     <h2 className="text-lg font-semibold text-gray-800 capitalize">
-//                         {activeTabConfig?.label || "Dashboard"}
-//                     </h2>
-
-//                     {/* Placeholder for right side actions if needed */}
-//                     <div className="w-8 md:w-0"></div>
-//                 </header>
-
-//                 <div className="p-4 md:p-8">
-//                     <Suspense fallback={
-//                         <div className="flex items-center justify-center h-64">
-//                             <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-//                         </div>
-//                     }>
-//                         {TabComponent ? (
-//                             <TabComponent onSwitchTab={handleSwitchTab} />
-//                         ) : (
-//                             <div className="flex flex-col items-center justify-center h-64 text-gray-400">
-//                                 <svg className="w-12 h-12 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-//                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-//                                         d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-//                                 </svg>
-//                                 <p className="text-sm font-medium">This section is coming soon</p>
-//                             </div>
-//                         )}
-//                     </Suspense>
-//                 </div>
-//             </main>
-//         </div>
-//     );
-// };
-
-// export default SideBarDashboard;
-
-// // src/Components/SideBarDashboard/SideBarDashboard.jsx
-// import React, { useState, useEffect, Suspense } from "react";
-// import { useSearchParams } from "react-router-dom";
-// import { TAB_REGISTRY } from "../TabRegistry";
-// import { ROLE_PERMISSIONS, ROLE_LABELS, ROLES } from "../roles";
-
-// // ── HARDCODED ROLE (change this to test different permissions) ───────────────
-// const HARDCODED_ROLE = ROLES.OWNER;
-
-// const LOGO = "https://www.thebigfeathers.com/static/media/logo.de8b004c787675511bd3.png"
-// // ─────────────────────────────────────────────────────────────────────────────
-
-// const SideBarDashboard = () => {
-//     const [searchParams, setSearchParams] = useSearchParams();
-
-//     // ── Role & permissions ────────────────────────────────────────────────────
-//     const activeRole = HARDCODED_ROLE;
-//     const allowedTabIds = ROLE_PERMISSIONS[activeRole] || [];
-//     const allowedTabs = TAB_REGISTRY.filter((tab) => allowedTabIds.includes(tab.id));
-//     const defaultTab = allowedTabs[0]?.id || "dashboard";
-
-//     // ── Derive activeTab synchronously from URL + permissions ─────────────────
-//     const tabFromUrl = searchParams.get("tab");
-//     const activeTab = tabFromUrl && allowedTabIds.includes(tabFromUrl)
-//         ? tabFromUrl
-//         : defaultTab;
-
-//     const activeCtab = searchParams.get("ctab") || null;
-
-//     // ── Dropdown state — MANUAL control only, no auto-expand ───────────────────
-//     const [expandedTab, setExpandedTab] = useState(() => {
-//         // Only auto-expand on initial load if the active tab has subitems
-//         const initialTab = new URLSearchParams(window.location.search).get("tab");
-//         const entry = allowedTabs.find((t) => t.id === initialTab && t.subItems?.length);
-//         return entry ? entry.id : null;
-//     });
-
-//     // ── Keep URL honest ───────────────────────────────────────────────────────
-//     useEffect(() => {
-//         const urlTab = searchParams.get("tab");
-//         const urlIsWrong = !urlTab || !allowedTabIds.includes(urlTab);
-
-//         if (urlIsWrong) {
-//             setSearchParams({ tab: defaultTab }, { replace: true });
-//         }
-//     }, [activeRole, searchParams, setSearchParams, defaultTab, allowedTabIds]);
-
-//     // ── REMOVED: auto-expand useEffect that was causing the bug ─────────────────
-//     // The bug was here - this useEffect kept forcing dropdowns open
-
-//     // ── Parent tab click ──────────────────────────────────────────────────────
-//     const handleTabClick = (tab) => {
-//         if (!allowedTabIds.includes(tab.id)) return;
-
-//         const hasSubItems = tab.subItems?.length > 0;
-//         const isCurrentlyExpanded = expandedTab === tab.id;
-
-//         if (hasSubItems) {
-//             if (isCurrentlyExpanded) {
-//                 // User wants to CLOSE the dropdown
-//                 setExpandedTab(null);
-//                 // Keep the parent tab active, but no sub-item selected
-//                 // Option A: Clear ctab (show parent overview)
-//                 setSearchParams({ tab: tab.id });
-//                 // Option B: Keep showing last sub-item (uncomment below)
-//                 // Keep current ctab as is, no URL change needed
-//             } else {
-//                 // User wants to OPEN this dropdown
-//                 // First close any other open dropdown
-//                 setExpandedTab(tab.id);
-//                 const firstSub = tab.subItems[0];
-//                 setSearchParams({ tab: tab.id, ctab: firstSub.id });
-//             }
-//         } else {
-//             // Tab without dropdown - close any open dropdown and switch
-//             setExpandedTab(null);
-//             setSearchParams({ tab: tab.id });
-//         }
-//     };
-
-//     // ── Sub-item click (sidebar dropdown) ─────────────────────────────────────
-//     const handleSubItemClick = (parentId, subId) => {
-//         if (!allowedTabIds.includes(parentId)) return;
-//         // Ensure dropdown stays open when clicking sub-items
-//         setExpandedTab(parentId);
-//         setSearchParams({ tab: parentId, ctab: subId });
-//     };
-
-//     // ── Switch tab from inside components ─────────────────────────────────────
-//     const handleSwitchTab = (tabId) => {
-//         const tab = allowedTabs.find((t) => t.id === tabId);
-//         if (tab) handleTabClick(tab);
-//     };
-
-//     const activeTabConfig = allowedTabs.find((t) => t.id === activeTab);
-//     const TabComponent = activeTabConfig?.component ?? null;
-
-//     return (
-//         <div className="flex min-h-screen bg-gray-50">
-
-//             {/* ── Sidebar ──────────────────────────────────────────────────────── */}
-//             <aside className="w-64 bg-white border-r border-gray-200 flex flex-col sticky top-0 h-screen z-20">
-
-//                 {/* Logo / Brand Container */}
-//                 <div className="p-6 flex flex-col items-center border-b border-gray-50 bg-white">
-//                     <div className="relative group flex items-center justify-center w-24 h-24 mb-4">
-//                         <div className="absolute inset-0 bg-gradient-to-tr from-gray-50 to-white rounded-2xl border border-gray-100 shadow-sm transition-all duration-300 group-hover:shadow-md" />
-//                         <img
-//                             src={LOGO}
-//                             alt="Brand Logo"
-//                             className="relative z-10 w-40 h-40 object-contain"
-//                         />
-//                     </div>
-//                     <div className="text-center">
-//                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100 tracking-widest uppercase">
-//                             {ROLE_LABELS[activeRole] || activeRole}
-//                         </span>
-//                     </div>
-//                 </div>
-
-//                 {/* Navigation */}
-//                 <nav className="flex-1 px-4 space-y-1 mt-4 overflow-y-auto">
-//                     {allowedTabs.map((tab) => {
-//                         const isActive = activeTab === tab.id;
-//                         const hasSubItems = tab.subItems?.length > 0;
-//                         const isExpanded = expandedTab === tab.id;
-
-//                         return (
-//                             <div key={tab.id}>
-//                                 <button
-//                                     onClick={() => handleTabClick(tab)}
-//                                     className={`w-full flex items-center cursor-pointer justify-between px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 ${isActive
-//                                         ? "bg-blue-50 text-blue-600 shadow-sm"
-//                                         : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-//                                         }`}
-//                                 >
-//                                     <div className="flex items-center space-x-3">
-//                                         <svg
-//                                             className={`w-5 h-5 shrink-0 ${isActive ? "text-blue-600" : "text-gray-400"}`}
-//                                             fill="none" stroke="currentColor" viewBox="0 0 24 24"
-//                                         >
-//                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={tab.icon} />
-//                                         </svg>
-//                                         <span>{tab.label}</span>
-//                                     </div>
-
-//                                     {hasSubItems && (
-//                                         <svg
-//                                             className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""} ${isActive ? "text-blue-500" : "text-gray-400"
-//                                                 }`}
-//                                             fill="none" stroke="currentColor" viewBox="0 0 24 24"
-//                                         >
-//                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-//                                         </svg>
-//                                     )}
-//                                 </button>
-
-//                                 {hasSubItems && isExpanded && (
-//                                     <div className="mt-1 ml-4 pl-4 border-l-2 border-blue-100 space-y-0.5">
-//                                         {tab.subItems.map((sub) => {
-//                                             const isSubActive = isActive && activeCtab === sub.id;
-//                                             return (
-//                                                 <button
-//                                                     key={sub.id}
-//                                                     onClick={() => handleSubItemClick(tab.id, sub.id)}
-//                                                     className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-lg transition-all duration-150 cursor-pointer text-left ${isSubActive
-//                                                         ? "bg-blue-50 text-blue-700"
-//                                                         : "text-gray-500 hover:bg-gray-50 hover:text-gray-800"
-//                                                         }`}
-//                                                 >
-//                                                     <svg
-//                                                         className={`w-3.5 h-3.5 shrink-0 ${isSubActive ? "text-blue-600" : "text-gray-400"}`}
-//                                                         fill="none" stroke="currentColor" viewBox="0 0 24 24"
-//                                                     >
-//                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={sub.icon} />
-//                                                     </svg>
-//                                                     {sub.label}
-//                                                 </button>
-//                                             );
-//                                         })}
-//                                     </div>
-//                                 )}
-//                             </div>
-//                         );
-//                     })}
-//                 </nav>
-
-//                 <div className="p-4 border-t border-gray-100">
-//                     <p className="text-[10px] text-gray-400 uppercase mb-2 tracking-widest font-bold">
-//                         Vyapar v1.0.0
-//                     </p>
-//                 </div>
-//             </aside>
-
-//             {/* ── Main Content ──────────────────────────────────────────────────── */}
-//             <main className="flex-1 overflow-y-auto">
-//                 <header className="bg-white h-16 border-b border-gray-200 flex items-center px-8 sticky top-0 z-10">
-//                     <h2 className="text-lg font-semibold text-gray-800 capitalize">
-//                         {activeTabConfig?.label || "Dashboard"}
-//                     </h2>
-//                 </header>
-
-//                 <div className="p-8">
-//                     <Suspense fallback={
-//                         <div className="flex items-center justify-center h-64">
-//                             <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-//                         </div>
-//                     }>
-//                         {TabComponent ? (
-//                             <TabComponent onSwitchTab={handleSwitchTab} />
-//                         ) : (
-//                             <div className="flex flex-col items-center justify-center h-64 text-gray-400">
-//                                 <svg className="w-12 h-12 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-//                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-//                                         d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-//                                 </svg>
-//                                 <p className="text-sm font-medium">This section is coming soon</p>
-//                             </div>
-//                         )}
-//                     </Suspense>
-//                 </div>
-//             </main>
-//         </div>
-//     );
-// };
-
-// export default SideBarDashboard;
-
-// // src/Components/SideBarDashboard/SideBarDashboard.jsx
-// import React, { useState, useEffect, Suspense } from "react";
-// import { useSearchParams } from "react-router-dom";
-// import { TAB_REGISTRY } from "../TabRegistry";
-// import { ROLE_PERMISSIONS, ROLE_LABELS, ROLES } from "../roles";
-// // import LOGO from "../assets/logo.png";
-
-// // ── HARDCODED ROLE (change this to test different permissions) ───────────────
-// const HARDCODED_ROLE = ROLES.OWNER;
-
-// const LOGO = "https://www.thebigfeathers.com/static/media/logo.de8b004c787675511bd3.png"
-// // ─────────────────────────────────────────────────────────────────────────────
-
-// const SideBarDashboard = () => {
-//     const [searchParams, setSearchParams] = useSearchParams();
-
-//     // ── Role & permissions ────────────────────────────────────────────────────
-//     const activeRole = HARDCODED_ROLE;
-//     const allowedTabIds = ROLE_PERMISSIONS[activeRole] || [];
-//     const allowedTabs = TAB_REGISTRY.filter((tab) => allowedTabIds.includes(tab.id));
-//     const defaultTab = allowedTabs[0]?.id || "dashboard";
-
-//     // ── Derive activeTab synchronously from URL + permissions ─────────────────
-//     const tabFromUrl = searchParams.get("tab");
-//     const activeTab = tabFromUrl && allowedTabIds.includes(tabFromUrl)
-//         ? tabFromUrl
-//         : defaultTab;
-
-//     const activeCtab = searchParams.get("ctab") || null;
-
-//     // ── Dropdown state — auto-expand parent of currently active tab ───────────
-//     const [expandedTab, setExpandedTab] = useState(() => {
-//         const urlTab = new URLSearchParams(window.location.search).get("tab");
-//         const entry = allowedTabs.find((t) => t.id === urlTab && t.subItems?.length);
-//         return entry ? entry.id : null;
-//     });
-
-//     // ── Keep URL honest ───────────────────────────────────────────────────────
-//     useEffect(() => {
-//         const urlTab = searchParams.get("tab");
-//         const urlIsWrong = !urlTab || !allowedTabIds.includes(urlTab);
-
-//         if (urlIsWrong) {
-//             setSearchParams({ tab: defaultTab }, { replace: true });
-//         }
-//     }, [activeRole, searchParams, setSearchParams, defaultTab, allowedTabIds]);
-
-//     // ── Auto-expand parent when activeTab changes ─────────────────────────────
-//     useEffect(() => {
-//         const entry = allowedTabs.find((t) => t.id === activeTab && t.subItems?.length);
-//         if (entry) {
-//             setExpandedTab((prev) => (prev === entry.id ? prev : entry.id));
-//         }
-//     }, [activeTab, allowedTabs]);
-
-//     // ── Parent tab click ──────────────────────────────────────────────────────
-//     const handleTabClick = (tab) => {
-//         if (!allowedTabIds.includes(tab.id)) return;
-
-//         if (tab.subItems?.length) {
-//             if (expandedTab === tab.id) {
-//                 setExpandedTab(null);
-//             } else {
-//                 setExpandedTab(tab.id);
-//                 const firstSub = tab.subItems[0];
-//                 setSearchParams({ tab: tab.id, ctab: firstSub.id });
-//             }
-//         } else {
-//             setExpandedTab(null);
-//             setSearchParams({ tab: tab.id });
-//         }
-//     };
-
-//     // ── Sub-item click (sidebar dropdown) ─────────────────────────────────────
-//     const handleSubItemClick = (parentId, subId) => {
-//         if (!allowedTabIds.includes(parentId)) return;
-//         setSearchParams({ tab: parentId, ctab: subId });
-//     };
-
-//     // ── Switch tab from inside components ─────────────────────────────────────
-//     const handleSwitchTab = (tabId) => {
-//         const tab = allowedTabs.find((t) => t.id === tabId);
-//         if (tab) handleTabClick(tab);
-//     };
-
-//     const activeTabConfig = allowedTabs.find((t) => t.id === activeTab);
-//     const TabComponent = activeTabConfig?.component ?? null;
-
-//     return (
-//         <div className="flex min-h-screen bg-gray-50">
-
-//             {/* ── Sidebar ──────────────────────────────────────────────────────── */}
-//             <aside className="w-64 bg-white border-r border-gray-200 flex flex-col sticky top-0 h-screen z-20">
-
-//                 {/* Logo / Brand Container */}
-//                 <div className="p-6 flex flex-col items-center border-b border-gray-50 bg-white">
-//                     {/* Logo Wrapper */}
-//                     <div className="relative group flex items-center justify-center w-24 h-24 mb-4">
-//                         {/* Decorative background element for depth */}
-//                         <div className="absolute inset-0 bg-gradient-to-tr from-gray-50 to-white rounded-2xl border border-gray-100 shadow-sm transition-all duration-300 group-hover:shadow-md" />
-
-//                         {/* Actual Logo */}
-//                         <img
-//                             src={LOGO}
-//                             alt="Brand Logo"
-//                             className="relative z-10 w-40 h-40 object-contain"
-//                         />
-//                     </div>
-
-//                     {/* Identity Section */}
-//                     <div className="text-center">
-//                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100 tracking-widest uppercase">
-//                             {ROLE_LABELS[activeRole] || activeRole}
-//                         </span>
-//                     </div>
-//                 </div>
-
-//                 {/* Navigation */}
-//                 <nav className="flex-1 px-4 space-y-1 mt-4 overflow-y-auto">
-//                     {allowedTabs.map((tab) => {
-//                         const isActive = activeTab === tab.id;
-//                         const hasSubItems = tab.subItems?.length > 0;
-//                         const isExpanded = expandedTab === tab.id;
-
-//                         return (
-//                             <div key={tab.id}>
-//                                 {/* Parent button */}
-//                                 <button
-//                                     onClick={() => handleTabClick(tab)}
-//                                     className={`w-full flex items-center cursor-pointer justify-between px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 ${isActive
-//                                         ? "bg-blue-50 text-blue-600 shadow-sm"
-//                                         : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-//                                         }`}
-//                                 >
-//                                     <div className="flex items-center space-x-3">
-//                                         <svg
-//                                             className={`w-5 h-5 shrink-0 ${isActive ? "text-blue-600" : "text-gray-400"}`}
-//                                             fill="none" stroke="currentColor" viewBox="0 0 24 24"
-//                                         >
-//                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={tab.icon} />
-//                                         </svg>
-//                                         <span>{tab.label}</span>
-//                                     </div>
-
-//                                     {/* Chevron for dropdown tabs */}
-//                                     {hasSubItems && (
-//                                         <svg
-//                                             className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""} ${isActive ? "text-blue-500" : "text-gray-400"
-//                                                 }`}
-//                                             fill="none" stroke="currentColor" viewBox="0 0 24 24"
-//                                         >
-//                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-//                                         </svg>
-//                                     )}
-//                                 </button>
-
-//                                 {/* Dropdown sub-items */}
-//                                 {hasSubItems && isExpanded && (
-//                                     <div className="mt-1 ml-4 pl-4 border-l-2 border-blue-100 space-y-0.5">
-//                                         {tab.subItems.map((sub) => {
-//                                             const isSubActive = isActive && activeCtab === sub.id;
-//                                             return (
-//                                                 <button
-//                                                     key={sub.id}
-//                                                     onClick={() => handleSubItemClick(tab.id, sub.id)}
-//                                                     className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-lg transition-all duration-150 cursor-pointer text-left ${isSubActive
-//                                                         ? "bg-blue-50 text-blue-700"
-//                                                         : "text-gray-500 hover:bg-gray-50 hover:text-gray-800"
-//                                                         }`}
-//                                                 >
-//                                                     <svg
-//                                                         className={`w-3.5 h-3.5 shrink-0 ${isSubActive ? "text-blue-600" : "text-gray-400"}`}
-//                                                         fill="none" stroke="currentColor" viewBox="0 0 24 24"
-//                                                     >
-//                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={sub.icon} />
-//                                                     </svg>
-//                                                     {sub.label}
-//                                                 </button>
-//                                             );
-//                                         })}
-//                                     </div>
-//                                 )}
-//                             </div>
-//                         );
-//                     })}
-//                 </nav>
-
-//                 {/* Footer */}
-//                 <div className="p-4 border-t border-gray-100">
-//                     <p className="text-[10px] text-gray-400 uppercase mb-2 tracking-widest font-bold">
-//                         Vyapar v1.0.0
-//                     </p>
-//                 </div>
-//             </aside>
-
-//             {/* ── Main Content ──────────────────────────────────────────────────── */}
-//             <main className="flex-1 overflow-y-auto">
-//                 <header className="bg-white h-16 border-b border-gray-200 flex items-center px-8 sticky top-0 z-10">
-//                     <h2 className="text-lg font-semibold text-gray-800 capitalize">
-//                         {activeTabConfig?.label || "Dashboard"}
-//                     </h2>
-//                 </header>
-
-//                 <div className="p-8">
-//                     <Suspense fallback={
-//                         <div className="flex items-center justify-center h-64">
-//                             <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-//                         </div>
-//                     }>
-//                         {TabComponent ? (
-//                             <TabComponent onSwitchTab={handleSwitchTab} />
-//                         ) : (
-//                             <div className="flex flex-col items-center justify-center h-64 text-gray-400">
-//                                 <svg className="w-12 h-12 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-//                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-//                                         d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-//                                 </svg>
-//                                 <p className="text-sm font-medium">This section is coming soon</p>
-//                             </div>
-//                         )}
-//                     </Suspense>
-//                 </div>
-//             </main>
-//         </div>
-//     );
-// };
-
-// export default SideBarDashboard;

@@ -7,7 +7,7 @@
 import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { X, Search, AlertTriangle } from "lucide-react";
-import { toast } from "react-toastify";
+import { toast } from "../../../shared/ToastConfig";
 import { useCreateStockMutation } from "../../../../REDUX_FEATURES/REDUX_SLICES/Stock_api/stockApi";
 import { useGetProductsQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/Product_api/productApi";
 import { useGetWarehousesQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/Warehouse_api/warehouseApi";

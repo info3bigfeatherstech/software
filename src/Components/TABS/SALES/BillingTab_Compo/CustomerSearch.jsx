@@ -117,22 +117,22 @@ export default function CustomerSearch() {
             {/* Customer Found */}
             {foundCustomer && selectedCustomer && (
                 <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <User size={16} className="text-blue-600" />
-                            <p className="font-semibold text-gray-800">{foundCustomer.name}</p>
-                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getLoyaltyBadge(foundCustomer.loyalty_tier)}`}>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                        <div className="flex flex-wrap items-center gap-2 min-w-0">
+                            <User size={16} className="text-blue-600 shrink-0" />
+                            <p className="font-semibold text-gray-800 truncate">{foundCustomer.name}</p>
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium shrink-0 ${getLoyaltyBadge(foundCustomer.loyalty_tier)}`}>
                                 {foundCustomer.loyalty_tier}
                             </span>
                         </div>
                         <button
                             onClick={handleClearCustomer}
-                            className="text-xs text-red-500 hover:text-red-700"
+                            className="text-xs text-red-500 hover:text-red-700 shrink-0 self-start sm:self-auto"
                         >
                             Change
                         </button>
                     </div>
-                    <div className="flex gap-4 mt-2 text-xs text-gray-600">
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-gray-600">
                         <span>📞 {foundCustomer.mobile}</span>
                         <span>💰 Total: ₹{foundCustomer.total_spent?.toFixed(2) || "0"}</span>
                         <span>📦 Orders: {foundCustomer.total_orders || 0}</span>
@@ -142,14 +142,14 @@ export default function CustomerSearch() {
 
             {/* No Customer Found */}
             {customerMobileInput.length === 10 && !foundCustomer && !isLoading && (
-                <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center justify-between">
-                    <div>
+                <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div className="min-w-0">
                         <p className="text-sm text-yellow-800 font-medium">New Customer</p>
                         <p className="text-xs text-yellow-600">No existing account found</p>
                     </div>
                     <button
                         onClick={() => dispatch(openCreateCustomer())}
-                        className="px-3 py-1.5 bg-yellow-600 text-white text-xs font-medium rounded-lg hover:bg-yellow-700"
+                        className="shrink-0 px-3 py-1.5 bg-yellow-600 text-white text-xs font-medium rounded-lg hover:bg-yellow-700 self-start sm:self-auto"
                     >
                         Add Customer
                     </button>

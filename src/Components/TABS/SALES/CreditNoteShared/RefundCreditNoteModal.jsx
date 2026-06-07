@@ -6,7 +6,7 @@
 import React, { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { X, Receipt } from "lucide-react";
-import { toast } from "react-toastify";
+import { toast } from "../../../shared/ToastConfig";
 import { updateRefundForm, setActionErrors } from "../../../../REDUX_FEATURES/REDUX_SLICES/CreditNote_api/creditNoteSlice";
 
 const toNumber = (value, defaultValue = 0) => {

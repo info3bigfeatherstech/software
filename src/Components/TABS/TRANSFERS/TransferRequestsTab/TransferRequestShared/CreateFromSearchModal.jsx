@@ -7,7 +7,7 @@
 import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { X, AlertTriangle } from "lucide-react";
-import { toast } from "react-toastify";
+import { toast } from "../../../../shared/ToastConfig";
 import {
     useCreateTransferRequestMutation,
     useCreateEmergencyTransferRequestMutation,

@@ -131,7 +131,7 @@ export default function LoyaltyPointsTab() {
                     <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Loyalty Members</span>
                     <span className="text-xs text-gray-400 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded-full">3 records</span>
                 </div>
-                <table className="w-full text-sm">
+                <table className="w-full min-w-[720px] lg:min-w-0 text-sm">
                     <thead className="bg-gray-50 border-b border-gray-100">
                         <tr>
                             {["Customer", "Phone", "Tier", "Points Balance", "Points Earned", "Points Redeemed", "Last Purchase", "Actions"].map((h) => (
@@ -169,7 +169,7 @@ export default function LoyaltyPointsTab() {
             <div className="space-y-3">
                 <h3 className="text-sm font-semibold text-gray-700">Recent Redemptions</h3>
                 <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
-                    <table className="w-full text-sm">
+                    <table className="w-full min-w-[720px] lg:min-w-0 text-sm">
                         <thead className="bg-gray-50 border-b border-gray-100">
                             <tr>
                                 {["Customer", "Points Used", "Value (₹)", "Bill #", "Date"].map((h) => (

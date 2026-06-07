@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { X } from "lucide-react";
-import { toast } from "react-toastify";
+import { toast } from "../../../shared/ToastConfig";
 import {
     useCreateShopStaffCodeMutation,
     useUpdateShopStaffCodeMutation,

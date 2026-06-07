@@ -6,7 +6,7 @@
 
 import React, { useState } from "react";
 import { X, Move, Trash2, MapPin } from "lucide-react";
-import { toast } from "react-toastify";
+import { toast } from "../../../shared/ToastConfig";
 import { 
     useBulkUpdateStocksMutation,
     useBulkDeleteStocksMutation,

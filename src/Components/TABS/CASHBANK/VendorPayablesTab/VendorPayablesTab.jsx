@@ -52,7 +52,7 @@ export default function VendorPayablesTab() {
 
             <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
                 <div className="px-4 py-3 border-b border-gray-100 text-xs font-semibold text-gray-500 uppercase">Vendor-wise Summary</div>
-                <table className="w-full text-sm">
+                <table className="w-full min-w-[720px] lg:min-w-0 text-sm">
                     <thead className="bg-gray-50 border-b border-gray-100">
                         <tr>
                             {["Vendor", "Purchases", "Subtotal", "Tax", "Total Payable"].map((h) => (
@@ -82,7 +82,7 @@ export default function VendorPayablesTab() {
 
             <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
                 <div className="px-4 py-3 border-b border-gray-100 text-xs font-semibold text-gray-500 uppercase">Recent Purchase Entries</div>
-                <table className="w-full text-sm">
+                <table className="w-full min-w-[720px] lg:min-w-0 text-sm">
                     <thead className="bg-gray-50 border-b border-gray-100">
                         <tr>
                             {["Purchase #", "Vendor Invoice", "Vendor", "Date", "Amount", "Warehouse"].map((h) => (

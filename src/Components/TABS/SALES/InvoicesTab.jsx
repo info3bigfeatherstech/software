@@ -81,7 +81,7 @@ const InvoicesTab = () => {
             {/* Bills Table */}
             <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
                 <div className="overflow-x-auto">
-                    <table className="w-full">
+                    <table className="w-full min-w-[720px] lg:min-w-0">
                         <thead className="bg-gray-50 border-b border-gray-200">
                             <tr>
                                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500">Bill #</th>
@@ -157,7 +157,8 @@ const InvoicesTab = () => {
                                 <div><span className="text-gray-500">Payment:</span> {selectedBill.paymentMethod.toUpperCase()}</div>
                             </div>
 
-                            <table className="w-full text-sm">
+                            <div className="w-full overflow-x-auto overflow-y-hidden overscroll-x-contain">
+                            <table className="w-full min-w-[720px] lg:min-w-0 text-sm">
                                 <thead className="bg-gray-50">
                                     <tr>
                                         <th className="px-4 py-2 text-left">Item</th>
@@ -185,6 +186,7 @@ const InvoicesTab = () => {
                                     <tr><td colSpan="3" className="px-4 py-2 text-right font-bold">TOTAL:</td><td className="px-4 py-2 text-right font-bold text-blue-600">₹{selectedBill.total.toFixed(2)}</td></tr>
                                 </tfoot>
                             </table>
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -193,7 +193,7 @@ export default function WarehouseOverviewTab() {
           <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Warehouses</span>
           <span className="text-xs text-gray-400 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded-full">{warehouses.length} records</span>
         </div>
-        <table className="w-full text-sm">
+        <table className="w-full min-w-[720px] lg:min-w-0 text-sm">
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
               <th className="px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide text-left">Warehouse ID</th>

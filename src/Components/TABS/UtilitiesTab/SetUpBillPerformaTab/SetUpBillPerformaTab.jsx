@@ -125,7 +125,8 @@ export default function SetUpBillPerformaTab() {
                         <p className="text-gray-500">GSTIN: {billData.gstin}</p>
                         <hr className="my-3 border-gray-200" />
                         <p className="text-center font-bold text-gray-900 text-sm mt-2">TAX INVOICE</p>
-                        <table className="w-full mt-3 text-xs text-gray-600">
+                        <div className="w-full overflow-x-auto overflow-y-hidden overscroll-x-contain">
+                        <table className="w-full min-w-[720px] lg:min-w-0 mt-3 text-xs text-gray-600">
                             <thead>
                                 <tr className="border-b border-gray-200 text-gray-500">
                                     <th className="text-left py-1">Item</th>
@@ -153,6 +154,7 @@ export default function SetUpBillPerformaTab() {
                                 </tr>
                             </tbody>
                         </table>
+                        </div>
                         {billData.showTerms && (
                             <p className="text-xs text-gray-400 mt-3">{billData.termsText}</p>
                         )}

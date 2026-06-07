@@ -5,7 +5,7 @@
 import React, { useMemo, useState } from "react";
 import { useSelector } from "react-redux";
 import { Pencil, Trash2, Plus, RefreshCw, Landmark, QrCode, CheckCircle2, AlertCircle, Building } from "lucide-react";
-import { toast } from "react-toastify";
+import { toast } from "../../../shared/ToastConfig";
 import {
     useGetShopsQuery,
     useGetMyShopQuery,
@@ -218,7 +218,7 @@ export default function BankDetailsTab() {
                 {/* Populated Data Grid */}
                 {!isLoading && accounts.length > 0 && (
                     <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
+                        <table className="w-full min-w-[720px] lg:min-w-0 text-left border-collapse">
                             <thead>
                                 <tr className="bg-gray-50/70 border-b border-gray-100">
                                     {["Institution", "Beneficiary Holder", "Account Sequence", "Routing (IFSC)", "UPI Interface String", "Default", "Actions"].map((h) => (

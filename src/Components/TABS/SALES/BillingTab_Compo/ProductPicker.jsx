@@ -12,7 +12,7 @@ import { useGetShopStocksQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/S
 import { addToCart, updateCartQty } from "../../../../REDUX_FEATURES/REDUX_SLICES/Billing_api/billingSlice";
 import BarcodeScanner from "./BarcodeScanner";
 import { useLazyGetProductByBarcodeQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/Product_api/productApi";
-import { toast } from "react-toastify";
+import { toast } from "../../../shared/ToastConfig";
 import {
     buildBillingCartItem,
     formatGstPercentLabel,
@@ -183,9 +183,9 @@ export default function ProductPicker({ shop_id, cart = [] }) {
             </button>
 
             {/* Product Grid */}
-            <div className="grid grid-cols-3 gap-2 overflow-y-auto flex-1 pr-1">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 overflow-y-auto flex-1 pr-1 min-h-0">
                 {filteredStocks.length === 0 ? (
-                    <div className="col-span-3 text-center text-gray-400 py-8">
+                    <div className="col-span-2 sm:col-span-3 text-center text-gray-400 py-8">
                         No products found in this shop
                     </div>
                 ) : (

@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { X, AlertTriangle, Truck, Warehouse, Package, RefreshCw, Edit2, CheckCircle } from "lucide-react";
-import { toast } from "react-toastify";
+import { toast } from "../../../../shared/ToastConfig";
 import { useGetReorderSuggestionsQuery } from "../../../../../REDUX_FEATURES/REDUX_SLICES/ShopStock_api/shopStockApi";
 import { useCreateBulkTransferRequestMutation, generateBulkIdempotencyKey } from "../../../../../REDUX_FEATURES/REDUX_SLICES/BulkTransfer_api/bulkTransferApi";
 import { closeBulkRestockModal, clearSelectedStocks } from "../../../../../REDUX_FEATURES/REDUX_SLICES/ShopStock_api/shopStockSlice";
@@ -243,7 +243,8 @@ export default function StockBulkRestockModal({ onSuccess, stocks, selectedStock
                                     </div>
                                 ) : (
                                     <div className="border border-gray-200 rounded-lg overflow-hidden">
-                                        <table className="w-full text-sm">
+                                        <div className="w-full overflow-x-auto overflow-y-hidden overscroll-x-contain">
+                                        <table className="w-full min-w-[720px] lg:min-w-0 text-sm">
                                             <thead className="bg-gray-50">
                                                 <tr>
                                                     <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500">Product</th>
@@ -311,6 +312,7 @@ export default function StockBulkRestockModal({ onSuccess, stocks, selectedStock
                                                 })}
                                             </tbody>
                                         </table>
+                                        </div>
                                     </div>
                                 )}
                             </div>
