@@ -121,7 +121,7 @@ export default function DebitNoteViewModal({ debitNoteId, onClose }) {
                     >
                         <Download size={14} /> PDF
                     </button>
-                    <button type="button" onClick={onClose} className="px-4 py-2 text-sm bg-gray-900 text-white rounded-lg">
+                    <button type="button" onClick={onClose} className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg">
                         Close
                     </button>
                 </div>

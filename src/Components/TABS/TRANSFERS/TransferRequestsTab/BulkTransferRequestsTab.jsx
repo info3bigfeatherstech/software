@@ -393,7 +393,7 @@ export default function BulkTransferRequestsTab() {
                                 dispatch(openCreateModal());
                             }
                         }}
-                        className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-gray-900 hover:bg-gray-700 rounded-lg transition-colors"
+                        className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
                     >
                         <Plus size={14} /> New Bulk Request
                     </button>
@@ -698,7 +698,7 @@ export default function BulkTransferRequestsTab() {
                             <button 
                                 onClick={handleCreateSubmit} 
                                 disabled={selectedCatalogItems.length === 0} 
-                                className="px-5 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-700 disabled:opacity-50 transition-colors"
+                                className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
                             >
                                 Create Bulk Request
                             </button>

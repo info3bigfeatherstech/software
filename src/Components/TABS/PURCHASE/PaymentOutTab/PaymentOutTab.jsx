@@ -1,12 +1,14 @@
 import React, { useState } from "react";
 import { useSelector } from "react-redux";
-import { Plus, RefreshCw, XCircle } from "lucide-react";
+import { Plus, RefreshCw, XCircle, Pencil } from "lucide-react";
 import {
     useGetVendorPaymentsQuery,
+    useGetVendorPaymentByIdQuery,
     useCancelVendorPaymentMutation,
     useUpdateVendorPaymentStatusMutation,
 } from "../../../../REDUX_FEATURES/REDUX_SLICES/Purchase_api/purchaseFinanceApi";
 import RecordPaymentModal from "./RecordPaymentModal";
+import PaymentDetailModal from "./PaymentDetailModal";
 import {
     fmtCurrency,
     fmtDate,
@@ -36,6 +38,9 @@ export default function PaymentOutTab() {
     const [fromDate, setFromDate] = useState("");
     const [toDate, setToDate] = useState("");
     const [showForm, setShowForm] = useState(false);
+    const [formMode, setFormMode] = useState("create");
+    const [editPaymentId, setEditPaymentId] = useState("");
+    const [detailPaymentId, setDetailPaymentId] = useState("");
 
     const { data, isLoading, isFetching, refetch } = useGetVendorPaymentsQuery({
         search,
@@ -46,16 +51,38 @@ export default function PaymentOutTab() {
         limit: 100,
     });
 
+    const { data: editPayment } = useGetVendorPaymentByIdQuery(editPaymentId, {
+        skip: !editPaymentId || formMode !== "edit",
+    });
+
     const [cancelPayment] = useCancelVendorPaymentMutation();
     const [updateStatus] = useUpdateVendorPaymentStatusMutation();
 
     const payments = data?.payments || [];
     const summary = data?.meta?.summary || {};
 
+    const openCreate = () => {
+        setFormMode("create");
+        setEditPaymentId("");
+        setShowForm(true);
+    };
+
+    const openEdit = (payment) => {
+        setFormMode("edit");
+        setEditPaymentId(payment.payment_id);
+        setDetailPaymentId("");
+        setShowForm(true);
+    };
+
+    const openDetail = (payment) => {
+        setDetailPaymentId(payment.payment_id);
+    };
+
     const handleCancel = async (payment) => {
         if (!window.confirm(`Cancel payment ${payment.payment_number}?`)) return;
         try {
             await cancelPayment(payment.payment_id).unwrap();
+            setDetailPaymentId("");
             refetch();
         } catch (err) {
             alert(err?.data?.message || "Failed to cancel payment");
@@ -65,10 +92,19 @@ export default function PaymentOutTab() {
     const handleMarkPaid = async (payment) => {
         try {
             await updateStatus({ paymentId: payment.payment_id, status: "PAID" }).unwrap();
+            setDetailPaymentId("");
             refetch();
         } catch (err) {
             alert(err?.data?.message || "Failed to update status");
         }
+    };
+
+    const handleEditFromPendingLink = (pendingPaymentId) => {
+        if (!pendingPaymentId) return;
+        setShowForm(false);
+        setFormMode("edit");
+        setEditPaymentId(pendingPaymentId);
+        setTimeout(() => setShowForm(true), 0);
     };
 
     return (
@@ -83,7 +119,7 @@ export default function PaymentOutTab() {
                         <RefreshCw size={13} className={isFetching ? "animate-spin" : ""} /> Refresh
                     </button>
                     {canWrite && (
-                        <button type="button" onClick={() => setShowForm(true)} className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg">
+                        <button type="button" onClick={openCreate} className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg">
                             <Plus size={14} /> Record Payment
                         </button>
                     )}
@@ -144,7 +180,15 @@ export default function PaymentOutTab() {
                         )}
                         {payments.map((p) => (
                             <tr key={p.payment_id} className="hover:bg-gray-50">
-                                <td className="px-4 py-3 font-mono text-xs">{p.payment_number}</td>
+                                <td className="px-4 py-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => openDetail(p)}
+                                        className="font-mono text-xs text-blue-600 hover:underline"
+                                    >
+                                        {p.payment_number}
+                                    </button>
+                                </td>
                                 <td className="px-4 py-3 text-xs text-gray-500">{fmtDate(p.payment_date)}</td>
                                 <td className="px-4 py-3">{p.vendor?.company_name}</td>
                                 <td className="px-4 py-3 text-xs">{getPaymentMethodLabel(p.payment_method)}</td>
@@ -162,7 +206,17 @@ export default function PaymentOutTab() {
                                     {canWrite && (
                                         <div className="flex gap-1">
                                             {p.status === "PENDING" && (
-                                                <button type="button" onClick={() => handleMarkPaid(p)} className="text-xs px-2 py-1 border border-green-200 text-green-700 rounded-lg">Mark Paid</button>
+                                                <>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => openEdit(p)}
+                                                        className="p-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50"
+                                                        title="Edit payment"
+                                                    >
+                                                        <Pencil size={14} />
+                                                    </button>
+                                                    <button type="button" onClick={() => handleMarkPaid(p)} className="text-xs px-2 py-1 border border-green-200 text-green-700 rounded-lg">Mark Paid</button>
+                                                </>
                                             )}
                                             <button type="button" onClick={() => handleCancel(p)} className="p-1.5 border border-red-100 rounded-lg text-red-600 hover:bg-red-50">
                                                 <XCircle size={14} />
@@ -178,9 +232,33 @@ export default function PaymentOutTab() {
 
             <RecordPaymentModal
                 open={showForm}
-                onClose={() => setShowForm(false)}
+                onClose={() => {
+                    setShowForm(false);
+                    setEditPaymentId("");
+                    setFormMode("create");
+                }}
                 onSaved={refetch}
-                warehouseId={effectiveWarehouseId}
+                isSuperAdmin={isSuperAdmin}
+                assignedWarehouseId={warehouseId}
+                assignedWarehouseName={user?.locationName || ""}
+                initialWarehouseId={warehouseFilter}
+                mode={formMode}
+                paymentId={editPaymentId}
+                initialPayment={formMode === "edit" ? editPayment : null}
+                onEditExistingPending={handleEditFromPendingLink}
+            />
+
+            <PaymentDetailModal
+                open={!!detailPaymentId}
+                paymentId={detailPaymentId}
+                onClose={() => setDetailPaymentId("")}
+                canWrite={canWrite}
+                onEdit={(payment) => {
+                    setDetailPaymentId("");
+                    openEdit(payment);
+                }}
+                onMarkPaid={handleMarkPaid}
+                onCancel={handleCancel}
             />
         </div>
     );

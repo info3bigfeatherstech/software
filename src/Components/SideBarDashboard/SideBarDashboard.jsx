@@ -12,7 +12,15 @@ import {
 import AppLoading from "../shared/AppLoading";
 import Notification from "../shared/notification/Notification";
 
-const LOGO = "https://www.thebigfeathers.com/static/media/logo.de8b004c787675511bd3.png";
+const LOGO = "/bigfeathers-logo-cropped.png";
+
+const SIDEBAR_NAV_FOCUS = "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/15 focus-visible:ring-offset-0";
+const SIDEBAR_NAV = {
+    active: `bg-white/[0.08] text-white font-medium border-l-[3px] border-white/30 pl-2 ${SIDEBAR_NAV_FOCUS}`,
+    idle: `text-slate-400 hover:bg-white/[0.05] hover:text-slate-100 border-l-[3px] border-transparent pl-2 ${SIDEBAR_NAV_FOCUS}`,
+    subActive: `bg-white/[0.08] text-white font-medium ${SIDEBAR_NAV_FOCUS}`,
+    subIdle: `text-slate-500 hover:bg-white/[0.05] hover:text-slate-200 ${SIDEBAR_NAV_FOCUS}`,
+};
 
 const SideBarDashboard = () => {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -139,50 +147,53 @@ const SideBarDashboard = () => {
             <aside
                 className={`
                     fixed md:relative top-0 h-full z-40
-                    flex flex-col bg-white border-r border-gray-300 shrink-0
+                    flex flex-col shrink-0 bg-[#0c1222] border-r border-slate-700
                     ${isSidebarCollapsed ? "w-[52px]" : "w-[180px]"}
                     ${isMobileMenuOpen ? "left-0" : "-left-full md:left-0"}
                 `}
             >
-                <div className={`border-b border-gray-300 shrink-0 ${isSidebarCollapsed ? "px-1.5 py-2" : "px-2 py-2.5"}`}>
-                    <div className="flex items-center justify-center w-full">
+                <div className={`relative shrink-0 border-b border-slate-700 ${isSidebarCollapsed ? "px-1 py-2" : "px-1.5 py-2.5"}`}>
+                    <div
+                        className={`flex items-center justify-center w-full overflow-hidden bg-[#0c1222] ${
+                            isSidebarCollapsed ? "h-10" : "h-[72px]"
+                        }`}
+                    >
                         <img
                             src={LOGO}
-                            alt="Logo"
-                            className={`object-contain object-center ${
+                            alt="BigFeathers"
+                            className={`block object-contain object-center ${
                                 isSidebarCollapsed
-                                    ? "w-9 h-9 max-w-full"
-                                    : "w-full max-w-[164px] h-auto max-h-14"
+                                    ? "h-full w-auto min-w-[145%]"
+                                    : "w-full h-full"
                             }`}
                         />
                     </div>
                     {!isSidebarCollapsed && (
                         <div className="mt-2 text-center">
-                            <span className="inline-block px-2 py-0.5 text-[10px] text-blue-800 bg-blue-50 border border-blue-200 rounded">
+                            <span className="inline-block px-2 py-0.5 text-[10px] rounded text-slate-300 bg-white/[0.06] border border-white/10">
                                 {ROLE_LABELS[activeRole] || activeRole}
                             </span>
                         </div>
                     )}
+                    <button
+                        type="button"
+                        onClick={toggleSidebar}
+                        className="absolute -right-3 bottom-0 translate-y-1/2 rounded-full p-1 hidden md:block z-10 bg-slate-800 border border-slate-600 hover:bg-slate-700"
+                        title={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+                    >
+                        <svg
+                            className={`w-3 h-3 text-slate-300 ${isSidebarCollapsed ? "rotate-180" : ""}`}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                        >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
+                    </button>
                 </div>
 
-                <button
-                    type="button"
-                    onClick={toggleSidebar}
-                    className="absolute -right-3 top-14 bg-white border border-gray-300 rounded-full p-1 hidden md:block hover:bg-gray-50"
-                    title={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-                >
-                    <svg
-                        className={`w-3 h-3 text-gray-500 ${isSidebarCollapsed ? "rotate-180" : ""}`}
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                    >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                    </svg>
-                </button>
-
-                <nav className="flex-1 min-h-0 px-2 py-2 overflow-y-auto overflow-x-hidden">
-                    <div className="flex flex-col gap-1">
+                <nav className="flex-1 min-h-0 px-2 py-3 overflow-y-auto overflow-x-hidden">
+                    <div className="flex flex-col gap-2">
                         {allowedTabs.map((tab) => {
                             const isActive = activeTab === tab.id;
                             const hasSubItems = tab.subItems?.length > 0;
@@ -191,18 +202,15 @@ const SideBarDashboard = () => {
                             return (
                                 <div
                                     key={tab.id}
-                                    className={`flex flex-col min-w-0 ${isExpanded && !isSidebarCollapsed ? "pb-1" : ""}`}
+                                    className={`flex flex-col min-w-0 ${isExpanded && !isSidebarCollapsed ? "pb-1.5" : ""}`}
                                 >
                                     <button
                                         type="button"
                                         onClick={() => handleTabClick(tab)}
                                         className={`
-                                            w-full flex items-center gap-2 min-w-0 rounded text-sm
-                                            ${isSidebarCollapsed ? "justify-center px-2 py-2.5" : "px-2.5 py-2"}
-                                            ${isActive
-                                                ? "bg-blue-50 text-blue-700 font-medium border-l-[3px] border-blue-600 pl-2"
-                                                : "text-gray-600 hover:bg-gray-100 hover:text-gray-800 border-l-[3px] border-transparent pl-2"
-                                            }
+                                            w-full flex items-center gap-2 min-w-0 rounded text-sm leading-normal
+                                            ${isSidebarCollapsed ? "justify-center px-2 py-3" : "px-2.5 py-2.5"}
+                                            ${isActive ? SIDEBAR_NAV.active : SIDEBAR_NAV.idle}
                                         `}
                                         title={isSidebarCollapsed ? tab.label : ""}
                                     >
@@ -216,7 +224,7 @@ const SideBarDashboard = () => {
                                         </svg>
                                         {!isSidebarCollapsed && (
                                             <>
-                                                <span className="flex-1 min-w-0 text-left truncate leading-tight">
+                                                <span className="flex-1 min-w-0 text-left truncate leading-normal">
                                                     {tab.label}
                                                 </span>
                                                 {hasSubItems && (
@@ -234,7 +242,7 @@ const SideBarDashboard = () => {
                                     </button>
 
                                     {hasSubItems && isExpanded && !isSidebarCollapsed && (
-                                        <div className="mt-0.5 ml-4 pl-2 border-l border-gray-200 flex flex-col gap-0.5 min-w-0">
+                                        <div className="mt-1 ml-4 pl-2 border-l border-slate-700 flex flex-col gap-1 min-w-0">
                                             {filterSubItemsByRole(tab.id, tab.subItems).map((sub) => {
                                                 const isSubActive = isActive && activeCtab === sub.id;
                                                 return (
@@ -244,11 +252,8 @@ const SideBarDashboard = () => {
                                                         onClick={() => handleSubItemClick(tab.id, sub.id)}
                                                         title={sub.label}
                                                         className={`
-                                                            w-full min-w-0 flex items-center px-2 py-1.5 text-xs text-left rounded truncate
-                                                            ${isSubActive
-                                                                ? "bg-blue-50 text-blue-700 font-medium"
-                                                                : "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-                                                            }
+                                                            w-full min-w-0 flex items-center px-2 py-2 text-xs text-left rounded truncate leading-normal
+                                                            ${isSubActive ? SIDEBAR_NAV.subActive : SIDEBAR_NAV.subIdle}
                                                         `}
                                                     >
                                                         <span className="truncate block w-full">{sub.label}</span>
@@ -263,14 +268,15 @@ const SideBarDashboard = () => {
                     </div>
                 </nav>
 
-                <div className={`p-2 border-t border-gray-300 shrink-0 ${isSidebarCollapsed ? "text-center" : ""}`}>
+                <div className={`p-2 shrink-0 border-t border-slate-700 ${isSidebarCollapsed ? "text-center" : ""}`}>
                     <button
                         type="button"
                         onClick={handleLogout}
                         disabled={isLogoutLoading}
                         title="Logout"
                         className={`
-                            w-full mb-2 text-sm text-red-700 bg-white border border-red-300 rounded hover:bg-red-50 disabled:opacity-50
+                            w-full mb-2 text-sm rounded disabled:opacity-50
+                            text-red-300 bg-slate-900 border border-red-900/60 hover:bg-red-950/40
                             ${isSidebarCollapsed ? "flex items-center justify-center px-2 py-2.5" : "px-3 py-1.5"}
                         `}
                     >
@@ -295,7 +301,7 @@ const SideBarDashboard = () => {
                         )}
                     </button>
                     {!isSidebarCollapsed && (
-                        <p className="text-[10px] text-gray-500 text-center">Vyapar v1.0.0</p>
+                        <p className="text-[10px] text-center text-slate-500">Vyapar v1.0.0</p>
                     )}
                 </div>
             </aside>

@@ -299,7 +299,7 @@ export default function UserEditForm({
                                     type="button"
                                     onClick={handleResetPassword}
                                     disabled={isResetting}
-                                    className="px-4 py-2 bg-gray-800 text-white text-sm rounded-lg hover:bg-gray-900 disabled:opacity-60 cursor-pointer whitespace-nowrap"
+                                    className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-60 cursor-pointer whitespace-nowrap"
                                 >
                                     {isResetting ? "Resetting…" : "Reset Password"}
                                 </button>

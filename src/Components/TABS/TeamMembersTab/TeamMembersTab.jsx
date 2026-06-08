@@ -219,7 +219,7 @@ export default function TeamMembersTab() {
                         <button
                             type="button"
                             onClick={handleAddClick}
-                            className="bg-gray-900 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors inline-flex items-center gap-2"
+                            className="bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-2"
                         >
                             + Add Member
                         </button>

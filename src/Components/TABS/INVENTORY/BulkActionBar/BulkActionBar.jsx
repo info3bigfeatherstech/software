@@ -46,7 +46,7 @@ export default function BulkActionBar({
 
   return (
     <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-bottom-5 duration-200">
-      <div className="bg-gray-900 text-white rounded-xl shadow-2xl border border-gray-700 px-4 py-3 flex items-center gap-4">
+      <div className="bg-blue-600 text-white rounded-xl shadow-2xl border border-gray-700 px-4 py-3 flex items-center gap-4">
         {/* Selected count */}
         <div className="flex items-center gap-2">
           <CheckSquare size={18} className="text-blue-400" />
@@ -61,7 +61,7 @@ export default function BulkActionBar({
         <div className="relative">
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="flex items-center gap-2 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm font-medium transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 bg-blue-700 hover:bg-blue-800 rounded-lg text-sm font-medium transition-colors"
           >
             Bulk Actions
             <svg className={`w-4 h-4 transition-transform ${isOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -101,7 +101,7 @@ export default function BulkActionBar({
         {/* Clear selection button */}
         <button
           onClick={() => dispatch(clearSelectedProducts())}
-          className="p-1.5 hover:bg-gray-800 rounded-lg transition-colors"
+          className="p-1.5 hover:bg-blue-700 rounded-lg transition-colors"
           title="Clear selection"
         >
           <X size={16} />

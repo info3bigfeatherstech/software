@@ -64,7 +64,7 @@ export default function BackupToComputerTab() {
                         setIsBackingUp(true);
                         setTimeout(() => setIsBackingUp(false), 3000);
                     }}
-                    className={`mt-4 w-full bg-gray-900 text-white text-sm font-medium py-3 rounded-lg hover:bg-gray-700 transition-colors inline-flex items-center justify-center gap-2 ${isBackingUp ? "opacity-60 cursor-not-allowed" : ""}`}
+                    className={`mt-4 w-full bg-blue-600 text-white text-sm font-medium py-3 rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center justify-center gap-2 ${isBackingUp ? "opacity-60 cursor-not-allowed" : ""}`}
                 >
                     <Download size={16} />
                     {isBackingUp ? "Preparing backup..." : "Download Backup to Computer"}

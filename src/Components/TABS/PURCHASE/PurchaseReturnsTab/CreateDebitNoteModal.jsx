@@ -318,7 +318,7 @@ export default function CreateDebitNoteModal({ onSuccess, onClose }) {
                         type="button"
                         onClick={handleSubmit}
                         disabled={isCreating}
-                        className="px-4 py-2 text-sm bg-gray-900 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50"
+                        className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
                     >
                         {isCreating ? "Creating..." : "Issue Debit Note"}
                     </button>

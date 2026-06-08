@@ -189,7 +189,7 @@ export default function ArchiveTab() {
       {/* Bulk Action Bar - Shows when items selected */}
       {selectedProductIds.length > 0 && (
         <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50">
-          <div className="bg-gray-900 text-white rounded-xl shadow-2xl border border-gray-700 px-4 py-3 flex items-center gap-4">
+          <div className="bg-blue-600 text-white rounded-xl shadow-2xl border border-gray-700 px-4 py-3 flex items-center gap-4">
             <span className="text-sm font-medium">
               {selectedProductIds.length} product{selectedProductIds.length !== 1 ? "s" : ""} selected
             </span>
@@ -198,7 +198,7 @@ export default function ArchiveTab() {
             <div className="relative">
               <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="flex items-center gap-2 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm"
+                className="flex items-center gap-2 px-3 py-1.5 bg-blue-700 hover:bg-blue-800 rounded-lg text-sm"
               >
                 Bulk Actions
                 <svg className={`w-4 h-4 transition-transform ${isDropdownOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -228,7 +228,7 @@ export default function ArchiveTab() {
               )}
             </div>
 
-            <button onClick={clearSelection} className="p-1.5 hover:bg-gray-800 rounded-lg">
+            <button onClick={clearSelection} className="p-1.5 hover:bg-blue-700 rounded-lg">
               <X size={16} />
             </button>
           </div>

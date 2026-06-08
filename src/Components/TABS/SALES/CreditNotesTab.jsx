@@ -282,7 +282,7 @@ export default function CreditNotesTab() {
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                     {canCreate && (
-                        <button onClick={() => setShowCreateModal(true)} className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-gray-900 hover:bg-gray-800 rounded-lg cursor-pointer">
+                        <button onClick={() => setShowCreateModal(true)} className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg cursor-pointer">
                             <Plus size={15} /> Create Credit Note
                         </button>
                     )}
@@ -356,7 +356,7 @@ export default function CreditNotesTab() {
                     </thead>
                     <tbody className="divide-y divide-gray-50">
                         {isLoading && (
-                            <tr><td colSpan={9} className="px-4 py-10 text-center"><div className="w-6 h-6 border-2 border-gray-900 border-t-transparent rounded-full animate-spin mx-auto" /></td></tr>
+                            <tr><td colSpan={9} className="px-4 py-10 text-center"><div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto" /></td></tr>
                         )}
                         {!isLoading && creditNotes.length === 0 && (
                             <tr><td colSpan={9} className="px-4 py-10 text-center text-gray-400 text-sm">No credit notes found</td></tr>

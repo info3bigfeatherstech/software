@@ -185,7 +185,7 @@ export default function ReportsTab() {
                                 key={opt.value}
                                 type="button"
                                 onClick={() => setDateRange(opt.value)}
-                                className={`text-xs px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${dateRange === opt.value ? "bg-gray-900 text-white font-medium" : "text-gray-500 hover:bg-gray-50"}`}
+                                className={`text-xs px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${dateRange === opt.value ? "bg-blue-600 text-white font-medium" : "text-gray-500 hover:bg-gray-50"}`}
                             >
                                 {opt.label}
                             </button>
@@ -294,7 +294,7 @@ export default function ReportsTab() {
                                         key={name}
                                         type="button"
                                         onClick={() => setActiveReport(name)}
-                                        className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors flex justify-between items-center ${activeReport === name ? "bg-gray-900 text-white" : "text-gray-600 hover:bg-gray-50"}`}
+                                        className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors flex justify-between items-center ${activeReport === name ? "bg-blue-600 text-white" : "text-gray-600 hover:bg-gray-50"}`}
                                     >
                                         <span>{name}</span>
                                         <ChevronRight size={14} className={activeReport === name ? "text-white" : "text-gray-400"} />
@@ -318,7 +318,7 @@ export default function ReportsTab() {
                     <div className="flex items-center gap-2">
                         <button
                             type="button"
-                            className="bg-gray-900 text-white text-xs px-3 py-1.5 rounded-lg hover:bg-gray-700 transition-colors"
+                            className="bg-blue-600 text-white text-xs px-3 py-1.5 rounded-lg hover:bg-blue-700 transition-colors"
                         >
                             Download CSV
                         </button>

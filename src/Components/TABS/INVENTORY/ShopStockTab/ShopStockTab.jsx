@@ -390,7 +390,7 @@ export default function ShopStockTab() {
             {/* Bulk Action Bar */}
             {selectedStockIds.length > 0 && (
                 <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-40">
-                    <div className="bg-gray-900 text-white rounded-full shadow-2xl px-6 py-3 flex items-center gap-4">
+                    <div className="bg-blue-600 text-white rounded-full shadow-2xl px-6 py-3 flex items-center gap-4">
                         <span className="text-sm font-medium">{selectedStockIds.length} item(s) selected</span>
                         <div className="w-px h-6 bg-gray-600" />
                         
@@ -1062,7 +1062,7 @@ export default function ShopStockTab() {
 //             {/* Bulk Action Bar */}
 //             {selectedStockIds.length > 0 && (
 //                 <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-40">
-//                     <div className="bg-gray-900 text-white rounded-full shadow-2xl px-6 py-3 flex items-center gap-4">
+//                     <div className="bg-blue-600 text-white rounded-full shadow-2xl px-6 py-3 flex items-center gap-4">
 //                         <span className="text-sm font-medium">{selectedStockIds.length} item(s) selected</span>
 //                         <div className="w-px h-6 bg-gray-600" />
                         
@@ -1454,7 +1454,7 @@ export default function ShopStockTab() {
 //             {/* Bulk Action Bar */}
 //             {selectedStockIds.length > 0 && (
 //                 <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-40">
-//                     <div className="bg-gray-900 text-white rounded-full shadow-2xl px-6 py-3 flex items-center gap-4">
+//                     <div className="bg-blue-600 text-white rounded-full shadow-2xl px-6 py-3 flex items-center gap-4">
 //                         <span className="text-sm font-medium">{selectedStockIds.length} item(s) selected</span>
 //                         <div className="w-px h-6 bg-gray-600" />
 //                         <button

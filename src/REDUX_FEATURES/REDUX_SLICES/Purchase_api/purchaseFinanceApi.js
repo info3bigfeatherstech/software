@@ -18,7 +18,7 @@ const axiosBaseQuery = () => async ({ url, method, data, params }) => {
 export const purchaseFinanceApi = createApi({
     reducerPath: "purchaseFinanceApi",
     baseQuery: axiosBaseQuery(),
-    tagTypes: ["WarehouseExpense", "VendorPayment", "PurchasePerformance"],
+    tagTypes: ["WarehouseExpense", "ShopExpense", "VendorPayment", "PurchasePerformance"],
 
     endpoints: (builder) => ({
         getWarehouseExpenses: builder.query({
@@ -63,6 +63,48 @@ export const purchaseFinanceApi = createApi({
             transformResponse: (response) => response.data,
         }),
 
+        getShopExpenses: builder.query({
+            query: ({ page = 1, limit = 50, search = "", category = "", from_date = "", to_date = "", shop_id = "" }) => {
+                const params = { page, limit };
+                if (search) params.search = search;
+                if (category) params.category = category;
+                if (from_date) params.from_date = from_date;
+                if (to_date) params.to_date = to_date;
+                if (shop_id) params.shop_id = shop_id;
+                return { url: "/shop-expenses", method: "GET", params };
+            },
+            providesTags: [{ type: "ShopExpense", id: "LIST" }],
+            transformResponse: (response) => ({
+                expenses: response.data || [],
+                meta: response.meta || {},
+            }),
+        }),
+
+        createShopExpense: builder.mutation({
+            query: (body) => ({ url: "/shop-expenses", method: "POST", data: body }),
+            invalidatesTags: [{ type: "ShopExpense", id: "LIST" }],
+            transformResponse: (response) => response.data,
+        }),
+
+        updateShopExpense: builder.mutation({
+            query: ({ expenseId, ...body }) => ({
+                url: `/shop-expenses/${expenseId}`,
+                method: "PUT",
+                data: body,
+            }),
+            invalidatesTags: [{ type: "ShopExpense", id: "LIST" }],
+            transformResponse: (response) => response.data,
+        }),
+
+        cancelShopExpense: builder.mutation({
+            query: (expenseId) => ({
+                url: `/shop-expenses/${expenseId}/cancel`,
+                method: "PATCH",
+            }),
+            invalidatesTags: [{ type: "ShopExpense", id: "LIST" }],
+            transformResponse: (response) => response.data,
+        }),
+
         getVendorPayments: builder.query({
             query: ({ page = 1, limit = 50, search = "", vendor_id = "", status = "", from_date = "", to_date = "", warehouse_id = "" }) => {
                 const params = { page, limit };
@@ -82,18 +124,71 @@ export const purchaseFinanceApi = createApi({
         }),
 
         getPayablePurchases: builder.query({
-            query: ({ vendor_id, warehouse_id = "" }) => {
+            query: ({ vendor_id, warehouse_id = "", exclude_payment_id = "" }) => {
                 const params = { vendor_id };
                 if (warehouse_id) params.warehouse_id = warehouse_id;
+                if (exclude_payment_id) params.exclude_payment_id = exclude_payment_id;
                 return { url: "/vendor-payments/payable-purchases", method: "GET", params };
             },
+            providesTags: [{ type: "VendorPayment", id: "PAYABLE" }],
             transformResponse: (response) => response.data || [],
+        }),
+
+        getVendorPaymentById: builder.query({
+            query: (paymentId) => ({
+                url: `/vendor-payments/${paymentId}`,
+                method: "GET",
+            }),
+            providesTags: (_result, _err, paymentId) => [{ type: "VendorPayment", id: paymentId }],
+            transformResponse: (response) => response.data,
+        }),
+
+        getPurchasePaymentHistory: builder.query({
+            query: (purchaseId) => ({
+                url: `/vendor-payments/by-purchase/${purchaseId}`,
+                method: "GET",
+            }),
+            providesTags: (_result, _err, purchaseId) => [{ type: "VendorPayment", id: `PURCHASE-${purchaseId}` }],
+            transformResponse: (response) => response.data,
+        }),
+
+        getBillSettlementStatus: builder.query({
+            query: ({ page = 1, limit = 50, search = "", vendor_id = "", warehouse_id = "", balance_filter = "all" }) => {
+                const params = { page, limit, balance_filter };
+                if (search) params.search = search;
+                if (vendor_id) params.vendor_id = vendor_id;
+                if (warehouse_id) params.warehouse_id = warehouse_id;
+                return { url: "/vendor-payments/settlement-status", method: "GET", params };
+            },
+            providesTags: [{ type: "VendorPayment", id: "SETTLEMENT" }],
+            transformResponse: (response) => ({
+                bills: response.data || [],
+                meta: response.meta || {},
+            }),
         }),
 
         createVendorPayment: builder.mutation({
             query: (body) => ({ url: "/vendor-payments", method: "POST", data: body }),
             invalidatesTags: [
                 { type: "VendorPayment", id: "LIST" },
+                { type: "VendorPayment", id: "PAYABLE" },
+                { type: "VendorPayment", id: "SETTLEMENT" },
+                { type: "PurchasePerformance", id: "SUMMARY" },
+            ],
+            transformResponse: (response) => response.data,
+        }),
+
+        updateVendorPayment: builder.mutation({
+            query: ({ paymentId, ...body }) => ({
+                url: `/vendor-payments/${paymentId}`,
+                method: "PUT",
+                data: body,
+            }),
+            invalidatesTags: (_result, _err, { paymentId }) => [
+                { type: "VendorPayment", id: "LIST" },
+                { type: "VendorPayment", id: "PAYABLE" },
+                { type: "VendorPayment", id: "SETTLEMENT" },
+                { type: "VendorPayment", id: paymentId },
                 { type: "PurchasePerformance", id: "SUMMARY" },
             ],
             transformResponse: (response) => response.data,
@@ -105,7 +200,12 @@ export const purchaseFinanceApi = createApi({
                 method: "PATCH",
                 data: { status },
             }),
-            invalidatesTags: [{ type: "VendorPayment", id: "LIST" }],
+            invalidatesTags: (_result, _err, { paymentId }) => [
+                { type: "VendorPayment", id: "LIST" },
+                { type: "VendorPayment", id: "PAYABLE" },
+                { type: "VendorPayment", id: "SETTLEMENT" },
+                { type: "VendorPayment", id: paymentId },
+            ],
             transformResponse: (response) => response.data,
         }),
 
@@ -114,7 +214,12 @@ export const purchaseFinanceApi = createApi({
                 url: `/vendor-payments/${paymentId}/cancel`,
                 method: "PATCH",
             }),
-            invalidatesTags: [{ type: "VendorPayment", id: "LIST" }],
+            invalidatesTags: (_result, _err, paymentId) => [
+                { type: "VendorPayment", id: "LIST" },
+                { type: "VendorPayment", id: "PAYABLE" },
+                { type: "VendorPayment", id: "SETTLEMENT" },
+                { type: "VendorPayment", id: paymentId },
+            ],
             transformResponse: (response) => response.data,
         }),
 
@@ -138,9 +243,17 @@ export const {
     useCreateWarehouseExpenseMutation,
     useUpdateWarehouseExpenseMutation,
     useCancelWarehouseExpenseMutation,
+    useGetShopExpensesQuery,
+    useCreateShopExpenseMutation,
+    useUpdateShopExpenseMutation,
+    useCancelShopExpenseMutation,
     useGetVendorPaymentsQuery,
     useGetPayablePurchasesQuery,
+    useGetVendorPaymentByIdQuery,
+    useGetPurchasePaymentHistoryQuery,
+    useGetBillSettlementStatusQuery,
     useCreateVendorPaymentMutation,
+    useUpdateVendorPaymentMutation,
     useUpdateVendorPaymentStatusMutation,
     useCancelVendorPaymentMutation,
     useGetPurchasePerformanceQuery,

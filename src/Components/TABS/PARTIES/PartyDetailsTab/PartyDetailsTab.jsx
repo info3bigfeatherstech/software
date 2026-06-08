@@ -91,7 +91,7 @@ export default function PartyDetailsTab() {
                         <button
                             type="button"
                             onClick={() => {}}
-                            className="bg-gray-900 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors inline-flex items-center gap-2"
+                            className="bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-2"
                         >
                             + Add Customer
                         </button>
@@ -99,7 +99,7 @@ export default function PartyDetailsTab() {
                         <button
                             type="button"
                             onClick={() => {}}
-                            className="bg-gray-900 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors inline-flex items-center gap-2"
+                            className="bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-2"
                         >
                             + Add Vendor
                         </button>
@@ -111,14 +111,14 @@ export default function PartyDetailsTab() {
                 <button
                     type="button"
                     onClick={() => switchView("customers")}
-                    className={`text-sm px-4 py-1.5 rounded-lg transition-colors ${activeView === "customers" ? "bg-gray-900 text-white font-medium" : "text-gray-500 hover:bg-gray-50"}`}
+                    className={`text-sm px-4 py-1.5 rounded-lg transition-colors ${activeView === "customers" ? "bg-blue-600 text-white font-medium" : "text-gray-500 hover:bg-gray-50"}`}
                 >
                     Customers
                 </button>
                 <button
                     type="button"
                     onClick={() => switchView("vendors")}
-                    className={`text-sm px-4 py-1.5 rounded-lg transition-colors ${activeView === "vendors" ? "bg-gray-900 text-white font-medium" : "text-gray-500 hover:bg-gray-50"}`}
+                    className={`text-sm px-4 py-1.5 rounded-lg transition-colors ${activeView === "vendors" ? "bg-blue-600 text-white font-medium" : "text-gray-500 hover:bg-gray-50"}`}
                 >
                     Vendors
                 </button>

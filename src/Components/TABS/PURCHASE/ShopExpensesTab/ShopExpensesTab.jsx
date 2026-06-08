@@ -2,41 +2,41 @@ import React, { useState } from "react";
 import { useSelector } from "react-redux";
 import { Plus, RefreshCw, Edit2, XCircle } from "lucide-react";
 import {
-    useGetWarehouseExpensesQuery,
-    useCancelWarehouseExpenseMutation,
+    useGetShopExpensesQuery,
+    useCancelShopExpenseMutation,
 } from "../../../../REDUX_FEATURES/REDUX_SLICES/Purchase_api/purchaseFinanceApi";
-import ExpenseFormModal from "./ExpenseFormModal";
+import ShopExpenseFormModal from "./ShopExpenseFormModal";
 import {
     fmtCurrency,
     fmtDate,
-    EXPENSE_CATEGORIES,
-    getExpenseCategoryLabel,
+    SHOP_EXPENSE_CATEGORIES,
+    getShopExpenseCategoryLabel,
     getPaymentMethodLabel,
 } from "../purchaseFinanceUtils";
-import { useGetWarehousesQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/Warehouse_api/warehouseApi";
+import { useGetShopsQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/Shop_api/shopApi";
 import { ROLES } from "../../../roles";
 
-const DEFAULT_TITLE = "Expenses";
+const DEFAULT_TITLE = "Shop Expenses";
 const DEFAULT_SUBTITLE =
-    "Warehouse operating costs — rent, freight, labour, utilities (not inventory purchase)";
+    "Petty cash & shop operating costs — repairs, utilities, stationery, transport (not customer sales)";
 
-export default function ExpensesTab({
+export default function ShopExpensesTab({
     title = DEFAULT_TITLE,
     subtitle = DEFAULT_SUBTITLE,
 }) {
     const { user } = useSelector((state) => state.auth);
     const isSuperAdmin = user?.role === ROLES.SUPER_ADMIN;
-    const warehouseId = user?.warehouse_id || "";
-    const canWrite = [ROLES.SUPER_ADMIN, ROLES.WH_MANAGER].includes(user?.role);
+    const shopId = user?.shop_id || "";
+    const canWrite = [ROLES.SUPER_ADMIN, ROLES.SHOP_OWNER].includes(user?.role);
 
-    const [warehouseFilter, setWarehouseFilter] = useState("");
-    const effectiveWarehouseId = isSuperAdmin ? warehouseFilter : warehouseId;
+    const [shopFilter, setShopFilter] = useState("");
+    const effectiveShopId = isSuperAdmin ? shopFilter : shopId;
 
-    const { data: warehousesData } = useGetWarehousesQuery(
+    const { data: shopsData } = useGetShopsQuery(
         { page: 1, limit: 100, is_active: "true" },
         { skip: !isSuperAdmin }
     );
-    const warehouses = warehousesData?.warehouses || [];
+    const shops = shopsData?.shops || [];
 
     const [search, setSearch] = useState("");
     const [category, setCategory] = useState("");
@@ -45,16 +45,16 @@ export default function ExpensesTab({
     const [showForm, setShowForm] = useState(false);
     const [editExpense, setEditExpense] = useState(null);
 
-    const { data, isLoading, isFetching, refetch } = useGetWarehouseExpensesQuery({
+    const { data, isLoading, isFetching, error, refetch } = useGetShopExpensesQuery({
         search,
         category,
         from_date: fromDate,
         to_date: toDate,
-        warehouse_id: effectiveWarehouseId,
+        shop_id: effectiveShopId,
         limit: 100,
     });
 
-    const [cancelExpense] = useCancelWarehouseExpenseMutation();
+    const [cancelExpense] = useCancelShopExpenseMutation();
     const expenses = data?.expenses || [];
     const summary = data?.meta?.summary || {};
 
@@ -68,6 +68,10 @@ export default function ExpensesTab({
         }
     };
 
+    const shopLabel = expenses[0]?.shop?.shop_name
+        || shops.find((s) => s.shop_id === effectiveShopId)?.shop_name
+        || (isSuperAdmin && !effectiveShopId ? "All shops" : "Your shop");
+
     return (
         <div className="space-y-5 bg-gray-50 min-h-screen px-1 py-1">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-gray-200">
@@ -76,14 +80,19 @@ export default function ExpensesTab({
                     <p className="text-sm text-gray-400 mt-0.5">{subtitle}</p>
                 </div>
                 <div className="flex gap-2">
-                    <button type="button" onClick={() => refetch()} className="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-200 text-gray-500 text-sm rounded-lg">
+                    <button
+                        type="button"
+                        onClick={() => refetch()}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-200 text-gray-500 text-sm rounded-lg"
+                    >
                         <RefreshCw size={13} className={isFetching ? "animate-spin" : ""} /> Refresh
                     </button>
                     {canWrite && (
                         <button
                             type="button"
                             onClick={() => { setEditExpense(null); setShowForm(true); }}
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg"
+                            disabled={isSuperAdmin && !effectiveShopId}
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg disabled:opacity-50"
                         >
                             <Plus size={14} /> Add Expense
                         </button>
@@ -91,9 +100,15 @@ export default function ExpensesTab({
                 </div>
             </div>
 
+            {error && (
+                <div className="bg-red-50 border border-red-100 rounded-lg px-4 py-3 text-sm text-red-700">
+                    {error?.data?.message || "Failed to load shop expenses"}
+                </div>
+            )}
+
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div className="bg-white rounded-xl border border-gray-100 p-4">
-                    <p className="text-xs uppercase text-gray-500">Total Expenses</p>
+                    <p className="text-xs uppercase text-gray-500">Total Entries</p>
                     <p className="text-3xl font-bold text-gray-800">{summary.count || 0}</p>
                 </div>
                 <div className="bg-white rounded-xl border border-gray-100 p-4">
@@ -101,32 +116,55 @@ export default function ExpensesTab({
                     <p className="text-3xl font-bold text-gray-800">{fmtCurrency(summary.total_amount)}</p>
                 </div>
                 <div className="bg-white rounded-xl border border-gray-100 p-4 col-span-2">
-                    <p className="text-xs uppercase text-gray-500">Warehouse</p>
-                    <p className="text-lg font-semibold text-gray-800 mt-1">{expenses[0]?.warehouse?.warehouse_name || "Your warehouse"}</p>
+                    <p className="text-xs uppercase text-gray-500">Shop</p>
+                    <p className="text-lg font-semibold text-gray-800 mt-1">{shopLabel}</p>
                 </div>
             </div>
 
             <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-wrap gap-3 text-gray-700">
                 {isSuperAdmin && (
-                    <select value={warehouseFilter} onChange={(e) => setWarehouseFilter(e.target.value)} className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm min-w-[160px]">
-                        <option value="">All Warehouses</option>
-                        {warehouses.map((w) => <option key={w.warehouse_id} value={w.warehouse_id}>{w.warehouse_name}</option>)}
+                    <select
+                        value={shopFilter}
+                        onChange={(e) => setShopFilter(e.target.value)}
+                        className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm min-w-[160px]"
+                    >
+                        <option value="">All Shops</option>
+                        {shops.map((s) => (
+                            <option key={s.shop_id} value={s.shop_id}>{s.shop_name}</option>
+                        ))}
                     </select>
                 )}
-                <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search expenses…" className="flex-1 min-w-[180px] bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm" />
-                <select value={category} onChange={(e) => setCategory(e.target.value)} className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm">
+                <input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search expenses…"
+                    className="flex-1 min-w-[180px] bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                />
+                <select
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                >
                     <option value="">All Categories</option>
-                    {EXPENSE_CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+                    {SHOP_EXPENSE_CATEGORIES.map((c) => (
+                        <option key={c.value} value={c.value}>{c.label}</option>
+                    ))}
                 </select>
                 <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm" />
                 <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm" />
             </div>
 
+            {isSuperAdmin && !effectiveShopId && (
+                <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                    Select a shop to add a new expense. Listing shows all shops until filtered.
+                </p>
+            )}
+
             <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
                 <table className="w-full min-w-[720px] lg:min-w-0 text-sm">
                     <thead className="bg-gray-50 border-b border-gray-100">
                         <tr>
-                            {["Expense #", "Category", "Description", "Warehouse", "Amount", "Date", "Paid via", "Recorded by", "Actions"].map((h) => (
+                            {["Expense #", "Category", "Description", "Shop", "Amount", "Date", "Paid via", "Recorded by", "Actions"].map((h) => (
                                 <th key={h} className="px-4 py-3 text-xs font-semibold text-gray-400 uppercase text-left">{h}</th>
                             ))}
                         </tr>
@@ -135,15 +173,15 @@ export default function ExpensesTab({
                         {(isLoading || isFetching) && (
                             <tr><td colSpan={9} className="px-4 py-10 text-center text-gray-400">Loading…</td></tr>
                         )}
-                        {!isLoading && expenses.length === 0 && (
-                            <tr><td colSpan={9} className="px-4 py-12 text-center text-gray-400">No expenses recorded yet</td></tr>
+                        {!isLoading && !isFetching && expenses.length === 0 && (
+                            <tr><td colSpan={9} className="px-4 py-12 text-center text-gray-400">No shop expenses recorded yet</td></tr>
                         )}
                         {expenses.map((e) => (
                             <tr key={e.expense_id} className="hover:bg-gray-50 text-gray-700">
                                 <td className="px-4 py-3 font-mono text-xs">{e.expense_number}</td>
-                                <td className="px-4 py-3">{getExpenseCategoryLabel(e.category)}</td>
+                                <td className="px-4 py-3">{getShopExpenseCategoryLabel(e.category)}</td>
                                 <td className="px-4 py-3">{e.description}</td>
-                                <td className="px-4 py-3 text-xs text-gray-500">{e.warehouse?.warehouse_name}</td>
+                                <td className="px-4 py-3 text-xs text-gray-500">{e.shop?.shop_name}</td>
                                 <td className="px-4 py-3 font-medium">{fmtCurrency(e.amount)}</td>
                                 <td className="px-4 py-3 text-xs text-gray-500">{fmtDate(e.expense_date)}</td>
                                 <td className="px-4 py-3 text-xs">{e.payment_method ? getPaymentMethodLabel(e.payment_method) : "—"}</td>
@@ -151,10 +189,20 @@ export default function ExpensesTab({
                                 <td className="px-4 py-3">
                                     {canWrite && (
                                         <div className="flex gap-1">
-                                            <button type="button" title="Edit" onClick={() => { setEditExpense(e); setShowForm(true); }} className="p-1.5 border border-gray-200 rounded-lg hover:bg-gray-50">
+                                            <button
+                                                type="button"
+                                                title="Edit"
+                                                onClick={() => { setEditExpense(e); setShowForm(true); }}
+                                                className="p-1.5 border border-gray-200 rounded-lg hover:bg-gray-50"
+                                            >
                                                 <Edit2 size={14} />
                                             </button>
-                                            <button type="button" title="Cancel" onClick={() => handleCancel(e)} className="p-1.5 border border-red-100 rounded-lg hover:bg-red-50 text-red-600">
+                                            <button
+                                                type="button"
+                                                title="Cancel"
+                                                onClick={() => handleCancel(e)}
+                                                className="p-1.5 border border-red-100 rounded-lg hover:bg-red-50 text-red-600"
+                                            >
                                                 <XCircle size={14} />
                                             </button>
                                         </div>
@@ -166,12 +214,12 @@ export default function ExpensesTab({
                 </table>
             </div>
 
-            <ExpenseFormModal
+            <ShopExpenseFormModal
                 open={showForm}
                 onClose={() => { setShowForm(false); setEditExpense(null); }}
                 onSaved={refetch}
                 expense={editExpense}
-                warehouseId={effectiveWarehouseId}
+                shopId={editExpense?.shop_id || effectiveShopId}
             />
         </div>
     );

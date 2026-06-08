@@ -125,7 +125,7 @@ export default function UsersTab() {
                 </div>
                 <button
                     onClick={() => dispatch(openAddForm())}
-                    className="bg-gray-900 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors inline-flex items-center gap-2"
+                    className="bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-2"
                 >
                     + Add User
                 </button>
