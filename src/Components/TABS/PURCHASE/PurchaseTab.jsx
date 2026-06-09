@@ -16,6 +16,17 @@ const PurchaseTab = () => {
         setSearchParams({ tab: "purchase", ctab: tabId });
     };
 
+    if (!filteredTabs.length) {
+        return (
+            <div className="p-10 text-center text-gray-500 bg-gray-50 rounded-xl border border-gray-100">
+                <p className="text-sm font-medium text-gray-700">No purchase modules for your role</p>
+                <p className="text-xs text-gray-400 mt-2">
+                    Vendor purchases are handled at warehouse level. Record shop petty cash under Utilities → Petty Cash Book.
+                </p>
+            </div>
+        );
+    }
+
     return (
         <SubTabBar
             tabs={filteredTabs}

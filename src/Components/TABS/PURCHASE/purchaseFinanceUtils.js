@@ -24,6 +24,19 @@ export const EXPENSE_CATEGORIES = [
     { value: "OTHER", label: "Other" },
 ];
 
+/** Shop petty-cash / operating expense categories */
+export const SHOP_EXPENSE_CATEGORIES = [
+    { value: "RENT", label: "Rent" },
+    { value: "UTILITIES", label: "Utilities" },
+    { value: "REPAIRS", label: "Repairs" },
+    { value: "MAINTENANCE", label: "Maintenance" },
+    { value: "TRANSPORT", label: "Transport" },
+    { value: "OFFICE", label: "Office" },
+    { value: "STATIONERY", label: "Stationery" },
+    { value: "MEALS", label: "Meals & Refreshments" },
+    { value: "OTHER", label: "Other" },
+];
+
 export const PAYMENT_METHODS = [
     { value: "CASH", label: "Cash" },
     { value: "UPI", label: "UPI" },
@@ -39,6 +52,9 @@ export const PAYMENT_STATUS_BADGE = {
 
 export const getExpenseCategoryLabel = (value) =>
     EXPENSE_CATEGORIES.find((c) => c.value === value)?.label || value;
+
+export const getShopExpenseCategoryLabel = (value) =>
+    SHOP_EXPENSE_CATEGORIES.find((c) => c.value === value)?.label || value;
 
 export const getPaymentMethodLabel = (value) =>
     PAYMENT_METHODS.find((m) => m.value === value)?.label || value;

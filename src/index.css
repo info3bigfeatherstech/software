@@ -98,7 +98,7 @@
   }
 
   .app-btn-primary {
-    @apply app-btn bg-app-accent text-white border-app-accent hover:bg-app-accent-hover;
+    @apply app-btn bg-blue-600 text-white border-blue-600 font-semibold shadow-sm transition-all hover:bg-blue-700;
   }
 
   .app-btn-secondary {
@@ -161,7 +161,7 @@
   }
 
   .app-subtab-item {
-    @apply flex items-center gap-1.5 px-4 py-2 text-sm text-app-text-muted border-b-2 border-transparent cursor-pointer hover:text-app-text hover:bg-gray-50;
+    @apply flex items-center gap-1.5 px-4 py-2.5 text-sm leading-normal text-app-text-muted border-b-2 border-transparent cursor-pointer hover:text-app-text hover:bg-gray-50;
   }
 
   .app-subtab-item-active {
@@ -170,7 +170,7 @@
 
   /* ── Sidebar navigation ── */
   .app-nav-item {
-    @apply w-full flex items-center gap-2.5 px-3 py-2 text-sm text-app-text-secondary rounded-app cursor-pointer hover:bg-gray-100 hover:text-app-text;
+    @apply w-full flex items-center gap-2.5 px-3 py-2.5 text-sm leading-normal text-app-text-secondary rounded-app cursor-pointer hover:bg-gray-100 hover:text-app-text;
   }
 
   .app-nav-item-active {
@@ -178,7 +178,7 @@
   }
 
   .app-nav-subitem {
-    @apply w-full flex items-center gap-2 px-3 py-1.5 text-xs text-app-text-muted rounded-app cursor-pointer text-left hover:bg-gray-100 hover:text-app-text;
+    @apply w-full flex items-center gap-2 px-3 py-2 text-xs leading-normal text-app-text-muted rounded-app cursor-pointer text-left hover:bg-gray-100 hover:text-app-text;
   }
 
   .app-nav-subitem-active {
@@ -253,8 +253,18 @@
   }
 
   .app-spinner {
-    @apply w-6 h-6 border-2 border-app-accent border-t-transparent rounded-full animate-spin;
+    @apply w-6 h-6 border-2 border-app-accent border-t-transparent animate-spin;
+    border-radius: 50%;
   }
+}
+
+/* Loading spinners stay circular; everything else uses sharp corners from theme */
+.app-spinner,
+.animate-spin.border-t-transparent,
+.animate-spin.rounded-full,
+.inline-block.animate-spin.rounded-full,
+div.animate-spin.rounded-full {
+  border-radius: 50% !important;
 }
 
 @layer utilities {

@@ -232,7 +232,7 @@ export default function InventoryTab() {
           {can("productMs.create") && (
             <button
               onClick={() => dispatch(openAddForm())}
-              className="bg-gray-900 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-gray-700 inline-flex items-center gap-2 transition-colors cursor-pointer"
+              className="bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-blue-700 inline-flex items-center gap-2 transition-colors cursor-pointer"
             >
               <Plus size={16} /> Add Product
             </button>

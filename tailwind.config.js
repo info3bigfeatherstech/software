@@ -2,6 +2,18 @@
 export default {
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   theme: {
+    borderRadius: {
+      none: "0",
+      sm: "0",
+      DEFAULT: "0",
+      md: "0",
+      lg: "0",
+      xl: "0",
+      "2xl": "0",
+      "3xl": "0",
+      app: "0",
+      full: "0",
+    },
     extend: {
       colors: {
         app: {
@@ -12,8 +24,8 @@ export default {
           text: "#1f2937",
           "text-secondary": "#4b5563",
           "text-muted": "#6b7280",
-          accent: "#1d4ed8",
-          "accent-hover": "#1e40af",
+          accent: "#2563eb",
+          "accent-hover": "#1d4ed8",
           "accent-light": "#eff6ff",
           sidebar: "#ffffff",
           "sidebar-active": "#eff6ff",
@@ -29,9 +41,6 @@ export default {
       },
       fontSize: {
         xxs: ["0.6875rem", { lineHeight: "1rem" }],
-      },
-      borderRadius: {
-        app: "3px",
       },
       boxShadow: {
         app: "0 1px 2px rgba(0, 0, 0, 0.06)",

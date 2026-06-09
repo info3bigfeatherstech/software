@@ -194,7 +194,7 @@ export default function CustomersTab() {
                 <div className="flex items-center gap-2">
                     <button
                         onClick={() => dispatch(openAddModal())}
-                        className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-gray-900 hover:bg-gray-800 rounded-lg cursor-pointer"
+                        className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg cursor-pointer"
                     >
                         <Plus size={15} /> Add Customer
                     </button>
@@ -271,7 +271,7 @@ export default function CustomersTab() {
                         {isLoading && (
                             <tr>
                                 <td colSpan={7} className="px-4 py-10 text-center">
-                                    <div className="w-6 h-6 border-2 border-gray-900 border-t-transparent rounded-full animate-spin mx-auto" />
+                                    <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto" />
                                 </td>
                             </tr>
                         )}
@@ -489,7 +489,7 @@ export default function CustomersTab() {
                             <button
                                 onClick={handleCreateCustomer}
                                 disabled={isSubmitting}
-                                className="px-5 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 disabled:opacity-60"
+                                className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-60"
                             >
                                 {isSubmitting ? "Creating..." : "Create Customer"}
                             </button>
@@ -631,7 +631,7 @@ export default function CustomersTab() {
                             <button
                                 onClick={handleUpdateCustomer}
                                 disabled={isSubmitting}
-                                className="px-5 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 disabled:opacity-60"
+                                className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-60"
                             >
                                 {isSubmitting ? "Saving..." : "Save Changes"}
                             </button>

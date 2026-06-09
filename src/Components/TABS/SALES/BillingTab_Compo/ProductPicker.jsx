@@ -7,6 +7,7 @@
 // FIXED: Using special_price instead of retail_price
 
 import React, { useState, useRef } from "react";
+import { Package } from "lucide-react";
 import { useDispatch } from "react-redux";
 import { useGetShopStocksQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/ShopStock_api/shopStockApi";
 import { addToCart, updateCartQty } from "../../../../REDUX_FEATURES/REDUX_SLICES/Billing_api/billingSlice";
@@ -20,6 +21,30 @@ import {
     resolveProductGstType,
     toBillingNumber,
 } from "../../../../utils/billingCart.utils";
+
+const resolveStockImageUrl = (variant, product) =>
+    variant?.images?.[0]?.url
+    || product?.variants?.[0]?.images?.[0]?.url
+    || null;
+
+function ProductThumb({ src, alt }) {
+    const [failed, setFailed] = useState(false);
+
+    if (!src || failed) {
+        return <Package size={16} className="text-gray-300" />;
+    }
+
+    return (
+        <img
+            src={src}
+            alt={alt || "Product"}
+            loading="lazy"
+            decoding="async"
+            onError={() => setFailed(true)}
+            className="w-full h-full object-cover"
+        />
+    );
+}
 
 // Valid barcode pattern: alphanumeric, dash, underscore, min 3 chars
 const isValidBarcode = (barcode) => {
@@ -37,10 +62,10 @@ export default function ProductPicker({ shop_id, cart = [] }) {
     const lastScanTimeRef = useRef(0);
     const lastSuccessfulBarcodeRef = useRef(null);
 
-    const { data, isLoading, isFetching, refetch } = useGetShopStocksQuery({
-        shop_id,
-        limit: 100,
-    });
+    const { data, isLoading, isFetching, refetch } = useGetShopStocksQuery(
+        { shop_id, limit: 100 },
+        { skip: !shop_id, refetchOnMountOrArgChange: true }
+    );
 
     const stocks = data?.stocks || [];
 
@@ -182,16 +207,17 @@ export default function ProductPicker({ shop_id, cart = [] }) {
                 ↻ Refresh stock
             </button>
 
-            {/* Product Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 overflow-y-auto flex-1 pr-1 min-h-0">
+            {/* Product Grid — 2 per row, rows sized to content only (no stretch) */}
+            <div className="grid grid-cols-2 gap-2 auto-rows-min content-start items-start overflow-y-auto flex-1 pr-1 min-h-0">
                 {filteredStocks.length === 0 ? (
-                    <div className="col-span-2 sm:col-span-3 text-center text-gray-400 py-8">
+                    <div className="col-span-2 text-center text-gray-400 py-8">
                         No products found in this shop
                     </div>
                 ) : (
                     filteredStocks.map((stock) => {
                         const variant = stock.variant;
                         const product = variant?.product;
+                        const imageUrl = resolveStockImageUrl(variant, product);
                         const stockQty = toBillingNumber(stock.quantity_available);
                         const lowStockThreshold = toBillingNumber(stock.low_stock_threshold);
                         const isLowStock = stockQty <= lowStockThreshold && stockQty > 0;
@@ -201,42 +227,48 @@ export default function ProductPicker({ shop_id, cart = [] }) {
                         return (
                             <button
                                 key={stock.shop_stock_id}
+                                type="button"
                                 onClick={() => handleProductClick(stock)}
                                 disabled={isOutOfStock}
-                                className={`text-left p-3 rounded-lg border transition-all flex flex-col justify-between h-24 ${
+                                className={`self-start w-full text-left p-1.5 border transition-colors flex items-center gap-2 ${
                                     isOutOfStock
-                                        ? "opacity-50 bg-gray-50 border-gray-200 cursor-not-allowed"
-                                        : "bg-white border-gray-200 hover:border-blue-500 hover:shadow-md cursor-pointer"
+                                        ? "opacity-60 bg-gray-50 border-gray-200 cursor-not-allowed"
+                                        : "bg-white border-gray-200 hover:border-blue-400 hover:bg-blue-50/30 cursor-pointer"
                                 }`}
                             >
-                                <p className="font-medium text-sm text-gray-800 line-clamp-2">
-                                    {product?.name || "Unknown"}
-                                </p>
-                                {gstLabel && (
-                                    <p className="text-[10px] font-medium text-indigo-700 mt-0.5">
-                                        GST {gstLabel}
+                                <div className="w-10 h-10 shrink-0 border border-gray-200 bg-gray-50 overflow-hidden flex items-center justify-center">
+                                    <ProductThumb
+                                        src={imageUrl}
+                                        alt={variant?.images?.[0]?.alt_text || product?.variants?.[0]?.images?.[0]?.alt_text || product?.name}
+                                    />
+                                </div>
+                                <div className="flex-1 min-w-0 overflow-hidden">
+                                    <p className="text-xs font-semibold text-gray-800 truncate leading-tight">
+                                        {product?.name || "Unknown"}
                                     </p>
-                                )}
-                                <div className="mt-auto flex justify-between items-end w-full">
-                                    <div>
-                                        <p className="text-xs text-gray-500 font-mono">
-                                            {variant?.system_barcode?.slice(-6) || "—"}
-                                        </p>
-                                        <p className="font-bold text-blue-600">
-                                            ₹{toBillingNumber(variant.special_price).toFixed(2)}
-                                        </p>
+                                    <div className="mt-1 flex items-center justify-between gap-1">
+                                        <div className="flex items-center gap-1 min-w-0">
+                                            <span className="text-xs font-bold text-blue-600 shrink-0">
+                                                ₹{toBillingNumber(variant.special_price).toFixed(0)}
+                                            </span>
+                                            {gstLabel && (
+                                                <span className="text-[10px] text-gray-500 truncate">
+                                                    GST {gstLabel}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <span
+                                            className={`shrink-0 text-[10px] px-1.5 py-0.5 font-medium whitespace-nowrap ${
+                                                isOutOfStock
+                                                    ? "bg-gray-100 text-gray-500"
+                                                    : isLowStock
+                                                    ? "bg-red-100 text-red-700"
+                                                    : "bg-green-100 text-green-700"
+                                            }`}
+                                        >
+                                            {isOutOfStock ? "Out" : `${stockQty} left`}
+                                        </span>
                                     </div>
-                                    <span
-                                        className={`text-xs px-1.5 py-0.5 rounded font-medium ${
-                                            isOutOfStock
-                                                ? "bg-gray-100 text-gray-500"
-                                                : isLowStock
-                                                ? "bg-red-100 text-red-700"
-                                                : "bg-green-100 text-green-700"
-                                        }`}
-                                    >
-                                        {isOutOfStock ? "Out" : stockQty} left
-                                    </span>
                                 </div>
                             </button>
                         );

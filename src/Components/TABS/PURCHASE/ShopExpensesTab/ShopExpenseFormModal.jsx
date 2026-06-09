@@ -1,19 +1,19 @@
 import React, { useState, useEffect } from "react";
 import {
-    useCreateWarehouseExpenseMutation,
-    useUpdateWarehouseExpenseMutation,
+    useCreateShopExpenseMutation,
+    useUpdateShopExpenseMutation,
 } from "../../../../REDUX_FEATURES/REDUX_SLICES/Purchase_api/purchaseFinanceApi";
-import { EXPENSE_CATEGORIES, PAYMENT_METHODS } from "../purchaseFinanceUtils";
+import { SHOP_EXPENSE_CATEGORIES, PAYMENT_METHODS } from "../purchaseFinanceUtils";
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
 
-export default function ExpenseFormModal({ open, onClose, onSaved, expense, warehouseId }) {
-    const [createExpense, { isLoading: creating }] = useCreateWarehouseExpenseMutation();
-    const [updateExpense, { isLoading: updating }] = useUpdateWarehouseExpenseMutation();
+export default function ShopExpenseFormModal({ open, onClose, onSaved, expense, shopId }) {
+    const [createExpense, { isLoading: creating }] = useCreateShopExpenseMutation();
+    const [updateExpense, { isLoading: updating }] = useUpdateShopExpenseMutation();
     const isEdit = Boolean(expense);
 
     const [form, setForm] = useState({
-        category: "RENT",
+        category: "REPAIRS",
         description: "",
         amount: "",
         expense_date: todayIso(),
@@ -30,14 +30,16 @@ export default function ExpenseFormModal({ open, onClose, onSaved, expense, ware
                 category: expense.category || "OTHER",
                 description: expense.description || "",
                 amount: String(expense.amount ?? ""),
-                expense_date: expense.expense_date ? new Date(expense.expense_date).toISOString().slice(0, 10) : todayIso(),
+                expense_date: expense.expense_date
+                    ? new Date(expense.expense_date).toISOString().slice(0, 10)
+                    : todayIso(),
                 payment_method: expense.payment_method || "",
                 reference_no: expense.reference_no || "",
                 remarks: expense.remarks || "",
             });
         } else {
             setForm({
-                category: "RENT",
+                category: "REPAIRS",
                 description: "",
                 amount: "",
                 expense_date: todayIso(),
@@ -51,7 +53,7 @@ export default function ExpenseFormModal({ open, onClose, onSaved, expense, ware
 
     const validate = () => {
         const e = {};
-        if (!warehouseId) e.general = "Select a warehouse before saving";
+        if (!shopId) e.general = "Select a shop before saving";
         if (!form.description.trim()) e.description = "Description is required";
         if (!form.amount || Number(form.amount) <= 0) e.amount = "Valid amount is required";
         if (!form.expense_date) e.expense_date = "Date is required";
@@ -62,7 +64,7 @@ export default function ExpenseFormModal({ open, onClose, onSaved, expense, ware
     const handleSubmit = async () => {
         if (!validate()) return;
         const payload = {
-            warehouse_id: warehouseId || undefined,
+            shop_id: shopId || undefined,
             category: form.category,
             description: form.description.trim(),
             amount: Number(form.amount),
@@ -97,16 +99,18 @@ export default function ExpenseFormModal({ open, onClose, onSaved, expense, ware
                 <div className="fixed inset-0 bg-black/40" onClick={onClose} />
                 <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 space-y-4">
                     <h3 className="text-base font-semibold text-gray-800">
-                        {isEdit ? "Edit Expense" : "Add Expense"}
+                        {isEdit ? "Edit Shop Expense" : "Add Shop Expense"}
                     </h3>
                     {errors.general && (
-                        <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{errors.general}</p>
+                        <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+                            {errors.general}
+                        </p>
                     )}
                     <div className="grid grid-cols-2 gap-3">
                         <div className="col-span-2">
                             <label className="text-xs text-gray-500">Category</label>
                             <select {...field("category")} className="w-full mt-1 border border-gray-200 rounded-lg px-3 py-2 text-sm">
-                                {EXPENSE_CATEGORIES.map((c) => (
+                                {SHOP_EXPENSE_CATEGORIES.map((c) => (
                                     <option key={c.value} value={c.value}>{c.label}</option>
                                 ))}
                             </select>

@@ -605,7 +605,7 @@ export default function CheckoutPanel({ shop_id }) {
                         type="button"
                         onClick={() => dispatch(setBillType(BILL_TYPES.WITHOUT_GST))}
                         className={`w-full py-2 px-3 text-xs font-semibold rounded-lg border transition-all text-left ${billType === BILL_TYPES.WITHOUT_GST
-                            ? "bg-gray-800 text-white border-gray-800"
+                            ? "bg-blue-600 text-white border-gray-800"
                             : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
                             }`}
                     >
@@ -1088,7 +1088,7 @@ export default function CheckoutPanel({ shop_id }) {
 //             )}
 
 //             <div className="flex gap-2 mb-3">
-//                 <button onClick={() => dispatch(setBillType("ESTIMATE"))} className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all ${billType === "ESTIMATE" ? "bg-gray-800 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>📄 Estimate</button>
+//                 <button onClick={() => dispatch(setBillType("ESTIMATE"))} className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all ${billType === "ESTIMATE" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>📄 Estimate</button>
 //                 <button onClick={() => dispatch(setBillType("GST_INVOICE"))} className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all ${billType === "GST_INVOICE" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>🧾 GST Invoice</button>
 //             </div>
 

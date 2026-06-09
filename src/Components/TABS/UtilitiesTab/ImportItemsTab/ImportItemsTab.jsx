@@ -48,7 +48,7 @@ export default function ImportItemsTab() {
                         key={opt.value}
                         type="button"
                         onClick={() => { setImportType(opt.value); setSelectedFile(null); }}
-                        className={`text-xs px-3 py-1.5 rounded-lg transition-colors ${importType === opt.value ? "bg-gray-900 text-white font-medium" : "text-gray-500 hover:bg-gray-50"}`}
+                        className={`text-xs px-3 py-1.5 rounded-lg transition-colors ${importType === opt.value ? "bg-blue-600 text-white font-medium" : "text-gray-500 hover:bg-gray-50"}`}
                     >
                         {opt.label}
                     </button>
@@ -129,7 +129,7 @@ export default function ImportItemsTab() {
                                 setSelectedFile(null);
                             }, 2000);
                         }}
-                        className={`w-full bg-gray-900 text-white text-sm font-medium py-2.5 rounded-lg hover:bg-gray-700 transition-colors inline-flex items-center justify-center gap-2 ${importing ? "opacity-60" : ""}`}
+                        className={`w-full bg-blue-600 text-white text-sm font-medium py-2.5 rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center justify-center gap-2 ${importing ? "opacity-60" : ""}`}
                     >
                         <CheckCircle size={16} />
                         {importing ? "Importing..." : "Confirm Import"}

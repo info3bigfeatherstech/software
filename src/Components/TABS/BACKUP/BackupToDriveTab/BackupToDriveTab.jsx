@@ -11,7 +11,7 @@ const SYNC_HISTORY = [
 
 function Toggle({ enabled, onToggle }) {
     return (
-        <button type="button" role="switch" aria-checked={enabled} onClick={onToggle} className={`relative rounded-full w-10 h-6 transition-colors ${enabled ? "bg-gray-900" : "bg-gray-200"}`}>
+        <button type="button" role="switch" aria-checked={enabled} onClick={onToggle} className={`relative rounded-full w-10 h-6 transition-colors ${enabled ? "bg-blue-600" : "bg-gray-200"}`}>
             <span className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${enabled ? "translate-x-4" : ""}`} />
         </button>
     );
@@ -40,7 +40,7 @@ export default function BackupToDriveTab() {
                         <Cloud size={40} className="text-gray-300" />
                         <p className="text-base font-semibold text-gray-500">Not Connected</p>
                         <p className="text-sm text-gray-400">Connect your Google Drive to enable cloud backups</p>
-                        <button type="button" onClick={() => setConnected(true)} className="bg-gray-900 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors inline-flex items-center gap-2 mt-2">
+                        <button type="button" onClick={() => setConnected(true)} className="bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-2 mt-2">
                             Connect Google Drive
                         </button>
                     </div>

@@ -185,7 +185,7 @@ export default function WhStockRequestTab() {
                         }}
                         className={`text-left p-4 rounded-xl border transition-colors ${
                             catalogMode === opt.value
-                                ? "border-gray-900 bg-gray-900 text-white"
+                                ? "border-blue-600 bg-blue-600 text-white"
                                 : "border-gray-200 bg-white hover:border-gray-300"
                         }`}
                     >
@@ -270,7 +270,7 @@ export default function WhStockRequestTab() {
                         type="button"
                         onClick={handleSubmit}
                         disabled={submitting}
-                        className="inline-flex items-center gap-2 px-5 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-700 disabled:opacity-50"
+                        className="inline-flex items-center gap-2 px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50"
                     >
                         <Send size={14} />
                         {submitting ? "Submitting..." : "Submit bulk WH→WH request"}

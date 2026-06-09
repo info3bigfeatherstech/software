@@ -25,7 +25,7 @@ const S = {
     },
     modal: {
         background: "#ffffff",
-        borderRadius: "14px",
+        borderRadius: "0",
         width: "100%",
         maxWidth: "960px",
         margin: "0 16px",
@@ -267,7 +267,7 @@ export default function InwardItemsModal({
                                     display: "inline-flex", alignItems: "center", gap: "4px",
                                     fontSize: "11px", fontWeight: 500,
                                     background: "#FAEEDA", color: "#854F0B",
-                                    border: "0.5px solid #FAC775", borderRadius: "6px",
+                                    border: "0.5px solid #FAC775", borderRadius: "0",
                                     padding: "3px 9px",
                                 }}>
                                     <svg style={{ width: "11px", height: "11px" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -279,7 +279,7 @@ export default function InwardItemsModal({
                             <button
                                 onClick={() => { dispatch(closeItemsModal()); onClose(); }}
                                 style={{
-                                    width: "28px", height: "28px", borderRadius: "6px",
+                                    width: "28px", height: "28px", borderRadius: "0",
                                     border: "0.5px solid #E5E7EB", background: "#F9FAFB",
                                     display: "flex", alignItems: "center", justifyContent: "center",
                                     cursor: "pointer", color: "#6B7280", fontSize: "15px",
@@ -357,7 +357,7 @@ export default function InwardItemsModal({
                                 <button
                                     onClick={() => dispatch(cancelEditItem())}
                                     style={{
-                                        height: "28px", padding: "0 10px", borderRadius: "6px",
+                                        height: "28px", padding: "0 10px", borderRadius: "0",
                                         border: "0.5px solid #D1D5DB", background: "#ffffff",
                                         fontSize: "11px", fontWeight: 500, color: "#6B7280",
                                         cursor: "pointer",
@@ -370,7 +370,7 @@ export default function InwardItemsModal({
                                 onClick={isEditing ? handleUpdate : handleAdd}
                                 disabled={isMutating}
                                 style={{
-                                    height: "28px", padding: "0 12px", borderRadius: "6px",
+                                    height: "28px", padding: "0 12px", borderRadius: "0",
                                     border: "none", background: isEditing ? "#185FA5" : "#185FA5",
                                     color: "#ffffff", fontSize: "11px", fontWeight: 500,
                                     cursor: isMutating ? "not-allowed" : "pointer",
@@ -546,7 +546,7 @@ export default function InwardItemsModal({
                                                         display: "inline-flex", flexDirection: "column", alignItems: "flex-start", gap: "1px",
                                                         fontSize: "10px", fontWeight: 500,
                                                         background: "#DCFCE7", color: "#15803D",
-                                                        borderRadius: "10px", padding: "2px 8px",
+                                                        borderRadius: "0", padding: "2px 8px",
                                                         border: "0.5px solid #BBF7D0",
                                                     }}>
                                                         <span style={{ display: "inline-flex", alignItems: "center", gap: "3px" }}>
@@ -568,7 +568,7 @@ export default function InwardItemsModal({
                                                             display: "inline-flex", alignItems: "center", gap: "3px",
                                                             fontSize: "10px", fontWeight: 500,
                                                             background: "#FAEEDA", color: "#854F0B",
-                                                            borderRadius: "10px", padding: "2px 8px",
+                                                            borderRadius: "0", padding: "2px 8px",
                                                             border: "0.5px solid #FAC775",
                                                             cursor: "pointer",
                                                         }}
@@ -656,7 +656,7 @@ export default function InwardItemsModal({
                                 <span style={{
                                     fontSize: "11px", color: "#854F0B",
                                     background: "#FAEEDA", border: "0.5px solid #FAC775",
-                                    borderRadius: "6px", padding: "3px 9px", fontWeight: 500,
+                                    borderRadius: "0", padding: "3px 9px", fontWeight: 500,
                                 }}>
                                     ⚠ {unmapped} item{unmapped > 1 ? "s" : ""} not yet mapped
                                 </span>
@@ -665,7 +665,7 @@ export default function InwardItemsModal({
                                 <span style={{
                                     fontSize: "11px", color: "#15803D",
                                     background: "#DCFCE7", border: "0.5px solid #BBF7D0",
-                                    borderRadius: "6px", padding: "3px 9px", fontWeight: 500,
+                                    borderRadius: "0", padding: "3px 9px", fontWeight: 500,
                                 }}>
                                     ✓ All items mapped
                                 </span>
@@ -674,7 +674,7 @@ export default function InwardItemsModal({
                         <button
                             onClick={() => { dispatch(closeItemsModal()); onClose(); }}
                             style={{
-                                height: "32px", padding: "0 16px", borderRadius: "8px",
+                                height: "32px", padding: "0 16px", borderRadius: "0",
                                 border: "0.5px solid #D1D5DB", background: "#ffffff",
                                 fontSize: "12px", fontWeight: 500, color: "#374151",
                                 cursor: "pointer",
@@ -725,7 +725,7 @@ function TBtn({ icon, label, onClick }) {
             title={label}
             style={{
                 display: "inline-flex", alignItems: "center", gap: "4px",
-                height: "26px", padding: "0 9px", borderRadius: "5px",
+                height: "26px", padding: "0 9px", borderRadius: "0",
                 border: "0.5px solid #D1D5DB", background: "#ffffff",
                 fontSize: "11px", fontWeight: 500, color: "#6B7280",
                 cursor: "pointer",

@@ -5,6 +5,7 @@ import { lazy } from "react";
 
 const purchaseTab        = lazy(() => import("../WAREHOUSES/PURCHASE/PurchaseTab"));
 const PaymentOutTab           = lazy(() => import("./PaymentOutTab/PaymentOutTab"));
+const BillPaymentStatusTab    = lazy(() => import("./BillPaymentStatusTab/BillPaymentStatusTab"));
 const ExpensesTab             = lazy(() => import("./ExpensesTab/ExpensesTab"));
 const PurchasePerformanceTab  = lazy(() => import("./PurchasePerformanceTab/PurchasePerformanceTab"));
 const PurchaseReturnsTab      = lazy(() => import("./PurchaseReturnsTab/PurchaseReturnsTab"));
@@ -21,6 +22,12 @@ export const PURCHASE_TAB_REGISTRY = [
         label: "Payment Out",
         icon: "M17 9V7a4 4 0 00-8 0v2M5 9h14l1 10H4L5 9z",
         component: PaymentOutTab,
+    },
+    {
+        id: "bill-payment-status",
+        label: "Bill Payment Status",
+        icon: "M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z",
+        component: BillPaymentStatusTab,
     },
     {
         id: "expenses",

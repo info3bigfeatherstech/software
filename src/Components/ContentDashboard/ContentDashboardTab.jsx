@@ -1,10 +1,11 @@
 // src/Components/ContentDashboard/ContentDashboardTab.jsx
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useSelector } from "react-redux";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { CURRENT_USER, filterByLocation, isAdmin } from "../roles";
 import { useGetProductStocksQuery } from "../../REDUX_FEATURES/REDUX_SLICES/Stock_api/stockApi";
 import { useGetShopsQuery } from "../../REDUX_FEATURES/REDUX_SLICES/Shop_api/shopApi";
+import { useGetMonthlyOverviewQuery } from "../../REDUX_FEATURES/REDUX_SLICES/Dashboard_api/dashboardApi";
 import NetworkStockPanel from "../shared/NetworkStockPanel";
 
 const StatCard = ({ label, value, sub, color = "text-app-text" }) => (
@@ -17,6 +18,7 @@ const StatCard = ({ label, value, sub, color = "text-app-text" }) => (
 
 const CustomTooltip = ({ active, payload, label }) => {
     if (!active || !payload?.length) return null;
+    const row = payload[0]?.payload || {};
     return (
         <div className="app-card app-card-body text-sm">
             <p className="font-semibold text-app-text mb-2">{label}</p>
@@ -25,6 +27,11 @@ const CustomTooltip = ({ active, payload, label }) => {
                     {p.name}: <span className="font-semibold text-app-text ml-1">₹{p.value?.toLocaleString()}</span>
                 </p>
             ))}
+            {row.Expenses != null && (
+                <p className="text-app-text-secondary mt-1">
+                    Expenses: <span className="font-semibold text-app-text ml-1">₹{row.Expenses?.toLocaleString()}</span>
+                </p>
+            )}
         </div>
     );
 };
@@ -35,6 +42,13 @@ export default function ContentDashboardTab() {
 
     const { data: stocksData } = useGetProductStocksQuery({ page: 1, limit: 100 });
     const { data: shopsData } = useGetShopsQuery({ page: 1, limit: 100 });
+
+    const overviewShopId = isAdmin() && shopFilter !== "all" ? shopFilter : "";
+
+    const { data: overview, isLoading: overviewLoading, isFetching: overviewFetching } = useGetMonthlyOverviewQuery({
+        months: 6,
+        shop_id: overviewShopId,
+    });
 
     const allProducts = stocksData?.stocks?.map(s => ({
         id: s.stock_id,
@@ -60,20 +74,32 @@ export default function ContentDashboardTab() {
     const outOfStock = filteredProducts.filter(p => p.stock === 0);
     const totalInventoryValue = filteredProducts.reduce((s, p) => s + ((p.stock || 0) * (p.mrp || 0)), 0);
 
-    const chartData = [
-        { month: "Jan", Sales: 0, Purchase: 0, Profit: 0 },
-        { month: "Feb", Sales: 0, Purchase: 0, Profit: 0 },
-        { month: "Mar", Sales: 0, Purchase: 0, Profit: 0 },
-        { month: "Apr", Sales: 0, Purchase: 0, Profit: 0 },
-        { month: "May", Sales: 0, Purchase: 0, Profit: 0 },
-        { month: "Jun", Sales: 0, Purchase: 0, Profit: 0 },
-    ];
+    const chartData = useMemo(
+        () => (overview?.series || []).map((row) => ({
+            month: row.month,
+            Sales: row.sales,
+            Purchase: row.purchase,
+            Profit: row.profit,
+            Expenses: row.expenses,
+        })),
+        [overview]
+    );
+
+    const hasChartData = chartData.some(
+        (d) => (d.Sales || 0) > 0 || (d.Purchase || 0) > 0 || (d.Expenses || 0) > 0
+    );
+
+    const selectedShopName = shops.find((s) => s.shop_id === shopFilter)?.shop_name;
 
     const locationLabel = isAdmin()
-        ? "All Locations"
+        ? shopFilter === "all"
+            ? "All Locations"
+            : `Shop: ${selectedShopName || shopFilter}`
         : user?.role === "SHOP_OWNER" || user?.role === "SHOP_STOCK_LISTER"
             ? `Shop: ${CURRENT_USER.locationName || CURRENT_USER.shop_id}`
             : `Warehouse: ${CURRENT_USER.locationName || CURRENT_USER.locationId}`;
+
+    const chartLoading = overviewLoading || overviewFetching;
 
     return (
         <div className="app-page">
@@ -136,23 +162,47 @@ export default function ContentDashboardTab() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
                 <div className="lg:col-span-2 app-card">
                     <div className="app-card-header">
-                        <h3 className="text-sm font-semibold text-app-text">Monthly Sales vs Purchase vs Profit</h3>
-                        <span className="text-xs text-app-text-muted">Last 6 months</span>
+                        <div>
+                            <h3 className="text-sm font-semibold text-app-text">Monthly Sales vs Purchase vs Profit</h3>
+                            {isAdmin() && shopFilter !== "all" && (
+                                <p className="text-xs text-app-text-muted mt-0.5">
+                                    Sales & shop expenses for selected shop; purchases & warehouse expenses are org-wide
+                                </p>
+                            )}
+                        </div>
+                        <span className="text-xs text-app-text-muted shrink-0">Last 6 months</span>
                     </div>
                     <div className="app-card-body">
-                        <ResponsiveContainer width="100%" height={220}>
-                            <BarChart data={chartData} margin={{ top: 0, right: 10, left: -10, bottom: 0 }}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
-                                <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#6b7280" }} axisLine={false} tickLine={false} />
-                                <YAxis tick={{ fontSize: 10, fill: "#6b7280" }} axisLine={false} tickLine={false} tickFormatter={v => `₹${(v / 1000).toFixed(0)}K`} />
-                                <Tooltip content={<CustomTooltip />} />
-                                <Legend wrapperStyle={{ fontSize: 11, color: "#6b7280" }} />
-                                <Bar dataKey="Sales" fill="#1d4ed8" maxBarSize={28} />
-                                <Bar dataKey="Purchase" fill="#15803d" maxBarSize={28} />
-                                <Bar dataKey="Profit" fill="#4b5563" maxBarSize={28} />
-                            </BarChart>
-                        </ResponsiveContainer>
-                        <p className="text-center text-xs text-app-text-muted mt-2">Sales data will appear once billing is active</p>
+                        {chartLoading && (
+                            <p className="text-center text-sm text-app-text-muted py-16">Loading chart data…</p>
+                        )}
+                        {!chartLoading && chartData.length > 0 && (
+                            <ResponsiveContainer width="100%" height={220}>
+                                <BarChart data={chartData} margin={{ top: 0, right: 10, left: -10, bottom: 0 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+                                    <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#6b7280" }} axisLine={false} tickLine={false} />
+                                    <YAxis tick={{ fontSize: 10, fill: "#6b7280" }} axisLine={false} tickLine={false} tickFormatter={v => `₹${(v / 1000).toFixed(0)}K`} />
+                                    <Tooltip content={<CustomTooltip />} />
+                                    <Legend wrapperStyle={{ fontSize: 11, color: "#6b7280" }} />
+                                    <Bar dataKey="Sales" fill="#1d4ed8" maxBarSize={28} />
+                                    <Bar dataKey="Purchase" fill="#15803d" maxBarSize={28} />
+                                    <Bar dataKey="Profit" fill="#4b5563" maxBarSize={28} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        )}
+                        {!chartLoading && !hasChartData && (
+                            <p className="text-center text-xs text-app-text-muted py-8">
+                                No sales, purchases, or expenses recorded in the last 6 months yet.
+                            </p>
+                        )}
+                        {!chartLoading && hasChartData && overview?.summary && (
+                            <p className="text-center text-xs text-app-text-muted mt-2">
+                                6-month totals — Sales: ₹{overview.summary.total_sales?.toLocaleString()}
+                                {" · "}Purchase: ₹{overview.summary.total_purchase?.toLocaleString()}
+                                {" · "}Expenses: ₹{overview.summary.total_expenses?.toLocaleString()}
+                                {" · "}Profit: ₹{overview.summary.total_profit?.toLocaleString()}
+                            </p>
+                        )}
                     </div>
                 </div>
 
@@ -188,7 +238,7 @@ export default function ContentDashboardTab() {
             )}
 
             <div className="app-alert-info text-center text-xs">
-                Sales bills, transfers, and advanced analytics coming soon. Stock levels are live from inventory.
+                Stock levels are live from inventory. Chart uses bills (sales), purchase bills, and petty cash expenses.
             </div>
         </div>
     );

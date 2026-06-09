@@ -18,7 +18,7 @@ function Toggle({ enabled, onToggle }) {
             role="switch"
             aria-checked={enabled}
             onClick={onToggle}
-            className={`relative rounded-full w-10 h-6 transition-colors ${enabled ? "bg-gray-900" : "bg-gray-200"}`}
+            className={`relative rounded-full w-10 h-6 transition-colors ${enabled ? "bg-blue-600" : "bg-gray-200"}`}
         >
             <span className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${enabled ? "translate-x-4" : ""}`} />
         </button>
@@ -93,7 +93,7 @@ export default function AutoBackupTab() {
                     </div>
                 )}
                 <div className="flex justify-end pt-2">
-                    <button type="button" className="bg-gray-900 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors inline-flex items-center gap-2">
+                    <button type="button" className="bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-2">
                         Save Settings
                     </button>
                 </div>

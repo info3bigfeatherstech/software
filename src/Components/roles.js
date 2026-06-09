@@ -102,6 +102,15 @@ export const SUB_TAB_PERMISSIONS = {
     // Utilities internal horizontal tabs (from utilitiesTabRegistry.js)
     "utilities.internal.importitems": ["SUPER_ADMIN", "WH_MANAGER", "WH_STOCK_LISTER"],
     "utilities.internal.setUpbillperforma": ["SUPER_ADMIN", "WH_MANAGER", "WH_STOCK_LISTER"],
+    "utilities.internal.pettycashbook": ["SUPER_ADMIN", "WH_MANAGER", "WH_STOCK_LISTER", "SHOP_OWNER", "SHOP_STOCK_LISTER"],
+
+    // Purchase internal horizontal tabs (from purchaseTabRegistry.js)
+    "purchase.internal.purchase-bills": ["SUPER_ADMIN", "WH_MANAGER", "WH_STOCK_LISTER"],
+    "purchase.internal.payment-out": ["SUPER_ADMIN", "WH_MANAGER"],
+    "purchase.internal.bill-payment-status": ["SUPER_ADMIN", "WH_MANAGER", "WH_STOCK_LISTER"],
+    "purchase.internal.expenses": ["SUPER_ADMIN", "WH_MANAGER", "WH_STOCK_LISTER"],
+    "purchase.internal.purchase-performance": ["SUPER_ADMIN", "WH_MANAGER", "WH_STOCK_LISTER"],
+    "purchase.internal.purchase-returns": ["SUPER_ADMIN", "WH_MANAGER", "WH_STOCK_LISTER"],
 };
 
 /**

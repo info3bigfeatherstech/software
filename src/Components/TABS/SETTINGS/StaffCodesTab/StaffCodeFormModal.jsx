@@ -135,7 +135,7 @@ export default function StaffCodeFormModal({ shopId, staffCode, onClose, onSucce
                             <button
                                 type="submit"
                                 disabled={saving}
-                                className="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium disabled:opacity-50"
+                                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium disabled:opacity-50"
                             >
                                 {saving ? "Saving…" : isEdit ? "Update" : "Add Code"}
                             </button>

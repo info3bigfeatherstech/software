@@ -374,7 +374,7 @@ export default function TransferRequestsTab() {
                     <button
                         onClick={handleSearch}
                         disabled={isSearching}
-                        className="px-5 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-700 disabled:opacity-50 flex items-center gap-2 transition-colors"
+                        className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2 transition-colors"
                     >
                         <Search size={14} /> {isSearching ? "Searching..." : "Search Stock"}
                     </button>
