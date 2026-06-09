@@ -48,11 +48,7 @@ export default function CategoriesTab({ onClose }) {
         page: 1,
         limit: 100
     });
-    useEffect(() => {
-        if (!showModal) {
-            dispatch(openModal());
-        }
-    }, []);
+
     const categories = data?.categories || [];
 
     // Get root categories for parent dropdown (categories with no parent)
@@ -108,6 +104,7 @@ export default function CategoriesTab({ onClose }) {
             }
 
             dispatch(closeModal());
+            if (onClose) onClose();
             refetch();
         } catch (err) {
             if (err?.data?.errors) {
@@ -197,8 +194,7 @@ export default function CategoriesTab({ onClose }) {
             </div>
 
             {/* Manage Categories Modal */}
-            {showModal && (
-                <div className="fixed inset-0 z-50 overflow-y-auto text-gray-700">
+            <div className="fixed inset-0 z-50 overflow-y-auto text-gray-700">
     <div className="flex items-center justify-center min-h-screen px-4 py-8">
         <div className="fixed inset-0 bg-black/50" />
 
@@ -389,7 +385,6 @@ export default function CategoriesTab({ onClose }) {
                     </div>
     </div>
 </div>
-            )}
         </div>
     );
 }
