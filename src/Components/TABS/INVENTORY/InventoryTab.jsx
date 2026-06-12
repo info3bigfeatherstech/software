@@ -214,7 +214,7 @@ export default function InventoryTab() {
           {can("productMs.category_add") && (
             <button
               onClick={() => setShowCategoryModal(true)}
-              className="bg-white border border-gray-200 text-gray-600 text-sm font-medium px-3.5 py-2 rounded-lg hover:bg-gray-50 inline-flex items-center gap-2 transition-colors cursor-pointer"
+              className="bg-green-500 border border-gray-200 text-white text-sm font-medium px-3.5 py-2 rounded-lg hover:bg-green-600 inline-flex items-center gap-2 transition-colors cursor-pointer"
             >
               <FolderPlus size={16} /> Add Category
             </button>
@@ -223,9 +223,9 @@ export default function InventoryTab() {
           {can("productMs.bulk_upload") && (
             <button
               onClick={() => setShowBulkUpload(true)}
-              className="bg-white border border-gray-200 text-gray-500 text-sm font-medium px-3.5 py-2 rounded-lg hover:bg-gray-50 inline-flex items-center gap-2 transition-colors cursor-pointer"
+              className="bg-red-500 border border-gray-200 text-white text-sm font-medium px-3.5 py-2 rounded-lg hover:bg-red-600 inline-flex items-center gap-2 transition-colors cursor-pointer"
             >
-              <Upload size={16} className="text-gray-500" /> Bulk Upload
+              <Upload size={16} className="text-white" /> Bulk Upload
             </button>
           )}
           

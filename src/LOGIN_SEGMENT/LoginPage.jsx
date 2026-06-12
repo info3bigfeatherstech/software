@@ -45,7 +45,7 @@ const LoginPage = () => {
     <div className="min-h-screen bg-app-bg flex items-center justify-center px-4">
       <div className="w-full max-w-sm app-card shadow-app-md">
         <div className="app-card-header">
-          <div>
+          <div className="text-center w-full">
             <h1 className="text-base font-semibold text-app-text">Vyapar Login</h1>
             <p className="text-xs text-app-text-muted mt-0.5">Enter your staff credentials</p>
           </div>
