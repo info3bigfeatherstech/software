@@ -11,6 +11,8 @@ import {
 } from "../../REDUX_FEATURES/REDUX_SLICES/Login_Api/authSlice";
 import AppLoading from "../shared/AppLoading";
 import Notification from "../shared/notification/Notification";
+import OfflineStatusBar from "../../offline/components/OfflineStatusBar";
+import { resetOfflineDb, metaRepository } from "../../offline";
 import ThemeColorTool from "../ThemeColorTool";
 
 const LOGO = "/bigfeathers-logo-cropped.png";
@@ -117,6 +119,8 @@ const SideBarDashboard = () => {
         } catch (_error) {
             // Clear local session even if backend logout fails.
         } finally {
+            await resetOfflineDb().catch(() => {});
+            await metaRepository.clearOfflineSession().catch(() => {});
             dispatch(clearCredentials());
             dispatch(setAuthChecked(true));
             setSearchParams({}, { replace: true });
@@ -349,6 +353,7 @@ const SideBarDashboard = () => {
                     </div>
 
                     <div className="flex items-center gap-3 text-xs text-gray-500 shrink-0">
+                        <OfflineStatusBar />
                         {user?.name && <span className="hidden sm:inline">{user.name}</span>}
                         <Notification />
                     </div>

@@ -7,6 +7,8 @@ import { useDispatch, useSelector } from "react-redux";
 import { X, Save } from "lucide-react";
 import { toast } from "../../../shared/ToastConfig";
 import { useCreateCustomerMutation } from "../../../../REDUX_FEATURES/REDUX_SLICES/Customer_api/customerApi";
+import { createOfflineCustomer } from "../../../../offline/billing/offlineCustomer.service";
+import { getUserShopId } from "../../../../offline";
 import {
     closeCreateCustomer,
     setSelectedCustomer,
@@ -22,8 +24,12 @@ import {
 
 export default function CreateCustomerModal() {
     const dispatch = useDispatch();
+    const isOnline = useSelector((state) => state.offline.isOnline);
+    const { user } = useSelector((state) => state.auth);
     const { showCreateCustomer, customerMobileInput } = useSelector((state) => state.billing);
-    const [createCustomer, { isLoading }] = useCreateCustomerMutation();
+    const [createCustomer, { isLoading: isOnlineLoading }] = useCreateCustomerMutation();
+    const [isOfflineSaving, setIsOfflineSaving] = useState(false);
+    const isLoading = isOnline ? isOnlineLoading : isOfflineSaving;
 
     const [formData, setFormData] = useState({
         mobile: "",
@@ -68,8 +74,22 @@ export default function CreateCustomerModal() {
         }
 
         try {
-            const result = await createCustomer(buildCustomerSubmitPayload(formData)).unwrap();
-            toast.success(`Customer ${result.name} created successfully`);
+            const payload = buildCustomerSubmitPayload(formData);
+            let result;
+
+            if (!isOnline) {
+                setIsOfflineSaving(true);
+                result = await createOfflineCustomer({
+                    user,
+                    shopId: getUserShopId(user),
+                    data: payload,
+                });
+                toast.success(`Customer ${result.name} saved offline — will sync when online`);
+            } else {
+                result = await createCustomer(payload).unwrap();
+                toast.success(`Customer ${result.name} created successfully`);
+            }
+
             dispatch(setSelectedCustomer(result));
             dispatch(setCustomerMobileInput(result.mobile));
             dispatch(closeCreateCustomer());
@@ -85,7 +105,7 @@ export default function CreateCustomerModal() {
                 remarks: "",
             });
         } catch (err) {
-            if (err?.data?.errors?.length) {
+            if (isOnline && err?.data?.errors?.length) {
                 const fieldErrors = {};
                 err.data.errors.forEach(({ field, message }) => {
                     fieldErrors[field] = message;
@@ -93,8 +113,10 @@ export default function CreateCustomerModal() {
                 setErrors(fieldErrors);
                 toast.error("Please fix the errors");
             } else {
-                toast.error(err?.data?.message || "Failed to create customer");
+                toast.error(err?.data?.message || err?.message || "Failed to create customer");
             }
+        } finally {
+            setIsOfflineSaving(false);
         }
     };
 

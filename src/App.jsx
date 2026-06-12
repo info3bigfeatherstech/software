@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import SideBarDashboard from "./Components/SideBarDashboard/SideBarDashboard";
 import LoginPage from "./LOGIN_SEGMENT/LoginPage";
@@ -15,6 +15,8 @@ import { useGetWarehouseByIdQuery } from "./REDUX_FEATURES/REDUX_SLICES/Warehous
 import { useGetShopByIdQuery } from "./REDUX_FEATURES/REDUX_SLICES/Shop_api/shopApi";
 import "./index.css";
 import ToastConfig from "./Components/shared/ToastConfig";
+import { getOfflineDb, metaRepository, resetOfflineDb } from "./offline";
+import { networkMonitor } from "./offline/sync/networkMonitor";
 
 function App() {
   const dispatch = useDispatch();
@@ -44,6 +46,22 @@ function App() {
         const payload = await refreshToken().unwrap();
         dispatch(setCredentials(payload));
       } catch (_error) {
+        if (!networkMonitor.isOnline()) {
+          try {
+            await getOfflineDb();
+            const session = await metaRepository.getOfflineSession();
+            if (session?.user) {
+              dispatch(setCredentials({
+                user: session.user,
+                accessToken: session.accessToken,
+                isOfflineSession: true,
+              }));
+              return;
+            }
+          } catch (offlineErr) {
+            console.error('[auth] offline session restore failed', offlineErr);
+          }
+        }
         dispatch(clearCredentials());
       } finally {
         dispatch(setAuthChecked(true));
@@ -76,7 +94,7 @@ function App() {
   }
 
   return (
-    <BrowserRouter>
+    <>
       <ToastConfig />
       <Routes>
         <Route
@@ -100,7 +118,7 @@ function App() {
           element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />}
         />
       </Routes>
-    </BrowserRouter>
+    </>
   );
 }
 

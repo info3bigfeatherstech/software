@@ -3,6 +3,7 @@
 import { lazy } from "react";
 
 const BillingTab    = lazy(() => import("./BillingTab"));
+const OfflineSyncTab = lazy(() => import("./OfflineSyncTab"));
 const InvoicesTab   = lazy(() => import("./InvoicesTab"));
 const CustomersTab  = lazy(() => import("./CustomersTab"));
 const CreditNotesTab = lazy(() => import("./CreditNotesTab"));
@@ -14,6 +15,12 @@ export const SALES_TAB_REGISTRY = [
         label: "Billing Counter",
         icon: "M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 11h.01M12 11h.01M15 11h.01M4 19h16a2 2 0 002-2V7a2 2 0 00-2-2H4a2 2 0 00-2 2v10a2 2 0 002 2z",
         component: BillingTab,
+    },
+    {
+        id: "offline-sync",
+        label: "Offline & Sync",
+        icon: "M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z",
+        component: OfflineSyncTab,
     },
     {
         id: "customers",

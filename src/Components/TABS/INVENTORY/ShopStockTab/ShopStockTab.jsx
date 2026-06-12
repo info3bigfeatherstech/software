@@ -7,9 +7,10 @@
 
 import React, { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { X, Package, AlertTriangle, TrendingUp, Layers, Edit2, CheckSquare, Square, RefreshCw, Bell, Truck, Target, ChevronDown, ChevronRight, Barcode } from "lucide-react";
+import { X, Package, AlertTriangle, TrendingUp, Layers, Edit2, CheckSquare, Square, RefreshCw, Bell, Truck, Target, ChevronDown, ChevronRight, Barcode, CloudOff } from "lucide-react";
 import { toast } from "../../../shared/ToastConfig";
-import { useGetShopStocksQuery, useGetLowStockAlertsQuery, useGetReorderSuggestionsQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/ShopStock_api/shopStockApi";
+import { useGetLowStockAlertsQuery, useGetReorderSuggestionsQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/ShopStock_api/shopStockApi";
+import { useShopStocksForInventory } from "../../../../offline/hooks/useShopStocksForInventory";
 import {
     setSearch,
     setLowStockOnly,
@@ -126,30 +127,34 @@ export default function ShopStockTab() {
 
     const userShopId = user?.shop_id || "";
 
-    // ── Queries ─────────────────────────────────────────────────────────
-    const { data, isLoading, isFetching, refetch } = useGetShopStocksQuery({
+    const {
+        stocks,
+        meta,
+        isLoading: stocksLoading,
+        isFetching: stocksFetching,
+        isOnline,
+        usingOfflineCache,
+        refetch: refetchStocks,
+    } = useShopStocksForInventory(userShopId, {
+        search,
+        lowStockOnly,
         page: currentPage,
         limit: pageSize,
-        search,
-        low_stock_only: lowStockOnly,
-        shop_id: userShopId,
     });
 
+    // ── Queries (online-only extras) ──────────────────────────────────
     const { data: lowStockAlerts, refetch: refetchAlerts } = useGetLowStockAlertsQuery({
         shop_id: userShopId,
-    });
+    }, { skip: !userShopId || !isOnline });
 
-    // Fetch reorder suggestions to get min-max levels for all variants
     const { data: suggestionsData, refetch: refetchSuggestions } = useGetReorderSuggestionsQuery({
         shop_id: userShopId,
     }, {
-        skip: !userShopId,
+        skip: !userShopId || !isOnline,
     });
 
-    const stocks = data?.stocks || [];
-    const meta = data?.meta || { total: 0, page: 1, limit: 20, totalPages: 1 };
     const alerts = lowStockAlerts?.alerts || [];
-    const alertCount = lowStockAlerts?.count || 0;
+    const alertCount = isOnline ? (lowStockAlerts?.count || 0) : 0;
 
     // Group stocks by product for expandable multi-variant display
     const groupedProducts = React.useMemo(() => groupStocksByProduct(stocks), [stocks]);
@@ -201,20 +206,21 @@ export default function ShopStockTab() {
     };
 
     const handleRefresh = () => {
-        refetch();
-        refetchAlerts();
-        refetchSuggestions();
+        refetchStocks();
+        if (isOnline) {
+            refetchAlerts();
+            refetchSuggestions();
+        }
         dispatch(clearSelectedStocks());
     };
 
-    // ── Barcode Handlers (same as InventoryTab) ─────────────────────────
     const toggleExpand = (productId) => {
         setExpandedProducts(prev => ({ ...prev, [productId]: !prev[productId] }));
     };
 
     const handleSingleVariantBarcode = (variant, productInfo) => {
-        setSelectedVariantsForBarcode([{ 
-            variant, 
+        setSelectedVariantsForBarcode([{
+            variant,
             product: {
                 product_id: productInfo.product_id,
                 name: productInfo.name,
@@ -226,8 +232,8 @@ export default function ShopStockTab() {
     };
 
     const handleAllVariantsBarcode = (group) => {
-        const variantsWithProducts = group.variants.map(variant => ({ 
-            variant, 
+        const variantsWithProducts = group.variants.map(variant => ({
+            variant,
             product: {
                 product_id: group.product_id,
                 name: group.name,
@@ -239,9 +245,7 @@ export default function ShopStockTab() {
         setShowBarcodeModal(true);
     };
 
-    // ── Variant Action Handlers ─────────────────────────────────────────
-    const handleVariantQuantity = (variant) => {
-        // Create a stock object compatible with StockQuantityModal
+    const handleVariantQuantity = (variant, productName) => {
         const stockForModal = {
             shop_stock_id: variant.shop_stock_id,
             variant_id: variant.variant_id,
@@ -251,7 +255,7 @@ export default function ShopStockTab() {
                 product_code: variant.product_code,
                 sku: variant.sku,
                 product: {
-                    name: variant.product_code,
+                    name: productName || variant.product_code,
                 }
             }
         };
@@ -299,6 +303,16 @@ export default function ShopStockTab() {
                     </button>
                 </div>
             </div>
+
+            {!isOnline && (
+                <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 flex items-center gap-2">
+                    <CloudOff size={18} className="text-slate-500 shrink-0" />
+                    <p className="text-sm text-slate-700">
+                        Offline mode — showing cached stock{usingOfflineCache ? "" : ""}. Quantity adjustments save locally and sync when online.
+                        Bulk update and min-max require internet.
+                    </p>
+                </div>
+            )}
 
             {/* Low Stock Alert Banner */}
             {alertCount > 0 && (
@@ -388,7 +402,7 @@ export default function ShopStockTab() {
             </div>
 
             {/* Bulk Action Bar */}
-            {selectedStockIds.length > 0 && (
+            {selectedStockIds.length > 0 && isOnline && (
                 <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-40">
                     <div className="bg-blue-600 text-white rounded-full shadow-2xl px-6 py-3 flex items-center gap-4">
                         <span className="text-sm font-medium">{selectedStockIds.length} item(s) selected</span>
@@ -445,7 +459,7 @@ export default function ShopStockTab() {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
-                        {(isLoading || isFetching) && (
+                        {(stocksLoading || stocksFetching) && (
                             <tr>
                                 <td colSpan={13} className="px-4 py-10 text-center">
                                     <div className="flex justify-center">
@@ -454,7 +468,7 @@ export default function ShopStockTab() {
                                 </td>
                             </tr>
                         )}
-                        {!isLoading && !isFetching && groupedProducts.length === 0 && (
+                        {!stocksLoading && !stocksFetching && groupedProducts.length === 0 && (
                             <tr>
                                 <td colSpan={13} className="px-4 py-14 text-center">
                                     <Package size={32} className="text-gray-300 mx-auto mb-2" />
@@ -463,7 +477,7 @@ export default function ShopStockTab() {
                                 </td>
                             </tr>
                         )}
-                        {!isLoading && groupedProducts.map((group) => {
+                        {!stocksLoading && groupedProducts.map((group) => {
                             const isMultiVariant = group.isMultiVariant;
                             const firstVariant = group.variants[0]; // Primary or first variant for main row
                             
@@ -613,7 +627,7 @@ export default function ShopStockTab() {
                                                 {canEdit && firstVariant && (
                                                     <>
                                                         <button 
-                                                            onClick={() => handleVariantQuantity(firstVariant)} 
+                                                            onClick={() => handleVariantQuantity(firstVariant, group.name)} 
                                                             className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-gray-100 rounded-md transition-colors" 
                                                             title="Adjust Quantity"
                                                         >
@@ -621,8 +635,9 @@ export default function ShopStockTab() {
                                                         </button>
                                                         <button 
                                                             onClick={() => handleVariantMinMax(firstVariant)} 
-                                                            className="p-1.5 text-gray-400 hover:text-purple-600 hover:bg-gray-100 rounded-md transition-colors" 
+                                                            className="p-1.5 text-gray-400 hover:text-purple-600 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-40" 
                                                             title="Set Min-Max Levels"
+                                                            disabled={!isOnline}
                                                         >
                                                             <Target size={15} />
                                                         </button>
@@ -740,7 +755,7 @@ export default function ShopStockTab() {
                                                                                     {canEdit && (
                                                                                         <>
                                                                                             <button 
-                                                                                                onClick={() => handleVariantQuantity(variant)} 
+                                                                                                onClick={() => handleVariantQuantity(variant, group.name)} 
                                                                                                 className="p-1 text-gray-400 hover:text-blue-600 hover:bg-gray-100 rounded-md transition-colors" 
                                                                                                 title="Adjust Quantity"
                                                                                             >
@@ -748,8 +763,9 @@ export default function ShopStockTab() {
                                                                                             </button>
                                                                                             <button 
                                                                                                 onClick={() => handleVariantMinMax(variant)} 
-                                                                                                className="p-1 text-gray-400 hover:text-purple-600 hover:bg-gray-100 rounded-md transition-colors" 
+                                                                                                className="p-1 text-gray-400 hover:text-purple-600 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-40" 
                                                                                                 title="Set Min-Max Levels"
+                                                                                                disabled={!isOnline}
                                                                                             >
                                                                                                 <Target size={14} />
                                                                                             </button>

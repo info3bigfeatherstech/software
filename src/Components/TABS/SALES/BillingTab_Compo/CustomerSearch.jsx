@@ -12,7 +12,7 @@
 //         Without this, the RTK Query cache still holds foundCustomer, so the
 //         auto-select effect fires instantly and re-locks the customer card.
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { User, ShoppingBag } from "lucide-react";
 import {
@@ -21,6 +21,7 @@ import {
     openCreateCustomer,
 } from "../../../../REDUX_FEATURES/REDUX_SLICES/Billing_api/billingSlice";
 import { useLazySearchCustomersQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/Customer_api/customerApi";
+import { searchOfflineCustomerByMobile } from "../../../../offline/billing/offlineCustomer.service";
 
 const getLoyaltyBadge = (tier) => {
     switch (tier) {
@@ -37,23 +38,34 @@ const getLoyaltyBadge = (tier) => {
 
 export default function CustomerSearch() {
     const dispatch = useDispatch();
+    const isOnline = useSelector((state) => state.offline.isOnline);
     const { customerMobileInput, selectedCustomer } = useSelector((state) => state.billing);
     const [triggerSearch, { data: searchResults, isLoading, reset: resetSearch }] = useLazySearchCustomersQuery();
+    const [offlineCustomer, setOfflineCustomer] = useState(null);
+    const [offlineSearching, setOfflineSearching] = useState(false);
 
-    // FIX: Ref to suppress auto-select when user explicitly clicked "Change" or cleared input.
-    // Without this, the RTK Query cache still holds foundCustomer after clearing, and the
-    // auto-select effect immediately re-locks the customer card on every render.
     const suppressAutoSelect = useRef(false);
 
-    // Search when mobile reaches 10 digits
     useEffect(() => {
         if (customerMobileInput && customerMobileInput.length === 10) {
-            suppressAutoSelect.current = false; // allow auto-select for fresh searches
-            triggerSearch({ mobile: customerMobileInput });
-        }
-    }, [customerMobileInput, triggerSearch]);
+            suppressAutoSelect.current = false;
 
-    const foundCustomer = searchResults?.[0];
+            if (!isOnline) {
+                setOfflineSearching(true);
+                searchOfflineCustomerByMobile(customerMobileInput)
+                    .then((row) => setOfflineCustomer(row))
+                    .finally(() => setOfflineSearching(false));
+                return;
+            }
+
+            setOfflineCustomer(null);
+            triggerSearch({ mobile: customerMobileInput });
+        } else {
+            setOfflineCustomer(null);
+        }
+    }, [customerMobileInput, triggerSearch, isOnline]);
+
+    const foundCustomer = isOnline ? searchResults?.[0] : offlineCustomer;
 
     // Auto-select customer if found — guarded by suppressAutoSelect ref
     useEffect(() => {
@@ -80,7 +92,8 @@ export default function CustomerSearch() {
         // FIX: Set suppressAutoSelect BEFORE dispatching so the useEffect guarding
         // auto-select doesn't fire between the two dispatches and re-lock the customer.
         suppressAutoSelect.current = true;
-        resetSearch(); // clear RTK Query cache so foundCustomer becomes undefined
+        resetSearch();
+        setOfflineCustomer(null);
         dispatch(setSelectedCustomer(null));
         dispatch(setCustomerMobileInput(""));
     };
@@ -107,7 +120,7 @@ export default function CustomerSearch() {
             </div>
 
             {/* Loading */}
-            {isLoading && customerMobileInput.length === 10 && (
+            {(isLoading || offlineSearching) && customerMobileInput.length === 10 && (
                 <div className="mt-2 text-center">
                     <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin inline-block" />
                     <span className="text-xs text-gray-500 ml-2">Searching...</span>
@@ -141,7 +154,7 @@ export default function CustomerSearch() {
             )}
 
             {/* No Customer Found */}
-            {customerMobileInput.length === 10 && !foundCustomer && !isLoading && (
+            {customerMobileInput.length === 10 && !foundCustomer && !isLoading && !offlineSearching && (
                 <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                     <div className="min-w-0">
                         <p className="text-sm text-yellow-800 font-medium">New Customer</p>

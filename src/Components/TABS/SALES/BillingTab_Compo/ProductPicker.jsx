@@ -7,11 +7,12 @@
 // FIXED: Using special_price instead of retail_price
 
 import React, { useState, useRef } from "react";
-import { Package } from "lucide-react";
-import { useDispatch } from "react-redux";
-import { useGetShopStocksQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/ShopStock_api/shopStockApi";
+import { Package, CloudOff } from "lucide-react";
+import { useDispatch, useSelector } from "react-redux";
+import { useShopStocksForBilling } from "../../../../offline/hooks/useShopStocksForBilling";
+import { shopStockRepository } from "../../../../offline/db/repositories/dataRepository";
+import { mapLocalStockToBarcodeProduct } from "../../../../offline/utils/offlineStockAdapter";
 import { addToCart, updateCartQty } from "../../../../REDUX_FEATURES/REDUX_SLICES/Billing_api/billingSlice";
-import BarcodeScanner from "./BarcodeScanner";
 import { useLazyGetProductByBarcodeQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/Product_api/productApi";
 import { toast } from "../../../shared/ToastConfig";
 import {
@@ -21,6 +22,7 @@ import {
     resolveProductGstType,
     toBillingNumber,
 } from "../../../../utils/billingCart.utils";
+import BarcodeScanner from "./BarcodeScanner";
 
 const resolveStockImageUrl = (variant, product) =>
     variant?.images?.[0]?.url
@@ -56,20 +58,44 @@ const isValidBarcode = (barcode) => {
 
 export default function ProductPicker({ shop_id, cart = [] }) {
     const dispatch = useDispatch();
+    const isOnline = useSelector((state) => state.offline.isOnline);
     const [searchTerm, setSearchTerm] = useState("");
     const [showScanner, setShowScanner] = useState(false);
     const [triggerBarcodeSearch] = useLazyGetProductByBarcodeQuery();
     const lastScanTimeRef = useRef(0);
-    const lastSuccessfulBarcodeRef = useRef(null);
 
-    const { data, isLoading, isFetching, refetch } = useGetShopStocksQuery(
-        { shop_id, limit: 100 },
-        { skip: !shop_id, refetchOnMountOrArgChange: true }
-    );
+    const { stocks, isLoading, isFetching, usingOfflineCache, refetch } = useShopStocksForBilling(shop_id);
 
-    const stocks = data?.stocks || [];
+    const addProductToCart = (result, barcode) => {
+        const existingItem = cart.find(item => item.variant_id === result.variant_id);
+        if (existingItem) {
+            const newQuantity = existingItem.quantity + 1;
+            dispatch(updateCartQty({
+                variant_id: result.variant_id,
+                quantity: newQuantity,
+            }));
+            toast.success(`${result.name || result.product_name} quantity increased to ${newQuantity}`);
+            return;
+        }
 
-    // Handle barcode scan result - WITH QUANTITY INCREMENT ON SAME PRODUCT
+        const cartItem = buildBillingCartItem({
+            variant_id: result.variant_id,
+            product_name: result.name || result.product_name,
+            system_barcode: result.system_barcode || barcode,
+            special_price: result.special_price,
+            wholesale_price: result.wholesale_price,
+            mrp: result.mrp,
+            online_price: result.online_price,
+            retail_price: result.special_price ?? result.retail_price,
+            gst_percent: result.gst_percent,
+            gst_type: result.gst_type,
+            hsn_code: result.hsn_code ?? result.product?.hsn_code,
+            quantity_available: result.stock_available ?? result.quantity_available ?? 0,
+        });
+        dispatch(addToCart(cartItem));
+        toast.success(`${result.name || result.product_name} added to cart`);
+    };
+
     const handleBarcodeScan = async (barcode) => {
         // Debounce: ignore scans within 500ms
         const now = Date.now();
@@ -86,43 +112,32 @@ export default function ProductPicker({ shop_id, cart = [] }) {
         }
 
         try {
+            if (!isOnline) {
+                const localRow = await shopStockRepository.getByBarcode(barcode);
+                const result = mapLocalStockToBarcodeProduct(localRow);
+                if (result) {
+                    addProductToCart(result, barcode);
+                } else {
+                    toast.error("Product not found in offline catalog");
+                }
+                return;
+            }
+
             const result = await triggerBarcodeSearch(barcode).unwrap();
             if (result) {
-                // Check if product already exists in cart
-                const existingItem = cart.find(item => item.variant_id === result.variant_id);
-                
-                if (existingItem) {
-                    // INCREMENT QUANTITY - don't add duplicate
-                    const newQuantity = existingItem.quantity + 1;
-                    dispatch(updateCartQty({ 
-                        variant_id: result.variant_id, 
-                        quantity: newQuantity 
-                    }));
-                    toast.success(`${result.name} quantity increased to ${newQuantity}`);
-                } else {
-                    const cartItem = buildBillingCartItem({
-                        variant_id: result.variant_id,
-                        product_name: result.name,
-                        system_barcode: result.system_barcode || barcode,
-                        special_price: result.special_price,
-                        wholesale_price: result.wholesale_price,
-                        mrp: result.mrp,
-                        online_price: result.online_price,
-                        retail_price: result.special_price,
-                        gst_percent: result.gst_percent,
-                        gst_type: result.gst_type,
-                        quantity_available: result.stock_available ?? 999999,
-                    });
-                    dispatch(addToCart(cartItem));
-                    toast.success(`${result.name} added to cart`);
-                }
-                lastSuccessfulBarcodeRef.current = barcode;
+                addProductToCart(result, barcode);
             } else {
                 console.warn("Product not found for barcode:", barcode);
             }
         } catch (err) {
-            // Silently fail for garbage scans - don't show error toast
+            const localRow = await shopStockRepository.getByBarcode(barcode);
+            const fallback = mapLocalStockToBarcodeProduct(localRow);
+            if (fallback) {
+                addProductToCart(fallback, barcode);
+                return;
+            }
             console.warn("Barcode search failed for:", barcode, err?.status);
+            toast.error("Product not found");
         }
     };
 
@@ -162,6 +177,7 @@ export default function ProductPicker({ shop_id, cart = [] }) {
                 retail_price: variant.special_price,
                 gst_percent: resolveProductGstPercent(product),
                 gst_type: resolveProductGstType(product),
+                hsn_code: product?.hsn_code,
                 quantity_available: stock.quantity_available,
             });
             dispatch(addToCart(cartItem));
@@ -169,7 +185,7 @@ export default function ProductPicker({ shop_id, cart = [] }) {
         }
     };
 
-    if (isLoading || isFetching) {
+    if (isLoading && !stocks.length) {
         return (
             <div className="flex justify-center py-12">
                 <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
@@ -189,6 +205,12 @@ export default function ProductPicker({ shop_id, cart = [] }) {
             />
 
             {/* Search Input */}
+            {usingOfflineCache && (
+                <div className="mb-2 flex items-center gap-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5">
+                    <CloudOff size={12} />
+                    <span>Using offline product catalog{isFetching ? " (refreshing…)" : ""}</span>
+                </div>
+            )}
             <div className="relative mb-3">
                 <input
                     type="text"

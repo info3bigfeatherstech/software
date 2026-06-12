@@ -1,16 +1,24 @@
 import React, { useState, useEffect } from "react";
+import { useSelector } from "react-redux";
 import {
     useCreateShopExpenseMutation,
     useUpdateShopExpenseMutation,
 } from "../../../../REDUX_FEATURES/REDUX_SLICES/Purchase_api/purchaseFinanceApi";
 import { SHOP_EXPENSE_CATEGORIES, PAYMENT_METHODS } from "../purchaseFinanceUtils";
+import { createOfflineShopExpense } from "../../../../offline/inventory/offlineShopExpense.service";
+import { getUserShopId } from "../../../../offline/constants";
+import { toast } from "../../../shared/ToastConfig";
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
 
 export default function ShopExpenseFormModal({ open, onClose, onSaved, expense, shopId }) {
+    const { user } = useSelector((state) => state.auth);
+    const isOnline = useSelector((state) => state.offline.isOnline);
     const [createExpense, { isLoading: creating }] = useCreateShopExpenseMutation();
     const [updateExpense, { isLoading: updating }] = useUpdateShopExpenseMutation();
+    const [offlineSaving, setOfflineSaving] = useState(false);
     const isEdit = Boolean(expense);
+    const isSaving = isOnline ? (creating || updating) : offlineSaving;
 
     const [form, setForm] = useState({
         category: "REPAIRS",
@@ -63,6 +71,10 @@ export default function ShopExpenseFormModal({ open, onClose, onSaved, expense, 
 
     const handleSubmit = async () => {
         if (!validate()) return;
+        if (isEdit && !isOnline) {
+            setErrors({ general: "Editing expenses is not available offline" });
+            return;
+        }
         const payload = {
             shop_id: shopId || undefined,
             category: form.category,
@@ -76,13 +88,23 @@ export default function ShopExpenseFormModal({ open, onClose, onSaved, expense, 
         try {
             if (isEdit) {
                 await updateExpense({ expenseId: expense.expense_id, ...payload }).unwrap();
+            } else if (!isOnline) {
+                setOfflineSaving(true);
+                const result = await createOfflineShopExpense({
+                    user,
+                    shopId: shopId || getUserShopId(user),
+                    data: payload,
+                });
+                toast.success(`Offline expense saved (${result.expense_number}) — will sync when online`);
             } else {
                 await createExpense(payload).unwrap();
             }
             onSaved();
             onClose();
         } catch (err) {
-            setErrors({ general: err?.data?.message || "Failed to save expense" });
+            setErrors({ general: err?.data?.message || err?.message || "Failed to save expense" });
+        } finally {
+            setOfflineSaving(false);
         }
     };
 
@@ -152,10 +174,10 @@ export default function ShopExpenseFormModal({ open, onClose, onSaved, expense, 
                         <button
                             type="button"
                             onClick={handleSubmit}
-                            disabled={creating || updating}
+                            disabled={isSaving}
                             className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg disabled:opacity-60"
                         >
-                            {creating || updating ? "Saving…" : isEdit ? "Update" : "Save Expense"}
+                            {isSaving ? "Saving…" : isEdit ? "Update" : isOnline ? "Save Expense" : "Save Offline"}
                         </button>
                     </div>
                 </div>

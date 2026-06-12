@@ -5,7 +5,7 @@
 
 import React, { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { X, AlertTriangle } from "lucide-react";
+import { X, AlertTriangle, CloudOff } from "lucide-react";
 import { toast } from "../../../../shared/ToastConfig";
 import { useUpdateShopStockMutation } from "../../../../../REDUX_FEATURES/REDUX_SLICES/ShopStock_api/shopStockApi";
 import {
@@ -13,12 +13,14 @@ import {
     updateQuantityForm,
     setQuantityErrors,
 } from "../../../../../REDUX_FEATURES/REDUX_SLICES/ShopStock_api/shopStockSlice";
-import { CURRENT_USER } from "../../../../roles";
+import { createOfflineStockAdjustment } from "../../../../../offline/inventory/offlineStockAdjustment.service";
+import { getUserShopId } from "../../../../../offline/constants";
 
 export default function StockQuantityModal({ onSuccess }) {
     const dispatch = useDispatch();
     const { selectedStock, quantityForm, quantityErrors } = useSelector((state) => state.shopStock);
     const { user } = useSelector((state) => state.auth);
+    const isOnline = useSelector((state) => state.offline.isOnline);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [updateStock] = useUpdateShopStockMutation();
 
@@ -68,12 +70,29 @@ export default function StockQuantityModal({ onSuccess }) {
                 remarks: quantityForm.remarks?.trim() || null,
             };
 
-            await updateStock(payload).unwrap();
-            toast.success(`Stock updated: ${currentQty} → ${operation === "set" ? newQty : (operation === "increment" ? currentQty + newQty : currentQty - newQty)} units`);
+            if (!isOnline) {
+                const result = await createOfflineStockAdjustment({
+                    user,
+                    shopId: getUserShopId(user),
+                    variantId: payload.variantId,
+                    operation: payload.operation,
+                    quantity: payload.quantity,
+                    reason: payload.reason,
+                    remarks: payload.remarks,
+                    low_stock_threshold: payload.low_stock_threshold,
+                    productName: quantityForm.product_name,
+                });
+                toast.success(
+                    `Offline adjustment saved (${result.offline_reference}): ${result.before} → ${result.after} units — will sync when online`
+                );
+            } else {
+                await updateStock(payload).unwrap();
+                toast.success(`Stock updated: ${currentQty} → ${operation === "set" ? newQty : (operation === "increment" ? currentQty + newQty : currentQty - newQty)} units`);
+            }
             dispatch(closeQuantityModal());
             if (onSuccess) onSuccess();
         } catch (err) {
-            toast.error(err?.data?.message || "Failed to update stock");
+            toast.error(err?.data?.message || err?.message || "Failed to update stock");
             if (err?.data?.errors?.length) {
                 const be = {};
                 err.data.errors.forEach(({ field, message }) => { be[field] = message; });
@@ -135,8 +154,20 @@ export default function StockQuantityModal({ onSuccess }) {
                     </div>
                     <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
                         <AlertTriangle size={16} className="text-amber-500 mt-0.5 shrink-0" />
-                        <p className="text-xs text-amber-700">Stock ledger entry will be created for this adjustment. This change is permanent and tracked in audit trail.</p>
+                        <p className="text-xs text-amber-700">
+                            {isOnline
+                                ? "Stock ledger entry will be created for this adjustment. This change is permanent and tracked in audit trail."
+                                : "Offline mode: adjustment is saved on this device and will upload when internet returns."}
+                        </p>
                     </div>
+                    {!isOnline && (
+                        <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 flex items-start gap-2">
+                            <CloudOff size={16} className="text-slate-500 mt-0.5 shrink-0" />
+                            <p className="text-xs text-slate-600">
+                                Ref: will be assigned on save. View pending items in Offline &amp; Sync tab.
+                            </p>
+                        </div>
+                    )}
                 </div>
                 <div className="border-t border-gray-100 px-6 py-4 flex justify-end gap-3">
                     <button onClick={() => dispatch(closeQuantityModal())} className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50">Cancel</button>

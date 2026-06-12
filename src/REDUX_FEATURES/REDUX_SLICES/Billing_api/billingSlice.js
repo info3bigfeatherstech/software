@@ -80,6 +80,7 @@ const billingSlice = createSlice({
                     online_price: variant.online_price,
                     gst_percent: variant.gst_percent,
                     gst_type: variant.gst_type || "CGST_SGST",
+                    hsn_code: variant.hsn_code ?? variant.product?.hsn_code ?? null,
                     quantity_available: variant.quantity_available,
                     line_total: variant.unit_price,
                     gst_amount: 0,

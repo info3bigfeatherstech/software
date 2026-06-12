@@ -7,15 +7,26 @@
 // FIXED: Changed `remaining_amount` to `balance` to match backend API
 // UPDATED: Bill type values to match backend enum (GST_INVOICE | NON_GST_INVOICE)
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Printer, Download, PlusCircle, Eye, X, Receipt, CheckCircle, Search } from "lucide-react";
 import { toast } from "../../../shared/ToastConfig";
 import { useCreateBillMutation, useLazyGetBillPdfQuery, useGetBillByIdQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/Billing_api/billingApi";
-import { useGetShopBankAccountsQuery, useGetShopStaffCodesQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/Shop_api/shopApi";
+import { useBillDocumentActions } from "../../../../offline/hooks/useBillDocumentActions";
 import { useGetCreditNotesQuery, useLazyLookupCreditNoteQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/CreditNote_api/creditNoteApi";
+import {
+    createOfflineBill,
+    resolveCustomerForBill,
+    shouldUseOfflineBilling,
+    refreshBillIfSynced,
+    isBillAwaitingSync,
+    OFFLINE_EVENTS,
+} from "../../../../offline";
+import { useOfflineShopConfig } from "../../../../offline/hooks/useOfflineShopConfig";
 import UpiPaymentModal from "./UpiPaymentModal";
+import UpiQrDisplayModal from "../../../Billing/UpiQrDisplayModal";
 import { formatBankAccountLabel } from "../../../../utils/upiPayment";
+import { canShowBillUpiQr } from "../../../../utils/upiQr";
 import { formatStaffCodeLabel } from "../../../../utils/staffCode";
 import {
     clearCart,
@@ -51,7 +62,7 @@ const fmtDateTime = (iso) => {
 };
 
 // Bill View Modal Component
-const BillViewModal = ({ bill, onClose }) => {
+const BillViewModal = ({ bill, onClose, onPrint, onDownloadPdf, isPrinting, isPdfLoading }) => {
     if (!bill) return null;
     const totalQty = bill.items?.reduce((sum, i) => sum + i.quantity, 0) || 0;
 
@@ -133,7 +144,25 @@ const BillViewModal = ({ bill, onClose }) => {
                             <div className="bg-purple-50 rounded-lg p-3"><p className="text-xs font-medium text-purple-800 mb-2">Credit Notes Applied</p>{bill.credit_notes_applied.map((cn, idx) => (<div key={idx} className="flex justify-between text-sm"><span>{cn.credit_note_number}</span><span className="font-medium">₹{toNumber(cn.amount_applied).toFixed(2)}</span></div>))}</div>
                         )}
                     </div>
-                    <div className="sticky bottom-0 bg-white border-t border-gray-100 px-6 py-4 flex justify-end"><button onClick={onClose} className="px-4 py-2 bg-gray-100 rounded-lg text-sm hover:bg-gray-200">Close</button></div>
+                    <div className="sticky bottom-0 bg-white border-t border-gray-100 px-6 py-4 flex justify-end gap-2">
+                        <button
+                            type="button"
+                            onClick={() => onPrint?.(bill)}
+                            disabled={isPrinting || isPdfLoading}
+                            className="inline-flex items-center gap-1.5 px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 disabled:opacity-60"
+                        >
+                            <Printer size={14} /> {isPrinting ? "Printing…" : "Print"}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => onDownloadPdf?.(bill)}
+                            disabled={isPrinting || isPdfLoading}
+                            className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-60"
+                        >
+                            <Download size={14} /> {isPdfLoading ? "Loading…" : "Download PDF"}
+                        </button>
+                        <button onClick={onClose} className="px-4 py-2 bg-gray-100 rounded-lg text-sm hover:bg-gray-200">Close</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -142,6 +171,10 @@ const BillViewModal = ({ bill, onClose }) => {
 
 export default function CheckoutPanel({ shop_id }) {
     const dispatch = useDispatch();
+    const isOnline = useSelector((state) => state.offline.isOnline);
+    const isSyncing = useSelector((state) => state.offline.isSyncing);
+    const pendingOutboxCount = useSelector((state) => state.offline.pendingCounts.pending);
+    const { user } = useSelector((state) => state.auth);
     const {
         cart,
         selectedCustomer,
@@ -156,10 +189,61 @@ export default function CheckoutPanel({ shop_id }) {
     const taxSummary = useSelector(selectCartTaxSummary);
 
     const [createBill, { isLoading: isCreating }] = useCreateBillMutation();
-    const [triggerPdf, { isLoading: isPdfLoading }] = useLazyGetBillPdfQuery();
+    const [triggerPdf] = useLazyGetBillPdfQuery();
+    const { printBill, downloadPdf, isPrinting, isPdfLoading } = useBillDocumentActions({
+        triggerServerPdf: triggerPdf,
+        isOnline,
+    });
     const [createdBillData, setCreatedBillData] = useState(null);
     const [showBillModal, setShowBillModal] = useState(false);
     const [viewBillId, setViewBillId] = useState(null);
+    const [viewBillSnapshot, setViewBillSnapshot] = useState(null);
+    const [isOfflineCreating, setIsOfflineCreating] = useState(false);
+    const isCreatingBill = isOnline ? isCreating : isOfflineCreating;
+
+    const applySyncedBillUpdate = useCallback(async () => {
+        const current = createdBillData || lastCreatedBill;
+        if (!current || !isBillAwaitingSync(current)) return;
+
+        const refreshed = await refreshBillIfSynced(current);
+        if (refreshed.sync_status !== "synced") return;
+
+        setCreatedBillData(refreshed);
+        dispatch(setLastCreatedBill(refreshed));
+
+        if (viewBillSnapshot && (viewBillSnapshot.client_bill_id || viewBillSnapshot.bill_id) === (current.client_bill_id || current.bill_id)) {
+            setViewBillSnapshot(refreshed);
+        }
+    }, [createdBillData, lastCreatedBill, dispatch, viewBillSnapshot]);
+
+    useEffect(() => {
+        const onSyncDone = () => {
+            applySyncedBillUpdate();
+        };
+        window.addEventListener(OFFLINE_EVENTS.SYNC_COMPLETED, onSyncDone);
+        return () => window.removeEventListener(OFFLINE_EVENTS.SYNC_COMPLETED, onSyncDone);
+    }, [applySyncedBillUpdate]);
+
+    useEffect(() => {
+        const onBillDiscarded = (event) => {
+            const discardedId = event.detail?.clientBillId;
+            if (!discardedId) return;
+            const current = createdBillData || lastCreatedBill;
+            const currentId = current?.client_bill_id || current?.bill_id;
+            if (currentId && currentId === discardedId) {
+                setCreatedBillData(null);
+                dispatch(clearLastCreatedBill());
+            }
+        };
+        window.addEventListener(OFFLINE_EVENTS.BILL_DISCARDED, onBillDiscarded);
+        return () => window.removeEventListener(OFFLINE_EVENTS.BILL_DISCARDED, onBillDiscarded);
+    }, [createdBillData, lastCreatedBill, dispatch]);
+
+    useEffect(() => {
+        if (isOnline && !isSyncing && pendingOutboxCount === 0) {
+            applySyncedBillUpdate();
+        }
+    }, [isOnline, isSyncing, pendingOutboxCount, applySyncedBillUpdate]);
 
     // Credit Note States
     const [selectedCreditNoteIds, setSelectedCreditNoteIds] = useState([]);
@@ -169,19 +253,12 @@ export default function CheckoutPanel({ shop_id }) {
     const [dismissedCredit, setDismissedCredit] = useState(false);
     const [selectedBankAccountId, setSelectedBankAccountId] = useState("");
     const [showUpiModal, setShowUpiModal] = useState(false);
+    const [showUpiQrBill, setShowUpiQrBill] = useState(null);
     const [selectedStaffCodeId, setSelectedStaffCodeId] = useState("");
 
     const [lookupCreditNote, { isFetching: isLookingUpCn }] = useLazyLookupCreditNoteQuery();
 
-    const { data: bankAccounts = [] } = useGetShopBankAccountsQuery(
-        { shopId: shop_id, upi_only: true, active_only: true },
-        { skip: !shop_id }
-    );
-
-    const { data: staffCodes = [] } = useGetShopStaffCodesQuery(
-        { shopId: shop_id, active_only: true },
-        { skip: !shop_id }
-    );
+    const { staffCodes, bankAccounts } = useOfflineShopConfig(shop_id);
 
     const staffCodesRequired = staffCodes.length > 0;
 
@@ -192,7 +269,7 @@ export default function CheckoutPanel({ shop_id }) {
         page: 1,
         limit: 50,
     }, {
-        skip: !selectedCustomer?.customer_id || !shop_id,
+        skip: !selectedCustomer?.customer_id || !shop_id || !isOnline,
     });
 
     const availableCreditNotes = creditNotesData?.creditNotes || [];
@@ -249,6 +326,10 @@ export default function CheckoutPanel({ shop_id }) {
     }, [selectedCustomer]);
 
     const handleSearchCreditNote = async () => {
+        if (!isOnline) {
+            toast.error("Credit note lookup requires an internet connection");
+            return;
+        }
         const number = creditNoteSearchInput.trim();
         if (!number) {
             toast.error("Enter a credit note number");
@@ -282,6 +363,17 @@ export default function CheckoutPanel({ shop_id }) {
     const { data: billDetails, refetch: refetchBill } = useGetBillByIdQuery(viewBillId, { skip: !viewBillId });
 
     const handleViewBill = (billId) => {
+        const bill = createdBillData || lastCreatedBill;
+        const awaitingSync = isBillAwaitingSync(bill);
+
+        if (awaitingSync) {
+            setViewBillSnapshot(bill);
+            setViewBillId(null);
+            setShowBillModal(true);
+            return;
+        }
+
+        setViewBillSnapshot(null);
         setViewBillId(billId);
         setShowBillModal(true);
         refetchBill();
@@ -326,6 +418,48 @@ export default function CheckoutPanel({ shop_id }) {
 
     const submitBill = async (extra = {}) => {
         try {
+            if (shouldUseOfflineBilling(isOnline)) {
+                if (selectedCreditNoteIds.length) {
+                    toast.error("Credit notes cannot be applied while offline");
+                    return;
+                }
+
+                setIsOfflineCreating(true);
+                const customerRef = resolveCustomerForBill(selectedCustomer);
+                const offlinePayload = {
+                    ...buildBillPayload(extra),
+                    ...customerRef,
+                    customer_id: customerRef.customer_id,
+                    credit_note_ids: [],
+                    payment_amount: finalPayable > 0 && paymentMethod ? finalPayable : 0,
+                    payment_method: paymentMethod || null,
+                    bank_account_id: extra.bank_account_id || null,
+                    reference_no: extra.reference_no || null,
+                };
+
+                const result = await createOfflineBill({
+                    user,
+                    shopId: shop_id,
+                    payload: offlinePayload,
+                    cart,
+                    billType,
+                    staffCodeId: (extra.staff_code_id ?? selectedStaffCodeId) || null,
+                    offlineCustomerClientId: customerRef.offline_customer_client_id,
+                });
+
+                toast.success(`Offline bill ${result.bill_number} saved — will sync when online`);
+                setCreatedBillData(result);
+                dispatch(setLastCreatedBill(result));
+                dispatch(clearCart());
+                dispatch(clearSelectedCustomer());
+                setSelectedCreditNoteIds([]);
+                setSearchedCreditNotes([]);
+                setCreditNoteSearchInput("");
+                setShowUpiModal(false);
+                setSelectedStaffCodeId("");
+                return;
+            }
+
             const result = await createBill({
                 idempotencyKey: `bill_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
                 ...buildBillPayload(extra),
@@ -351,8 +485,10 @@ export default function CheckoutPanel({ shop_id }) {
             refetchCreditNotes();
         } catch (err) {
             console.error("Bill creation error:", err);
-            toast.error(err?.data?.message || "Failed to create bill");
+            toast.error(err?.data?.message || err?.message || "Failed to create bill");
             throw err;
+        } finally {
+            setIsOfflineCreating(false);
         }
     };
 
@@ -371,6 +507,11 @@ export default function CheckoutPanel({ shop_id }) {
         }
 
         if (!assertStaffCodeSelected()) return;
+
+        if (!isOnline && selectedCreditNoteIds.length) {
+            toast.error("Credit notes cannot be applied while offline");
+            return;
+        }
 
         if (paymentMethod === "UPI" && finalPayable > 0) {
             if (!bankAccounts.length) {
@@ -396,37 +537,13 @@ export default function CheckoutPanel({ shop_id }) {
     };
 
     const handleDownloadPdf = async () => {
-        const billId = createdBillData?.bill_id || lastCreatedBill?.bill_id;
-        if (!billId) {
-            toast.error("No bill available to download");
-            return;
-        }
+        const bill = createdBillData || lastCreatedBill;
+        await downloadPdf(bill);
+    };
 
-        try {
-            const response = await triggerPdf(billId).unwrap();
-            const blob =
-                response instanceof Blob
-                    ? response
-                    : response && typeof response === "object" && typeof response.size === "number"
-                        ? new Blob([response], { type: "application/pdf" })
-                        : null;
-            if (!blob || blob.type.includes("json")) {
-                toast.error("PDF generation failed");
-                return;
-            }
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `invoice-${billId}.pdf`;
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
-            toast.success("PDF downloaded");
-        } catch (err) {
-            console.error("PDF download error:", err);
-            toast.error(err?.data?.message || "Failed to download PDF");
-        }
+    const handlePrintBill = async () => {
+        const bill = createdBillData || lastCreatedBill;
+        await printBill(bill);
     };
 
     const handleNewBill = () => {
@@ -453,25 +570,74 @@ export default function CheckoutPanel({ shop_id }) {
 
     if (createdBillData || lastCreatedBill) {
         const bill = createdBillData || lastCreatedBill;
+        const awaitingSync = isBillAwaitingSync(bill);
+        const isSyncingBill = awaitingSync && isOnline && isSyncing;
+        const wasOfflineBill = Boolean(bill.offline_bill_number);
+        const docBusy = isPrinting || isPdfLoading;
+
         return (
             <>
                 <div className="mt-4 pt-3 border-t border-gray-200">
                     <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
-                        <div className="text-3xl mb-2">✅</div>
-                        <p className="font-bold text-green-800">Bill Created Successfully!</p>
+                        <div className="text-3xl mb-2">{isSyncingBill ? "🔄" : "✅"}</div>
+                        <p className="font-bold text-green-800">
+                            {isSyncingBill
+                                ? "Syncing Bill to Server..."
+                                : awaitingSync
+                                    ? "Bill Saved Offline!"
+                                    : wasOfflineBill
+                                        ? "Bill Synced Successfully!"
+                                        : "Bill Created Successfully!"}
+                        </p>
                         <p className="text-sm text-green-700 font-mono mt-1">{bill.bill_number}</p>
+                        {wasOfflineBill && !awaitingSync && bill.offline_bill_number && bill.offline_bill_number !== bill.bill_number && (
+                            <p className="text-xs text-gray-500 font-mono mt-0.5">
+                                Offline ref: {bill.offline_bill_number}
+                            </p>
+                        )}
+                        {awaitingSync && !isOnline && (
+                            <p className="text-xs text-amber-600 mt-1">Will sync automatically when you&apos;re back online</p>
+                        )}
+                        {isSyncingBill && (
+                            <p className="text-xs text-blue-600 mt-1">Uploading to server...</p>
+                        )}
+                        {awaitingSync && isOnline && !isSyncing && (
+                            <p className="text-xs text-amber-600 mt-1">Waiting to sync — tap Sync in the header if needed</p>
+                        )}
                         <p className="text-xs text-green-600 mt-1">Amount: ₹{toNumber(bill.total_amount || bill.total).toFixed(2)}</p>
                         {bill.credit_applied > 0 && (
                             <p className="text-xs text-purple-600 mt-1">Credit Applied: -₹{toNumber(bill.credit_applied).toFixed(2)}</p>
                         )}
-                        <div className="flex gap-2 mt-4">
-                            <button onClick={() => handleViewBill(bill.bill_id)} className="flex-1 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 flex items-center justify-center gap-2"><Eye size={14} /> View Bill</button>
-                            <button onClick={handleDownloadPdf} disabled={isPdfLoading} className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-60 flex items-center justify-center gap-2"><Download size={14} /> {isPdfLoading ? "Loading..." : "Download PDF"}</button>
-                            <button onClick={handleNewBill} className="flex-1 py-2 border border-green-300 text-green-700 rounded-lg text-sm font-medium hover:bg-green-50 flex items-center justify-center gap-2"><PlusCircle size={14} /> New Bill</button>
+                        <div className="flex flex-wrap gap-2 mt-4">
+                            <button onClick={() => handleViewBill(bill.server_bill_id || bill.bill_id || bill.client_bill_id || bill.bill_id)} className="flex-1 min-w-[120px] py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 flex items-center justify-center gap-2"><Eye size={14} /> View Bill</button>
+                            {canShowBillUpiQr(bill) && (
+                                <button type="button" onClick={() => setShowUpiQrBill(bill)} className="flex-1 min-w-[120px] py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 flex items-center justify-center gap-2">📱 UPI QR</button>
+                            )}
+                            <button onClick={handlePrintBill} disabled={docBusy} className="flex-1 min-w-[120px] py-2 border border-green-400 text-green-800 rounded-lg text-sm font-medium hover:bg-green-100 disabled:opacity-60 flex items-center justify-center gap-2"><Printer size={14} /> {isPrinting ? "Printing…" : "Print"}</button>
+                            <button onClick={handleDownloadPdf} disabled={docBusy} className="flex-1 min-w-[120px] py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-60 flex items-center justify-center gap-2"><Download size={14} /> {isPdfLoading ? "Loading..." : "Download PDF"}</button>
+                            <button onClick={handleNewBill} className="flex-1 min-w-[120px] py-2 border border-green-300 text-green-700 rounded-lg text-sm font-medium hover:bg-green-50 flex items-center justify-center gap-2"><PlusCircle size={14} /> New Bill</button>
                         </div>
                     </div>
                 </div>
-                {showBillModal && billDetails && <BillViewModal bill={billDetails} onClose={() => { setShowBillModal(false); setViewBillId(null); }} />}
+                <UpiQrDisplayModal
+                    open={Boolean(showUpiQrBill)}
+                    bill={showUpiQrBill}
+                    onClose={() => setShowUpiQrBill(null)}
+                />
+                {showBillModal && (viewBillSnapshot || billDetails) && (
+                    <BillViewModal
+                        bill={viewBillSnapshot || billDetails}
+                        onPrint={printBill}
+                        onDownloadPdf={downloadPdf}
+                        isPrinting={isPrinting}
+                        isPdfLoading={isPdfLoading}
+                        onClose={() => {
+                            setShowBillModal(false);
+                            setViewBillId(null);
+                            setViewBillSnapshot(null);
+                        }}
+                    />
+                )}
             </>
         );
     }
@@ -720,11 +886,11 @@ export default function CheckoutPanel({ shop_id }) {
                         /* Column 2 Alternative: Inline Action button for Cash & Card selection types */
                         <button
                             onClick={handleCreateBill}
-                            disabled={cart.length === 0 || isCreating}
+                            disabled={cart.length === 0 || isCreatingBill}
                             className={`w-full py-2.5 rounded-lg font-bold text-white shadow-md transition-all flex items-center justify-center gap-2 ${cart.length === 0 ? "bg-gray-300 cursor-not-allowed shadow-none" : "bg-green-600 hover:bg-green-700"
                                 }`}
                         >
-                            {isCreating ? (
+                            {isCreatingBill ? (
                                 <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Creating...</>
                             ) : (
                                 <><Printer size={16} /> Create Bill & {totalSelectedCredit > 0 ? "Apply Credit" : "Print"}</>
@@ -737,11 +903,11 @@ export default function CheckoutPanel({ shop_id }) {
                 {paymentMethod === "UPI" && finalPayable > 0 && (
                     <button
                         onClick={handleCreateBill}
-                        disabled={cart.length === 0 || isCreating}
+                        disabled={cart.length === 0 || isCreatingBill}
                         className={`w-full py-3 rounded-xl font-bold text-white shadow-md transition-all flex items-center justify-center gap-2 ${cart.length === 0 ? "bg-gray-300 cursor-not-allowed shadow-none" : "bg-green-600 hover:bg-green-700 hover:shadow-lg"
                             }`}
                     >
-                        {isCreating ? (
+                        {isCreatingBill ? (
                             <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Creating Bill...</>
                         ) : (
                             <><Printer size={18} /> Show UPI QR & Collect ₹{finalPayable.toFixed(2)}</>
@@ -756,7 +922,7 @@ export default function CheckoutPanel({ shop_id }) {
                 onConfirm={handleUpiPaymentConfirm}
                 account={selectedBankAccount}
                 amount={finalPayable}
-                isConfirming={isCreating}
+                isConfirming={isCreatingBill}
             />
         </div>
     );

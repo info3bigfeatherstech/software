@@ -6,6 +6,7 @@ const initialState = {
   accessToken: null,
   isAuthenticated: false,
   authChecked: false,
+  isOfflineSession: false,
 };
 
 const authSlice = createSlice({
@@ -13,13 +14,14 @@ const authSlice = createSlice({
   initialState,
   reducers: {
     setCredentials: (state, action) => {
-      const { user, accessToken } = action.payload || {};
+      const { user, accessToken, isOfflineSession } = action.payload || {};
       state.user = user ? {
         ...user,
         locationName: user.locationName || user.warehouse_id || user.shop_id || null
       } : null;
       state.accessToken = accessToken || null;
-      state.isAuthenticated = Boolean(accessToken && user);
+      state.isOfflineSession = Boolean(isOfflineSession);
+      state.isAuthenticated = Boolean(user && (accessToken || isOfflineSession));
       
       // ✅ Set token in AxiosInstance (memory, not cookie)
       if (accessToken) {
@@ -30,6 +32,7 @@ const authSlice = createSlice({
       state.user = null;
       state.accessToken = null;
       state.isAuthenticated = false;
+      state.isOfflineSession = false;
       
       // ✅ Clear token from AxiosInstance
       clearGlobalAccessToken();

@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { useSelector } from "react-redux";
-import { Plus, RefreshCw, Edit2, XCircle } from "lucide-react";
+import { Plus, RefreshCw, Edit2, XCircle, CloudOff } from "lucide-react";
 import {
     useGetShopExpensesQuery,
     useCancelShopExpenseMutation,
@@ -15,6 +15,9 @@ import {
 } from "../purchaseFinanceUtils";
 import { useGetShopsQuery } from "../../../../REDUX_FEATURES/REDUX_SLICES/Shop_api/shopApi";
 import { ROLES } from "../../../roles";
+import { outboxRepository } from "../../../../offline/db/repositories/outboxRepository";
+import { OUTBOX_STATUS, OFFLINE_EVENTS } from "../../../../offline/constants";
+import { useOfflineEvent } from "../../../../offline/hooks/useOfflineStatus";
 
 const DEFAULT_TITLE = "Shop Expenses";
 const DEFAULT_SUBTITLE =
@@ -25,6 +28,7 @@ export default function ShopExpensesTab({
     subtitle = DEFAULT_SUBTITLE,
 }) {
     const { user } = useSelector((state) => state.auth);
+    const isOnline = useSelector((state) => state.offline.isOnline);
     const isSuperAdmin = user?.role === ROLES.SUPER_ADMIN;
     const shopId = user?.shop_id || "";
     const canWrite = [ROLES.SUPER_ADMIN, ROLES.SHOP_OWNER].includes(user?.role);
@@ -44,6 +48,26 @@ export default function ShopExpensesTab({
     const [toDate, setToDate] = useState("");
     const [showForm, setShowForm] = useState(false);
     const [editExpense, setEditExpense] = useState(null);
+    const [pendingOfflineExpenses, setPendingOfflineExpenses] = useState([]);
+
+    const loadPendingExpenses = useCallback(async () => {
+        if (!effectiveShopId || isOnline) {
+            setPendingOfflineExpenses([]);
+            return;
+        }
+        const rows = await outboxRepository.listByShop(effectiveShopId);
+        setPendingOfflineExpenses(
+            rows.filter(
+                (r) => r.entity_type === "shop_expense" && r.status !== OUTBOX_STATUS.SYNCED
+            )
+        );
+    }, [effectiveShopId, isOnline]);
+
+    useEffect(() => {
+        loadPendingExpenses();
+    }, [loadPendingExpenses]);
+
+    useOfflineEvent(OFFLINE_EVENTS.SYNC_COMPLETED, loadPendingExpenses);
 
     const { data, isLoading, isFetching, error, refetch } = useGetShopExpensesQuery({
         search,
@@ -52,11 +76,32 @@ export default function ShopExpensesTab({
         to_date: toDate,
         shop_id: effectiveShopId,
         limit: 100,
-    });
+    }, { skip: !effectiveShopId || !isOnline });
 
     const [cancelExpense] = useCancelShopExpenseMutation();
     const expenses = data?.expenses || [];
+    const shopLabel = expenses[0]?.shop?.shop_name
+        || shops.find((s) => s.shop_id === effectiveShopId)?.shop_name
+        || (isSuperAdmin && !effectiveShopId ? "All shops" : "Your shop");
+    const offlineExpenseRows = pendingOfflineExpenses.map((row) => ({
+        expense_id: row.client_id,
+        expense_number: row.payload?.offline_expense_number || row.client_id.slice(0, 8),
+        category: row.payload?.category,
+        description: row.payload?.description,
+        amount: row.payload?.amount,
+        expense_date: row.payload?.expense_date,
+        payment_method: row.payload?.payment_method,
+        is_offline_pending: true,
+        outbox_status: row.status,
+        shop: { shop_name: shopLabel },
+    }));
+    const displayExpenses = isOnline ? expenses : offlineExpenseRows;
     const summary = data?.meta?.summary || {};
+
+    const handleRefresh = () => {
+        if (isOnline) refetch();
+        else loadPendingExpenses();
+    };
 
     const handleCancel = async (expense) => {
         if (!window.confirm(`Cancel expense ${expense.expense_number}?`)) return;
@@ -68,9 +113,7 @@ export default function ShopExpensesTab({
         }
     };
 
-    const shopLabel = expenses[0]?.shop?.shop_name
-        || shops.find((s) => s.shop_id === effectiveShopId)?.shop_name
-        || (isSuperAdmin && !effectiveShopId ? "All shops" : "Your shop");
+    const shopLabelForStats = shopLabel;
 
     return (
         <div className="space-y-5 bg-gray-50 min-h-screen px-1 py-1">
@@ -82,7 +125,7 @@ export default function ShopExpensesTab({
                 <div className="flex gap-2">
                     <button
                         type="button"
-                        onClick={() => refetch()}
+                        onClick={handleRefresh}
                         className="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-200 text-gray-500 text-sm rounded-lg"
                     >
                         <RefreshCw size={13} className={isFetching ? "animate-spin" : ""} /> Refresh
@@ -100,7 +143,16 @@ export default function ShopExpensesTab({
                 </div>
             </div>
 
-            {error && (
+            {!isOnline && (
+                <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 flex items-center gap-2">
+                    <CloudOff size={18} className="text-slate-500 shrink-0" />
+                    <p className="text-sm text-slate-700">
+                        Offline mode — new expenses save locally and sync when online. Edit and cancel require internet.
+                    </p>
+                </div>
+            )}
+
+            {error && isOnline && (
                 <div className="bg-red-50 border border-red-100 rounded-lg px-4 py-3 text-sm text-red-700">
                     {error?.data?.message || "Failed to load shop expenses"}
                 </div>
@@ -109,15 +161,19 @@ export default function ShopExpensesTab({
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div className="bg-white rounded-xl border border-gray-100 p-4">
                     <p className="text-xs uppercase text-gray-500">Total Entries</p>
-                    <p className="text-3xl font-bold text-gray-800">{summary.count || 0}</p>
+                    <p className="text-3xl font-bold text-gray-800">{isOnline ? (summary.count || 0) : displayExpenses.length}</p>
                 </div>
                 <div className="bg-white rounded-xl border border-gray-100 p-4">
                     <p className="text-xs uppercase text-gray-500">Total Amount</p>
-                    <p className="text-3xl font-bold text-gray-800">{fmtCurrency(summary.total_amount)}</p>
+                    <p className="text-3xl font-bold text-gray-800">
+                        {isOnline
+                            ? fmtCurrency(summary.total_amount)
+                            : fmtCurrency(displayExpenses.reduce((s, e) => s + Number(e.amount || 0), 0))}
+                    </p>
                 </div>
                 <div className="bg-white rounded-xl border border-gray-100 p-4 col-span-2">
                     <p className="text-xs uppercase text-gray-500">Shop</p>
-                    <p className="text-lg font-semibold text-gray-800 mt-1">{shopLabel}</p>
+                    <p className="text-lg font-semibold text-gray-800 mt-1">{shopLabelForStats}</p>
                 </div>
             </div>
 
@@ -170,15 +226,23 @@ export default function ShopExpensesTab({
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
-                        {(isLoading || isFetching) && (
+                        {(isOnline && (isLoading || isFetching)) && (
                             <tr><td colSpan={9} className="px-4 py-10 text-center text-gray-400">Loading…</td></tr>
                         )}
-                        {!isLoading && !isFetching && expenses.length === 0 && (
+                        {!isOnline && displayExpenses.length === 0 && (
+                            <tr><td colSpan={9} className="px-4 py-12 text-center text-gray-400">No pending offline expenses</td></tr>
+                        )}
+                        {isOnline && !isLoading && !isFetching && displayExpenses.length === 0 && (
                             <tr><td colSpan={9} className="px-4 py-12 text-center text-gray-400">No shop expenses recorded yet</td></tr>
                         )}
-                        {expenses.map((e) => (
+                        {displayExpenses.map((e) => (
                             <tr key={e.expense_id} className="hover:bg-gray-50 text-gray-700">
-                                <td className="px-4 py-3 font-mono text-xs">{e.expense_number}</td>
+                                <td className="px-4 py-3 font-mono text-xs">
+                                    {e.expense_number}
+                                    {e.is_offline_pending && (
+                                        <span className="ml-1 text-[10px] uppercase text-amber-700 bg-amber-50 px-1 rounded">offline</span>
+                                    )}
+                                </td>
                                 <td className="px-4 py-3">{getShopExpenseCategoryLabel(e.category)}</td>
                                 <td className="px-4 py-3">{e.description}</td>
                                 <td className="px-4 py-3 text-xs text-gray-500">{e.shop?.shop_name}</td>
@@ -187,7 +251,7 @@ export default function ShopExpensesTab({
                                 <td className="px-4 py-3 text-xs">{e.payment_method ? getPaymentMethodLabel(e.payment_method) : "—"}</td>
                                 <td className="px-4 py-3 text-xs text-gray-500">{e.recorded_by?.name}</td>
                                 <td className="px-4 py-3">
-                                    {canWrite && (
+                                    {canWrite && isOnline && !e.is_offline_pending && (
                                         <div className="flex gap-1">
                                             <button
                                                 type="button"
@@ -217,7 +281,10 @@ export default function ShopExpensesTab({
             <ShopExpenseFormModal
                 open={showForm}
                 onClose={() => { setShowForm(false); setEditExpense(null); }}
-                onSaved={refetch}
+                onSaved={() => {
+                    if (isOnline) refetch();
+                    else loadPendingExpenses();
+                }}
                 expense={editExpense}
                 shopId={editExpense?.shop_id || effectiveShopId}
             />

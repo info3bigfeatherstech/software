@@ -49,6 +49,7 @@ import creditNoteReducer from "../REDUX_SLICES/CreditNote_api/creditNoteSlice";
 import { debitNoteApi } from "../REDUX_SLICES/DebitNote_api/debitNoteApi";
 import { cashbankApi } from "../REDUX_SLICES/Cashbank_api/cashbankApi";
 import { dashboardApi } from "../REDUX_SLICES/Dashboard_api/dashboardApi";
+import offlineReducer from "../REDUX_SLICES/Offline_api/offlineSlice";
 
 export const store = configureStore({
   reducer: {
@@ -101,7 +102,7 @@ export const store = configureStore({
     [debitNoteApi.reducerPath]: debitNoteApi.reducer,
     [cashbankApi.reducerPath]: cashbankApi.reducer,
     [dashboardApi.reducerPath]: dashboardApi.reducer,
-
+    offline: offlineReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(

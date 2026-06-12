@@ -27,6 +27,7 @@ export const SUB_TAB_PERMISSIONS = {
 
     // Sales sidebar dropdown
     "sales.billing": ["SUPER_ADMIN", "BILLING_STAFF", "SHOP_OWNER", "WH_MANAGER"],
+    "sales.internal.offline-sync": ["SUPER_ADMIN", "BILLING_STAFF", "SHOP_OWNER", "SHOP_STOCK_LISTER"],
     "sales.invoices": ["SUPER_ADMIN", "SHOP_OWNER", "BILLING_STAFF", "WH_MANAGER"],
     "sales.customers": ["SUPER_ADMIN", "SHOP_OWNER", "BILLING_STAFF", "WH_MANAGER"],
     "sales.wholesale": ["SUPER_ADMIN", "SHOP_OWNER", "WH_MANAGER"],

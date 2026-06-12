@@ -1,0 +1,249 @@
+.bill-invoice-doc {
+  box-sizing: border-box;
+  width: 210mm;
+  min-height: 297mm;
+  margin: 0 auto;
+  padding: 12mm 14mm;
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 8pt;
+  color: #000;
+  background: #fff;
+  line-height: 1.25;
+}
+
+.bill-invoice-doc * {
+  box-sizing: border-box;
+}
+
+.bill-invoice-doc .bi-muted {
+  color: #666;
+}
+
+.bill-invoice-doc .bi-top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 6px;
+}
+
+.bill-invoice-doc .bi-copy-note {
+  font-size: 7.5pt;
+  text-align: right;
+}
+
+.bill-invoice-doc .bi-title {
+  text-align: center;
+  font-size: 11pt;
+  font-weight: 700;
+  text-decoration: underline;
+  margin: 4px 0 10px;
+}
+
+.bill-invoice-doc .bi-shop-name {
+  text-align: center;
+  font-size: 16pt;
+  font-weight: 700;
+  margin: 0 0 6px;
+}
+
+.bill-invoice-doc .bi-center-line {
+  text-align: center;
+  margin: 2px 0;
+}
+
+.bill-invoice-doc .bi-divider {
+  border-top: 0.75px solid #333;
+  margin: 6px 0;
+}
+
+.bill-invoice-doc .bi-info-box {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 0.5px solid #333;
+  min-height: 120px;
+}
+
+.bill-invoice-doc .bi-info-col {
+  padding: 6px 8px;
+}
+
+.bill-invoice-doc .bi-info-col + .bi-info-col {
+  border-left: 0.6px solid #333;
+}
+
+.bill-invoice-doc .bi-label {
+  font-weight: 700;
+}
+
+.bill-invoice-doc .bi-underline {
+  text-decoration: underline;
+}
+
+.bill-invoice-doc .bi-field {
+  margin: 2px 0;
+}
+
+.bill-invoice-doc .bi-pay-box {
+  border: 0.5px solid #333;
+  padding: 4px 6px;
+  margin-top: 8px;
+  font-size: 9pt;
+}
+
+.bill-invoice-doc table.bi-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 4px;
+  table-layout: fixed;
+}
+
+.bill-invoice-doc table.bi-table th,
+.bill-invoice-doc table.bi-table td {
+  border: 0.5px solid #333;
+  padding: 3px 4px;
+  text-align: center;
+  font-size: 7.5pt;
+  vertical-align: middle;
+  word-wrap: break-word;
+}
+
+.bill-invoice-doc table.bi-table th {
+  font-weight: 700;
+}
+
+.bill-invoice-doc .bi-fin-box {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 0.5px solid #333;
+  margin-top: 4px;
+}
+
+.bill-invoice-doc .bi-fin-box.single-col {
+  grid-template-columns: 1fr;
+}
+
+.bill-invoice-doc .bi-fin-col {
+  padding: 8px;
+}
+
+.bill-invoice-doc .bi-fin-col + .bi-fin-col {
+  border-left: 0.5px solid #333;
+}
+
+.bill-invoice-doc .bi-total-row {
+  display: flex;
+  justify-content: space-between;
+  margin: 2px 0;
+}
+
+.bill-invoice-doc .bi-total-row.bi-grand {
+  font-size: 11pt;
+  font-weight: 700;
+  border-top: 0.5px solid #333;
+  padding-top: 6px;
+  margin-top: 6px;
+}
+
+.bill-invoice-doc .bi-add-label {
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.bill-invoice-doc .bi-words-box,
+.bill-invoice-doc .bi-decl-box,
+.bill-invoice-doc .bi-foot-box {
+  border: 0.5px solid #333;
+  margin-top: 4px;
+  padding: 6px 8px;
+}
+
+.bill-invoice-doc .bi-foot-box {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 72px;
+}
+
+.bill-invoice-doc .bi-foot-right {
+  border-left: 0.5px solid #333;
+  padding-left: 8px;
+  position: relative;
+}
+
+.bill-invoice-doc .bi-stamp {
+  position: absolute;
+  right: 8px;
+  top: 18px;
+  width: 48px;
+  height: 36px;
+  border: 0.6px dashed #999;
+  font-size: 6.5pt;
+  color: #888;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.bill-invoice-doc .bi-sign-line {
+  border-top: 0.5px solid #333;
+  margin-top: 42px;
+  padding-top: 2px;
+  font-style: italic;
+  font-size: 7pt;
+}
+
+.bill-invoice-doc .bi-footer-note {
+  text-align: center;
+  font-style: italic;
+  color: #666;
+  font-size: 7pt;
+  margin-top: 8px;
+}
+
+.bill-invoice-doc .bi-upi-qr {
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 0.5px dashed #666;
+  text-align: center;
+}
+
+.bill-invoice-doc .bi-upi-qr-img {
+  width: 28mm;
+  height: 28mm;
+  margin: 4px auto;
+  display: block;
+}
+
+.bill-invoice-doc .bi-upi-qr-amt {
+  font-weight: 700;
+  font-size: 9pt;
+}
+
+.bill-invoice-doc .bi-upi-qr-id {
+  font-size: 7pt;
+  font-family: monospace;
+  color: #333;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
+
+  body {
+    margin: 0;
+    background: #fff;
+  }
+
+  .bill-print-host {
+    position: static !important;
+    left: auto !important;
+  }
+
+  .bill-invoice-doc {
+    width: auto;
+    min-height: auto;
+    padding: 0;
+  }
+}
