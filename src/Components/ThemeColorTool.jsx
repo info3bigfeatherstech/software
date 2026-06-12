@@ -3,18 +3,18 @@ import React, { useState, useEffect } from "react";
 const STORAGE_KEY = 'app-theme-v1';
 
 const DEFAULT_VALUES = {
-  accent:  '#2563eb',
+  accent: '#2563eb',
   sidebar: '#0c1222',
-  appBg:   '#f0f2f5'
+  appBg: '#f0f2f5'
 };
 
 const PRESETS = [
   { name: "Classic Corporate", accent: "#2563eb", sidebar: "#0c1222", appBg: "#f0f2f5" },
-  { name: "Emerald Forest",    accent: "#059669", sidebar: "#052e16", appBg: "#f0fdf4" },
-  { name: "Sunset Crimson",    accent: "#dc2626", sidebar: "#450a0a", appBg: "#fff5f5" },
-  { name: "Midnight Purple",   accent: "#7c3aed", sidebar: "#1e0a3c", appBg: "#f5f3ff" },
-  { name: "Ocean Breeze",      accent: "#0284c7", sidebar: "#0c1a2e", appBg: "#f0f9ff" },
-  { name: "Stone Amber",       accent: "#d97706", sidebar: "#1c1917", appBg: "#fffbeb" }
+  { name: "Emerald Forest", accent: "#059669", sidebar: "#052e16", appBg: "#f0fdf4" },
+  { name: "Sunset Crimson", accent: "#dc2626", sidebar: "#450a0a", appBg: "#fff5f5" },
+  { name: "Midnight Purple", accent: "#7c3aed", sidebar: "#1e0a3c", appBg: "#f5f3ff" },
+  { name: "Ocean Breeze", accent: "#0284c7", sidebar: "#0c1a2e", appBg: "#f0f9ff" },
+  { name: "Stone Amber", accent: "#d97706", sidebar: "#1c1917", appBg: "#fffbeb" }
 ];
 
 function hexDarken(hex, amount) {
@@ -22,6 +22,7 @@ function hexDarken(hex, amount) {
   let r = parseInt(cleanHex.substring(0, 2), 16);
   let g = parseInt(cleanHex.substring(2, 4), 16);
   let b = parseInt(cleanHex.substring(4, 6), 16);
+
 
   r = Math.max(0, r - amount);
   g = Math.max(0, g - amount);
@@ -53,11 +54,11 @@ function hexLighten(hex, amount) {
 
 function applyTheme(theme) {
   const root = document.documentElement;
-  root.style.setProperty('--color-app-accent',       theme.accent);
+  root.style.setProperty('--color-app-accent', theme.accent);
   root.style.setProperty('--color-app-accent-hover', hexDarken(theme.accent, 20));
   root.style.setProperty('--color-app-accent-light', hexLighten(theme.accent, 180));
-  root.style.setProperty('--color-app-sidebar',      theme.sidebar);
-  root.style.setProperty('--color-app-bg',           theme.appBg);
+  root.style.setProperty('--color-app-sidebar', theme.sidebar);
+  root.style.setProperty('--color-app-bg', theme.appBg);
 }
 
 const ThemeColorTool = () => {
@@ -139,9 +140,8 @@ const ThemeColorTool = () => {
 
       {/* Drawer Panel */}
       <div
-        className={`fixed top-0 right-0 h-full w-80 bg-white shadow-2xl z-50 border-l border-gray-200 flex flex-col transition-transform duration-300 ease-in-out ${
-          isOpen ? "translate-x-0" : "translate-x-full"
-        }`}
+        className={`fixed top-0 right-0 h-full w-80 bg-white shadow-2xl z-50 border-l border-gray-200 flex flex-col transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "translate-x-full"
+          }`}
       >
         {/* Drawer Header */}
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50">
@@ -174,9 +174,8 @@ const ThemeColorTool = () => {
                     key={p.name}
                     type="button"
                     onClick={() => handlePresetClick(p)}
-                    className={`flex flex-col p-2.5 rounded-lg border text-left bg-white hover:border-gray-300 transition-all ${
-                      isActive ? "border-gray-800 ring-1 ring-gray-800" : "border-gray-200"
-                    }`}
+                    className={`flex flex-col p-2.5 rounded-lg border text-left bg-white hover:border-gray-300 transition-all ${isActive ? "border-gray-800 ring-1 ring-gray-800" : "border-gray-200"
+                      }`}
                   >
                     <span className="text-[11px] font-semibold text-gray-700 truncate w-full">{p.name}</span>
                     <div className="flex gap-1.5 mt-2">
