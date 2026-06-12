@@ -17,22 +17,25 @@ export default {
     extend: {
       colors: {
         app: {
-          bg: "#f0f2f5",
+          bg: 'var(--color-app-bg)',
+          sidebar: 'var(--color-app-sidebar)',
+          accent: 'var(--color-app-accent)',
+          'accent-hover': 'var(--color-app-accent-hover)',
+          'accent-light': 'var(--color-app-accent-light)',
           surface: "#ffffff",
           border: "#d1d5db",
           "border-light": "#e5e7eb",
           text: "#1f2937",
           "text-secondary": "#4b5563",
           "text-muted": "#6b7280",
-          accent: "#2563eb",
-          "accent-hover": "#1d4ed8",
-          "accent-light": "#eff6ff",
-          sidebar: "#ffffff",
-          "sidebar-active": "#eff6ff",
           header: "#ffffff",
           success: "#15803d",
           warning: "#b45309",
           danger: "#b91c1c",
+        },
+        blue: {
+          600: 'var(--color-app-accent)',
+          700: 'var(--color-app-accent-hover)',
         },
       },
       fontFamily: {

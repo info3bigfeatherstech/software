@@ -2,6 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --color-app-bg: #f0f2f5;
+  --color-app-sidebar: #0c1222;
+  --color-app-accent: #2563eb;
+  --color-app-accent-hover: #1d4ed8;
+  --color-app-accent-light: #eff6ff;
+}
+
+.bg-app-bg       { background-color: var(--color-app-bg) !important; }
+.bg-app-sidebar  { background-color: var(--color-app-sidebar) !important; }
+.bg-app-accent   { background-color: var(--color-app-accent) !important; }
+.text-app-accent { color: var(--color-app-accent) !important; }
+.border-app-accent { border-color: var(--color-app-accent) !important; }
+.bg-app-accent-light { background-color: var(--color-app-accent-light) !important; }
+
 @layer base {
   *,
   *::before,
