@@ -3,13 +3,13 @@ import React, { useState, useEffect } from "react";
 const STORAGE_KEY = 'app-theme-v1';
 
 const DEFAULT_VALUES = {
-  accent: '#2563eb',
-  sidebar: '#0c1222',
-  appBg: '#f0f2f5'
+  accent: '#0284c7',
+  sidebar: '#162f53',
+  appBg: '#f0f9ff'
 };
 
 const PRESETS = [
-  { name: "Classic Corporate", accent: "#2563eb", sidebar: "#0c1222", appBg: "#f0f2f5" },
+  { name: "Classic Corporate", accent: "#0284c7", sidebar: "#162f53", appBg: "#f0f9ff" },
   { name: "Emerald Forest", accent: "#059669", sidebar: "#052e16", appBg: "#f0fdf4" },
   { name: "Sunset Crimson", accent: "#dc2626", sidebar: "#450a0a", appBg: "#fff5f5" },
   { name: "Midnight Purple", accent: "#7c3aed", sidebar: "#1e0a3c", appBg: "#f5f3ff" },

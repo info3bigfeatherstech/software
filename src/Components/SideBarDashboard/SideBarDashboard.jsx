@@ -17,12 +17,22 @@ import ThemeColorTool from "../ThemeColorTool";
 
 const LOGO = "/bigfeathers-logo-cropped.png";
 
+const getRoleInitials = (roleName) => {
+    if (!roleName) return "?";
+    return roleName
+        .split(/[_\s]+/)
+        .map(word => word[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2);
+};
+
 const SIDEBAR_NAV_FOCUS = "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/15 focus-visible:ring-offset-0";
 const SIDEBAR_NAV = {
-    active: `bg-white/[0.08] text-white font-medium border-l-[3px] border-white/30 ${SIDEBAR_NAV_FOCUS}`,
-    idle: `text-slate-400 hover:bg-white/[0.05] hover:text-slate-100 border-l-[3px] border-transparent ${SIDEBAR_NAV_FOCUS}`,
+    active: `text-white font-medium border-l-[3px] border-transparent ${SIDEBAR_NAV_FOCUS}`,
+    idle: `text-white hover:text-white border-l-[3px] border-transparent ${SIDEBAR_NAV_FOCUS}`,
     subActive: `bg-white/[0.08] text-white font-medium ${SIDEBAR_NAV_FOCUS}`,
-    subIdle: `text-slate-500 hover:bg-white/[0.05] hover:text-slate-200 ${SIDEBAR_NAV_FOCUS}`,
+    subIdle: `text-white hover:bg-white/[0.05] hover:text-white ${SIDEBAR_NAV_FOCUS}`,
 };
 
 const SideBarDashboard = () => {
@@ -51,6 +61,28 @@ const SideBarDashboard = () => {
         const entry = allowedTabs.find((t) => t.id === initialTab && t.subItems?.length);
         return entry ? entry.id : null;
     });
+
+    const [indicatorStyle, setIndicatorStyle] = useState({ top: 0, height: 0, opacity: 0 });
+
+    useEffect(() => {
+        const updateIndicator = () => {
+            const activeBtn = document.getElementById(`sidebar-btn-${activeTab}`);
+            const navContainer = document.getElementById("sidebar-nav-container");
+            if (activeBtn && navContainer) {
+                setIndicatorStyle({
+                    top: activeBtn.offsetTop,
+                    height: activeBtn.offsetHeight,
+                    opacity: 1
+                });
+            } else {
+                setIndicatorStyle(prev => ({ ...prev, opacity: 0 }));
+            }
+        };
+
+        updateIndicator();
+        const timer = setTimeout(updateIndicator, 100);
+        return () => clearTimeout(timer);
+    }, [activeTab, expandedTab, isExpanded]);
 
     useEffect(() => {
         const handleResize = () => {
@@ -119,8 +151,8 @@ const SideBarDashboard = () => {
         } catch (_error) {
             // Clear local session even if backend logout fails.
         } finally {
-            await resetOfflineDb().catch(() => {});
-            await metaRepository.clearOfflineSession().catch(() => {});
+            await resetOfflineDb().catch(() => { });
+            await metaRepository.clearOfflineSession().catch(() => { });
             dispatch(clearCredentials());
             dispatch(setAuthChecked(true));
             setSearchParams({}, { replace: true });
@@ -164,39 +196,44 @@ const SideBarDashboard = () => {
             >
                 <div className="relative shrink-0 border-b border-slate-700 px-2 py-3">
                     <div
-                        className={`flex items-center justify-center w-full overflow-hidden bg-app-sidebar transition-all duration-200 ${
-                            isExpanded ? "h-[72px]" : "h-10"
-                        }`}
+                        className={`flex items-center justify-center w-full overflow-hidden bg-app-sidebar transition-all duration-200 ${isExpanded ? "h-14" : "h-10"
+                            }`}
                     >
                         <img
-                            src={LOGO}
+                            src={isExpanded ? LOGO : "/favicon.svg"}
                             alt="BigFeathers"
-                            className={`block object-contain object-center transition-all duration-250 ${
-                                isExpanded
-                                    ? "w-full h-full"
-                                    : "h-full w-auto min-w-[145%]"
-                            }`}
+                            className={`block object-contain object-center transition-all duration-200 ${isExpanded ? "w-full h-full" : "w-7 h-7"
+                                }`}
                         />
                     </div>
-                    
-                    <div
-                        style={{
-                            opacity: isExpanded ? 1 : 0,
-                            transform: isExpanded ? 'translateY(0)' : 'translateY(-4px)',
-                            transition: 'opacity 200ms ease, transform 200ms ease',
-                            height: isExpanded ? 'auto' : '0px',
-                            overflow: 'hidden'
-                        }}
-                        className="mt-2 text-center"
-                    >
-                        <span className="inline-block px-2 py-0.5 text-[10px] rounded text-slate-300 bg-white/[0.06] border border-white/10">
-                            {ROLE_LABELS[activeRole] || activeRole}
-                        </span>
-                    </div>
+
+                    {isExpanded ? (
+                        <div className="mt-2 text-center animate-fade-in">
+                            <span className="inline-block px-2 py-0.5 text-[10px] rounded text-white bg-white/[0.06] border border-white/10 whitespace-nowrap">
+                                {ROLE_LABELS[activeRole] || activeRole}
+                            </span>
+                        </div>
+                    ) : (
+                        <div className="mt-2 flex justify-center animate-fade-in" title={ROLE_LABELS[activeRole] || activeRole}>
+                            <div className="w-7 h-7 rounded-full bg-white/[0.06] text-white border border-white/10 flex items-center justify-center text-[10px] font-bold shadow-sm">
+                                {getRoleInitials(ROLE_LABELS[activeRole] || activeRole)}
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 <nav className="flex-1 min-h-0 px-2 py-3 overflow-y-auto overflow-x-hidden scrollbar-hide">
-                    <div className="flex flex-col gap-2">
+                    <div id="sidebar-nav-container" className="flex flex-col gap-2 relative">
+                        {/* Smooth active selection indicator overlay */}
+                        <div
+                            style={{
+                                transform: `translateY(${indicatorStyle.top}px)`,
+                                height: `${indicatorStyle.height}px`,
+                                opacity: indicatorStyle.opacity,
+                                transition: "transform 220ms cubic-bezier(0.16, 1, 0.3, 1), height 220ms cubic-bezier(0.16, 1, 0.3, 1), opacity 150ms ease"
+                            }}
+                            className="absolute left-0 right-0 bg-white/[0.08] border-l-[3px] border-white/50 rounded-r pointer-events-none z-0"
+                        />
                         {allowedTabs.map((tab) => {
                             const isActive = activeTab === tab.id;
                             const hasSubItems = tab.subItems?.length > 0;
@@ -208,16 +245,17 @@ const SideBarDashboard = () => {
                                     className={`flex flex-col min-w-0 ${isTabExpanded && isExpanded ? "pb-1.5" : ""}`}
                                 >
                                     <button
+                                        id={`sidebar-btn-${tab.id}`}
                                         type="button"
                                         onClick={() => handleTabClick(tab)}
                                         className={`
-                                            w-full flex items-center gap-3 min-w-0 rounded text-sm leading-normal
-                                            px-4 py-3 cursor-pointer overflow-hidden
+                                            w-full flex items-center gap-3 min-w-0 rounded text-base leading-normal
+                                            px-4 py-3 cursor-pointer overflow-hidden z-10 relative
                                             ${isActive ? SIDEBAR_NAV.active : SIDEBAR_NAV.idle}
                                         `}
                                     >
                                         <svg
-                                            className="w-4 h-4 shrink-0 min-w-[24px]"
+                                            className="w-4 h-4 shrink-0 min-w-[24px] transition-colors duration-150 text-white"
                                             fill="none"
                                             stroke="currentColor"
                                             viewBox="0 0 24 24"
@@ -258,7 +296,7 @@ const SideBarDashboard = () => {
                                                         type="button"
                                                         onClick={() => handleSubItemClick(tab.id, sub.id)}
                                                         className={`
-                                                            w-full min-w-0 flex items-center px-4 py-2 text-xs text-left rounded truncate leading-normal cursor-pointer overflow-hidden
+                                                            w-full min-w-0 flex items-center px-4 py-2 text-sm text-left rounded truncate leading-normal cursor-pointer overflow-hidden
                                                             ${isSubActive ? SIDEBAR_NAV.subActive : SIDEBAR_NAV.subIdle}
                                                         `}
                                                     >
@@ -332,7 +370,7 @@ const SideBarDashboard = () => {
                             overflow: 'hidden'
                         }}
                     >
-                        <p className="text-[10px] text-center text-slate-500 whitespace-nowrap">Vyapar v1.0.0</p>
+                        <p className="text-[10px] text-center text-white whitespace-nowrap">Vyapar v1.0.0</p>
                     </div>
                 </div>
             </aside>

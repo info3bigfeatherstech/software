@@ -14,8 +14,12 @@ export default function SubTabBar({ tabs, activeTabId, onTabClick, parentTabId, 
     <div className="w-full min-w-0">
       {/* horizontal scroll only — no vertical scroll */}
       <div
-        className="overflow-x-auto overflow-y-hidden overscroll-x-contain overscroll-y-none border-b border-gray-300 bg-white mb-4 md:overflow-x-auto"
-        style={{ scrollbarWidth: "thin" }}
+        className="overflow-x-auto overflow-y-hidden overscroll-x-contain overscroll-y-none border-b mb-4 md:overflow-x-auto"
+        style={{
+          scrollbarWidth: "thin",
+          backgroundColor: "var(--color-app-sidebar)",
+          borderColor: "var(--color-app-sidebar)"
+        }}
       >
         {/* mobile: icons spread full width | md+: natural width + horizontal scroll */}
         <div className="flex items-stretch flex-nowrap w-full md:w-auto md:min-w-max">
@@ -30,11 +34,12 @@ export default function SubTabBar({ tabs, activeTabId, onTabClick, parentTabId, 
                 className={`
                   flex items-center justify-center md:justify-start gap-1.5
                   flex-1 md:flex-none shrink-0 min-w-0
-                  px-1 py-2.5 border-b-2 -mb-px cursor-pointer
+                  px-1 py-2.5 cursor-pointer transition-colors duration-150
                   sm:px-2 md:px-3 lg:px-4 md:gap-2
+                  border-r border-white/10 last:border-r-0
                   ${isActive
-                    ? "border-blue-600 text-blue-700 bg-blue-50 font-medium"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                    ? "bg-[#17C4BB] text-white font-semibold"
+                    : "text-white/80 hover:text-white hover:bg-white/[0.08]"
                   }
                 `}
               >

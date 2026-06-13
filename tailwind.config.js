@@ -3,16 +3,16 @@ export default {
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   theme: {
     borderRadius: {
-      none: "0",
-      sm: "0",
-      DEFAULT: "0",
-      md: "0",
-      lg: "0",
-      xl: "0",
-      "2xl": "0",
-      "3xl": "0",
-      app: "0",
-      full: "0",
+      none: "0px",
+      sm: "4px",
+      DEFAULT: "6px",
+      md: "8px",
+      lg: "10px",
+      xl: "12px",
+      "2xl": "16px",
+      "3xl": "24px",
+      app: "6px",
+      full: "9999px",
     },
     extend: {
       colors: {
@@ -39,15 +39,15 @@ export default {
         },
       },
       fontFamily: {
-        sans: ["Arial", "Helvetica Neue", "Helvetica", "Segoe UI", "sans-serif"],
+        sans: ["Inter", "Segoe UI", "system-ui", "-apple-system", "sans-serif"],
         mono: ["Consolas", "Courier New", "monospace"],
       },
       fontSize: {
         xxs: ["0.6875rem", { lineHeight: "1rem" }],
       },
       boxShadow: {
-        app: "0 1px 2px rgba(0, 0, 0, 0.06)",
-        "app-md": "0 1px 3px rgba(0, 0, 0, 0.1)",
+        app: "0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04)",
+        "app-md": "0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04)",
       },
     },
   },

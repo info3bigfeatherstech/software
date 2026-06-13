@@ -3,21 +3,39 @@
 @tailwind utilities;
 
 :root {
-  --color-app-bg: #f0f2f5;
-  --color-app-sidebar: #0c1222;
-  --color-app-accent: #2563eb;
+  --color-app-bg: #f0f9ff;
+  --color-app-sidebar: #162f53;
+  --color-app-accent: #0284c7;
   --color-app-accent-hover: #1d4ed8;
   --color-app-accent-light: #eff6ff;
 }
 
-.bg-app-bg       { background-color: var(--color-app-bg) !important; }
-.bg-app-sidebar  { background-color: var(--color-app-sidebar) !important; }
-.bg-app-accent   { background-color: var(--color-app-accent) !important; }
-.text-app-accent { color: var(--color-app-accent) !important; }
-.border-app-accent { border-color: var(--color-app-accent) !important; }
-.bg-app-accent-light { background-color: var(--color-app-accent-light) !important; }
+.bg-app-bg {
+  background-color: var(--color-app-bg) !important;
+}
+
+.bg-app-sidebar {
+  background-color: var(--color-app-sidebar) !important;
+}
+
+.bg-app-accent {
+  background-color: var(--color-app-accent) !important;
+}
+
+.text-app-accent {
+  color: var(--color-app-accent) !important;
+}
+
+.border-app-accent {
+  border-color: var(--color-app-accent) !important;
+}
+
+.bg-app-accent-light {
+  background-color: var(--color-app-accent-light) !important;
+}
 
 @layer base {
+
   *,
   *::before,
   *::after {
@@ -25,42 +43,48 @@
   }
 
   html {
-    font-size: 14px;
+    font-size: 15px;
   }
 
   body {
     @apply bg-app-bg text-app-text antialiased;
-    font-family: Arial, Helvetica Neue, Helvetica, Segoe UI, sans-serif;
+    font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
   }
 
-  h1, h2, h3, h4, h5, h6 {
-    @apply font-semibold text-app-text;
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-semibold text-app-text tracking-tight;
     font-style: normal;
   }
 
   :focus-visible {
-    @apply outline-none ring-2 ring-app-accent ring-offset-1 ring-offset-white;
+    @apply outline-none ring-2 ring-blue-600 ring-opacity-40 ring-offset-1 ring-offset-white;
   }
 
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
 
   ::-webkit-scrollbar-track {
-    @apply bg-gray-100;
+    @apply bg-gray-50;
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-gray-300;
+    @apply bg-gray-300/80 rounded-full;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-gray-400;
+    @apply bg-gray-400/80;
   }
 }
 
 @layer components {
+
   /* ── Layout ── */
   .app-page {
     @apply space-y-4;
@@ -302,4 +326,37 @@ div.animate-spin.rounded-full {
   main {
     margin-left: 0 !important;
   }
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-tab-switch {
+  animation: slideInUp 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Global Modal Backdrop Blur */
+.fixed.bg-black\/40,
+.fixed.bg-black\/30,
+.fixed.bg-black\/50,
+.fixed.bg-opacity-40,
+.fixed.bg-opacity-50,
+.fixed.bg-slate-900\/50,
+.app-modal-overlay,
+[class*="bg-black/40"],
+[class*="bg-black/30"],
+[class*="bg-black/50"],
+[class*="bg-opacity-40"],
+[class*="bg-opacity-50"] {
+  backdrop-filter: blur(5px) !important;
+  -webkit-backdrop-filter: blur(5px) !important;
 }
