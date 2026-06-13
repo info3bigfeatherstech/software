@@ -244,7 +244,7 @@ export default function ProductFormBody({ formData, onChange, formErrors }) {
             {errorMsg("expenses")}
           </div>
 
-          <div>
+          {/* <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Online Price</label>
             <input type="number" step="0.01" {...field("online_price")} placeholder="E-comm" className={inputCls("online_price")} />
           </div>
@@ -252,7 +252,7 @@ export default function ProductFormBody({ formData, onChange, formErrors }) {
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Purchase Cost (Legacy)</label>
             <input type="number" step="0.01" {...field("purchase_cost")} placeholder="Alternate" className={inputCls("purchase_cost")} />
-          </div>
+          </div> */}
 
         </div>
         <p className="text-xs text-gray-400 mt-2">Purchase Code = (Purchase Price + Expenses + 1986) — auto-generated</p>

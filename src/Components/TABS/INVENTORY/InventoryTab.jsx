@@ -449,16 +449,16 @@ export default function InventoryTab() {
                   <td className="px-4 py-3">
                     <div className="space-y-0.5">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-xs text-gray-400 w-14">MRP</span>
-                        <span className="text-sm font-bold text-red-500">₹{p.mrp?.toLocaleString()}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
                         <span className="text-xs text-gray-400 w-14">Special</span>
-                        <span className="text-xs font-semibold text-blue-600">₹{p.special_price?.toLocaleString()}</span>
+                        <span className="text-sm font-semibold text-blue-600">₹{p.special_price?.toLocaleString()}</span>
                       </div>
                       <div className="flex items-center gap-1.5">
                         <span className="text-xs text-gray-400 w-14">Purchase</span>
                         <span className="text-xs font-semibold text-green-600">₹{p.purchase_price?.toLocaleString()}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs text-gray-400 w-14">MRP</span>
+                        <span className="text-xs font-bold text-red-500">₹{p.mrp?.toLocaleString()}</span>
                       </div>
                     </div>
                   </td>
@@ -507,6 +507,7 @@ export default function InventoryTab() {
                       </button>
                     )}
                   </td>
+                  
 
                   {/* Actions */}
                   <td className="px-4 py-3">

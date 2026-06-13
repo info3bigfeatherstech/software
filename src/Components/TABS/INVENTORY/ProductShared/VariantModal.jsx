@@ -20,6 +20,18 @@ const toNumber = (val, defaultVal = 0) => {
   return isNaN(num) ? defaultVal : num;
 };
 
+// ── Helper to remove null/undefined values from variant ─────────────────────────
+const cleanVariantPayload = (variant) => {
+  const cleaned = {};
+  for (const [key, value] of Object.entries(variant)) {
+    // Skip null values, but keep 0, false, "", and undefined (undefined will be omitted by JSON.stringify)
+    if (value !== null && value !== undefined) {
+      cleaned[key] = value;
+    }
+  }
+  return cleaned;
+};
+
 export default function VariantModal({ variantForm, variantErrors, editingVariantIndex, onSaveOverride }) {
   const dispatch = useDispatch();
   const fileRef = useRef(null);
@@ -143,8 +155,11 @@ export default function VariantModal({ variantForm, variantErrors, editingVarian
       is_active: variantForm.is_active !== false,
     };
 
+    // Remove null values to prevent backend validator rejection
+    const cleanedVariant = cleanVariantPayload(variant);
+
     if (onSaveOverride) {
-      onSaveOverride(variant);
+      onSaveOverride(cleanedVariant);
       dispatch(closeVariantModal());
     } else {
       // Save to Redux list for batch create

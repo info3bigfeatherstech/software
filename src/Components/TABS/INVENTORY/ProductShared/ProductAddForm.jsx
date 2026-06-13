@@ -35,6 +35,18 @@ const hasAnyImages = (formData, variants) => {
   return productHasImages || variantHasImages;
 };
 
+// ── Helper to remove null/undefined values from variant ─────────────────────────
+const cleanVariantPayload = (variant) => {
+  const cleaned = {};
+  for (const [key, value] of Object.entries(variant)) {
+    // Skip null values, but keep 0, false, "", and undefined (undefined will be omitted by JSON.stringify)
+    if (value !== null && value !== undefined) {
+      cleaned[key] = value;
+    }
+  }
+  return cleaned;
+};
+
 // ── Build complete variants array (main variant + extra variants) ─────────────
 const buildCompleteVariantsArray = (formData, extraVariants) => {
   // Main variant (variant 0) - prices from formData
@@ -55,19 +67,23 @@ const buildCompleteVariantsArray = (formData, extraVariants) => {
     is_active: formData.is_active !== false,
   };
   
-  const cleanedExtraVariants = extraVariants.map(({ newImages, imagesToKeep, imagesToDelete, ...rest }) => ({
-    ...rest,
-    mrp: toNumber(rest.mrp),
-    special_price: toNumber(rest.special_price),
-    purchase_price: toNumber(rest.purchase_price),
-    expenses: toNumber(rest.expenses),
-    online_price: rest.online_price ? toNumber(rest.online_price) : undefined,
-    purchase_cost: rest.purchase_cost ? toNumber(rest.purchase_cost) : undefined,
-    weight: rest.weight ? toNumber(rest.weight) : undefined,
-    length: rest.length ? toNumber(rest.length) : undefined,
-    width: rest.width ? toNumber(rest.width) : undefined,
-    height: rest.height ? toNumber(rest.height) : undefined,
-  }));
+  const cleanedExtraVariants = extraVariants.map(({ newImages, imagesToKeep, imagesToDelete, ...rest }) => {
+    const variant = {
+      ...rest,
+      mrp: toNumber(rest.mrp),
+      special_price: toNumber(rest.special_price),
+      purchase_price: toNumber(rest.purchase_price),
+      expenses: toNumber(rest.expenses),
+      online_price: rest.online_price ? toNumber(rest.online_price) : undefined,
+      purchase_cost: rest.purchase_cost ? toNumber(rest.purchase_cost) : undefined,
+      weight: rest.weight ? toNumber(rest.weight) : undefined,
+      length: rest.length ? toNumber(rest.length) : undefined,
+      width: rest.width ? toNumber(rest.width) : undefined,
+      height: rest.height ? toNumber(rest.height) : undefined,
+    };
+    // Remove null values to prevent backend validator rejection
+    return cleanVariantPayload(variant);
+  });
   
   return [mainVariant, ...cleanedExtraVariants];
 };
