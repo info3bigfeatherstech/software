@@ -370,7 +370,7 @@ const SideBarDashboard = () => {
                             overflow: 'hidden'
                         }}
                     >
-                        <p className="text-[10px] text-center text-white whitespace-nowrap">Vyapar v1.0.0</p>
+                        <p className="text-[10px] text-center text-white whitespace-nowrap">BizCentro v1.0.0</p>
                     </div>
                 </div>
             </aside>

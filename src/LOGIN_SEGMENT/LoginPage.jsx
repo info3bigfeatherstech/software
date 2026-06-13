@@ -57,7 +57,7 @@ const LoginPage = () => {
                 className="max-h-full object-contain"
               />
             </div>
-            <h1 className="text-xl font-bold text-gray-900 tracking-tight">Vyapar Portal</h1>
+            <h1 className="text-xl font-bold text-gray-900 tracking-tight">BizCentro Portal</h1>
             <p className="text-xs text-gray-500 mt-1">Please sign in to access your dashboard</p>
           </div>
         </div>
@@ -137,7 +137,7 @@ const LoginPage = () => {
 
         <div className="px-8 py-4 bg-gray-50 border-t border-gray-100 rounded-b-2xl text-center">
           <p className="text-[10px] text-gray-400 font-medium tracking-wide">
-            Vyapar Premium Desktop Client v1.0.0
+            BizCentro Premium Desktop Client v1.0.0
           </p>
         </div>
       </div>

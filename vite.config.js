@@ -10,8 +10,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'bigfeathers-logo-cropped.png'],
       manifest: {
-        name: 'Vyapar - Inventory & Billing',
-        short_name: 'Vyapar',
+        name: 'BizCentro - Inventory & Billing',
+        short_name: 'BizCentro',
         description: 'Offline-capable inventory and billing for retail shops',
         theme_color: '#0f172a',
         background_color: '#0f172a',
