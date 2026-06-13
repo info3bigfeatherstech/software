@@ -54,10 +54,11 @@ const billingSlice = createSlice({
             const variant = action.payload;
             const existing = state.cart.find(item => item.variant_id === variant.variant_id);
 
-            // Check stock limit
             const currentQty = existing ? existing.quantity : 0;
-            if (currentQty + 1 > variant.quantity_available) {
-                // Will be handled by component with toast
+            const stockLimit = variant.quantity_available;
+            const hasStockLimit =
+                stockLimit != null && Number.isFinite(Number(stockLimit));
+            if (hasStockLimit && currentQty + 1 > Number(stockLimit)) {
                 return;
             }
 
@@ -102,10 +103,15 @@ const billingSlice = createSlice({
                 const newQty = Math.max(0, quantity);
                 if (newQty === 0) {
                     state.cart = state.cart.filter(i => i.variant_id !== variant_id);
-                } else if (newQty <= item.quantity_available) {
-                    item.quantity = newQty;
-                    item.line_total = calculateLineTotal(item.unit_price, item.quantity);
-                    applyLineGst(item, state.billType);
+                } else {
+                    const stockLimit = item.quantity_available;
+                    const hasStockLimit =
+                        stockLimit != null && Number.isFinite(Number(stockLimit));
+                    if (!hasStockLimit || newQty <= Number(stockLimit)) {
+                        item.quantity = newQty;
+                        item.line_total = calculateLineTotal(item.unit_price, item.quantity);
+                        applyLineGst(item, state.billType);
+                    }
                 }
             }
         },

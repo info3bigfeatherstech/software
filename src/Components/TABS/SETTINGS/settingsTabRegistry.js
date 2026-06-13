@@ -4,7 +4,7 @@ import { lazy } from "react";
 const UsersTab = lazy(() => import("./UserTab/UsersTab"));
 const ShopsTab = lazy(() => import("./ShopsTab/ShopsTab"));
 const VendorsTab = lazy(() => import("../VENDOR/VendorsTab"));
-const CompanyDetailsTab = lazy(() => import("./CompanyDetailsTab/CompanyDetailsTab"));
+// const CompanyDetailsTab = lazy(() => import("./CompanyDetailsTab/CompanyDetailsTab"));
 const BankDetailsTab = lazy(() => import("./BankDetailsTab/BankDetailsTab"));
 const StaffCodesTab = lazy(() => import("./StaffCodesTab/StaffCodesTab"));
 const ShopProfileTab = lazy(() => import("./ShopProfileTab/ShopProfileTab"));
@@ -42,12 +42,12 @@ export const SETTINGS_TAB_REGISTRY = [
         component: VendorsTab,
     },
 
-    {
-        id: "companydetails",
-        label: "Company Details",
-        icon: "M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z",
-        component: CompanyDetailsTab,
-    },
+    // {
+    //     id: "companydetails",
+    //     label: "Company Details",
+    //     icon: "M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z",
+    //     component: CompanyDetailsTab,
+    // },
     {
         id: "bankdetails",
         label: "Bank Details",

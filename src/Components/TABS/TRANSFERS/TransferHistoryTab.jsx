@@ -60,6 +60,12 @@ const getMovementTypeBadge = (type) => {
     return config[type] || "bg-gray-100 text-gray-600";
 };
 
+const getFromLocationName = (entry) =>
+    entry.from_warehouse_name || entry.from_shop_name || "—";
+
+const getToLocationName = (entry) =>
+    entry.to_warehouse_name || entry.to_shop_name || "—";
+
 export default function TransferHistoryTab() {
     const dispatch = useDispatch();
     const {
@@ -288,10 +294,10 @@ export default function TransferHistoryTab() {
                                         </span>
                                     </td>
                                     <td className="px-4 py-3 text-xs text-gray-500">
-                                        {entry.from_warehouse_id?.slice(-8) || entry.from_shop_id?.slice(-8) || "—"}
+                                        {getFromLocationName(entry)}
                                     </td>
                                     <td className="px-4 py-3 text-xs text-gray-500">
-                                        {entry.to_warehouse_id?.slice(-8) || entry.to_shop_id?.slice(-8) || "—"}
+                                        {getToLocationName(entry)}
                                     </td>
                                     <td className="px-4 py-3">
                                         <span className="text-xs text-gray-500">
@@ -414,10 +420,10 @@ export default function TransferHistoryTab() {
                                                     </span>
                                                   </td>
                                                 <td className="px-3 py-2 text-xs text-gray-500">
-                                                    {entry.from_warehouse_id?.slice(-8) || entry.from_shop_id?.slice(-8) || "—"}
+                                                    {getFromLocationName(entry)}
                                                   </td>
                                                 <td className="px-3 py-2 text-xs text-gray-500">
-                                                    {entry.to_warehouse_id?.slice(-8) || entry.to_shop_id?.slice(-8) || "—"}
+                                                    {getToLocationName(entry)}
                                                   </td>
                                                 <td className="px-3 py-2 text-xs text-gray-400">
                                                     {fmtDate(entry.created_at)}

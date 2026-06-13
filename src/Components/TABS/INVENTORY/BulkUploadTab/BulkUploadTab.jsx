@@ -21,6 +21,12 @@ const fmt = (bytes) => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
+const previewProductCodes = (row) => {
+  const codes = row?.variants?.map((v) => v.product_code).filter(Boolean);
+  if (codes?.length) return codes.join(", ");
+  return row?.product_code || "—";
+};
+
 const STEPS = [
   { key: "upload",    label: "CSV"     },
   { key: "preview",   label: "Preview" },
@@ -401,7 +407,7 @@ const BulkUploadTab = ({ isOpen, onClose }) => {
                             >
                               <td className="px-3 py-2.5 font-mono text-slate-600">{idx + 1}</td>
                               <td className="px-3 py-2.5 text-slate-200 font-medium max-w-[140px] truncate">{row.name}</td>
-                              <td className="px-3 py-2.5 font-mono text-slate-400">{row.product_code || "—"}</td>
+                              <td className="px-3 py-2.5 font-mono text-slate-400 max-w-[180px] truncate" title={previewProductCodes(row)}>{previewProductCodes(row)}</td>
                               <td className="px-3 py-2.5 text-slate-400">{row.variants_count || 1}</td>
                               <td className="px-3 py-2.5">
                                 {row.has_images

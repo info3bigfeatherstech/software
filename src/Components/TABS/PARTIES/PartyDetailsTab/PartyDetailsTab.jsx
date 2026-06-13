@@ -10,6 +10,7 @@ import {
     useCreateCustomerMutation,
 } from "../../../../REDUX_FEATURES/REDUX_SLICES/Customer_api/customerApi";
 
+import { can } from "../../../../Components/roles"; // apna sahi path check kar lena
 const fmtDate = (iso) => {
     if (!iso) return "—";
     return new Date(iso).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
@@ -87,7 +88,7 @@ export default function PartyDetailsTab() {
                     >
                         <RefreshCw size={14} /> Refresh
                     </button>
-                    {activeView === "customers" ? (
+                    {/* {activeView === "customers" ? (
                         <button
                             type="button"
                             onClick={() => {}}
@@ -103,7 +104,7 @@ export default function PartyDetailsTab() {
                         >
                             + Add Vendor
                         </button>
-                    )}
+                    )} */}
                 </div>
             </div>
 
@@ -115,6 +116,7 @@ export default function PartyDetailsTab() {
                 >
                     Customers
                 </button>
+                {can("vendor.read") && (
                 <button
                     type="button"
                     onClick={() => switchView("vendors")}
@@ -122,6 +124,7 @@ export default function PartyDetailsTab() {
                 >
                     Vendors
                 </button>
+                )}
             </div>
 
             {activeView === "customers" ? (

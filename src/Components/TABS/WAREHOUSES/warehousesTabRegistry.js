@@ -1,7 +1,7 @@
 // TABS/WAREHOUSES/warehousesTabRegistry.js
 import { lazy } from "react";
 const WarehouseOverviewTab = lazy(() => import("./WarehouseOverviewTab"));
-const WarehouseReceiveTab = lazy(() => import("./WarehouseReceiveTab"));
+// const WarehouseReceiveTab = lazy(() => import("./WarehouseReceiveTab"));
 const InwardTab = lazy(() => import("./INWARDS/InwardTab"));
 const InventoryStockTab = lazy(() => import("./INVENTORY_STOCK/InventoryStockTab"));
 const PurchaseTab = lazy(() => import("./PURCHASE/PurchaseTab"));
@@ -15,12 +15,12 @@ export const WAREHOUSES_TAB_REGISTRY = [
         component: WarehouseOverviewTab,
     },
    
-    {
-        id: "receive",
-        label: "Receive Goods",
-        icon: "M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12",
-        component: WarehouseReceiveTab,
-    },
+    // {
+    //     id: "receive",
+    //     label: "Receive Goods",
+    //     icon: "M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12",
+    //     component: WarehouseReceiveTab,
+    // },
     {
         id: "inward",
         label: "Inward",

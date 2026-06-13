@@ -75,10 +75,10 @@ export default function CartPanel() {
                                         className="text-[10px] py-0.5 px-1 border border-gray-300 rounded bg-gray-50"
                                     >
                                         <option value="SPECIAL">Special (₹{toNumber(item.special_price ?? item.retail_price).toFixed(2)})</option>
-                                        <option value="RETAIL">Retail (₹{toNumber(item.retail_price).toFixed(2)})</option>
-                                        <option value="WHOLESALE">Wholesale (₹{toNumber(item.wholesale_price).toFixed(2)})</option>
+                                        {/* <option value="RETAIL">Retail (₹{toNumber(item.retail_price).toFixed(2)})</option> */}
+                                        {/* <option value="WHOLESALE">Wholesale (₹{toNumber(item.wholesale_price).toFixed(2)})</option> */}
                                         <option value="MRP">MRP (₹{toNumber(item.mrp).toFixed(2)})</option>
-                                        <option value="ONLINE">Online (₹{toNumber(item.online_price).toFixed(2)})</option>
+                                        {/* <option value="ONLINE">Online (₹{toNumber(item.online_price).toFixed(2)})</option> */}
                                     </select>
                                     {formatGstPercentLabel(item.gst_percent) ? (
                                         <span className="text-[10px] font-medium text-indigo-700">

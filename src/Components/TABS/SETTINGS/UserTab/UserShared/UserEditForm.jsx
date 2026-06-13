@@ -70,10 +70,10 @@ export default function UserEditForm({
         if (!teamMode) {
             if (!role) errors.role = "Role is required";
             if (WH_ROLES.includes(role) && !formData.warehouse_id?.trim()) {
-                errors.warehouse_id = "Warehouse ID is required for this role";
+                errors.warehouse_id = "Warehouse is required for this role";
             }
             if (SHOP_ROLES.includes(role) && !formData.shop_id?.trim()) {
-                errors.shop_id = "Shop ID is required for this role";
+                errors.shop_id = "Shop is required for this role";
             }
         }
 

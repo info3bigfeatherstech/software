@@ -4,6 +4,7 @@
 // Contains all backend fields: shop_code, shop_name, address, city, phone, email, owner_user_id, sales_channels, remarks
 
 import React from "react";
+import { useGetUsersQuery } from "../../../../../REDUX_FEATURES/REDUX_SLICES/User_Api/userApi";
 import { SALES_CHANNELS } from "../../../../../REDUX_FEATURES/REDUX_SLICES/Shop_api/shopSlice";
 import IndianStatePicker from "../../../../shared/IndianStatePicker";
 const CHANNEL_LABELS = {
@@ -16,6 +17,14 @@ const CHANNEL_LABELS = {
 };
 
 export default function ShopFormBody({ formData, onChange, formErrors, isEdit = false }) {
+    const { data: ownersData, isLoading: ownersLoading } = useGetUsersQuery({
+        page: 1,
+        limit: 100,
+        role: "SHOP_OWNER",
+        is_active: "true",
+    });
+    const shopOwners = ownersData?.users || [];
+
     const inputCls = (name) =>
         `w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
             formErrors[name] ? "border-red-400" : "border-gray-300"
@@ -168,15 +177,27 @@ export default function ShopFormBody({ formData, onChange, formErrors, isEdit = 
                 </p>
             </div>
 
-            {/* Owner User ID */}
+            {/* Shop Owner */}
             <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Owner User ID</label>
-                <input
-                    value={formData.owner_user_id || ""}
-                    onChange={(e) => onChange({ owner_user_id: e.target.value })}
-                    placeholder="User ID of the shop owner"
-                    className={inputCls("owner_user_id")}
-                />
+                <label className="block text-xs font-medium text-gray-700 mb-1">Shop Owner</label>
+                {ownersLoading ? (
+                    <div className={`${inputCls("owner_user_id")} text-gray-400`}>
+                        Loading shop owners…
+                    </div>
+                ) : (
+                    <select
+                        value={formData.owner_user_id || ""}
+                        onChange={(e) => onChange({ owner_user_id: e.target.value })}
+                        className={inputCls("owner_user_id")}
+                    >
+                        <option value="">— Select Shop Owner —</option>
+                        {shopOwners.map((u) => (
+                            <option key={u.user_id} value={u.user_id}>
+                                {u.name} — {u.phone}
+                            </option>
+                        ))}
+                    </select>
+                )}
                 {errorMsg("owner_user_id")}
                 <p className="text-xs text-gray-400 mt-1">User must have SHOP_OWNER role</p>
             </div>

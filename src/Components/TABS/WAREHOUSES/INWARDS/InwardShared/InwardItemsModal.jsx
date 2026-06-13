@@ -18,45 +18,23 @@ import {
 import InwardProductPickerModal from "./InwardProductPickerModal";
 
 const S = {
-    overlay: {
-        position: "fixed", inset: 0, zIndex: 50,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        background: "rgba(0,0,0,0.45)",
-    },
-    modal: {
-        background: "#ffffff",
-        borderRadius: "0",
-        width: "100%",
-        maxWidth: "960px",
-        margin: "0 16px",
-        maxHeight: "92vh",
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden",
-        boxShadow: "0 20px 60px rgba(0,0,0,0.18)",
-        border: "0.5px solid rgba(0,0,0,0.08)",
-    },
     head: {
         display: "flex", alignItems: "flex-start", justifyContent: "space-between",
-        padding: "16px 20px 12px",
+        padding: "0 0 12px",
         borderBottom: "0.5px solid #E5E7EB",
         background: "#ffffff",
         flexShrink: 0,
-    },
-    formulaBar: {
-        display: "flex", alignItems: "center",
-        borderBottom: "0.5px solid #E5E7EB",
-        background: "#F9FAFB",
-        flexShrink: 0,
-        height: "30px",
     },
     toolbar: {
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "7px 14px",
+        padding: "7px 0",
         background: "#F3F4F6",
         borderBottom: "0.5px solid #E5E7EB",
         flexShrink: 0,
         gap: "8px",
+        margin: "0 -16px",
+        paddingLeft: "14px",
+        paddingRight: "14px",
     },
     sheetWrap: {
         overflowX: "auto",
@@ -66,14 +44,17 @@ const S = {
     },
     statusBar: {
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "5px 14px",
+        padding: "5px 0",
         background: "#F3F4F6",
         borderTop: "0.5px solid #E5E7EB",
         flexShrink: 0,
+        margin: "0 -16px",
+        paddingLeft: "14px",
+        paddingRight: "14px",
     },
     footer: {
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "10px 16px",
+        padding: "12px 0 0",
         borderTop: "0.5px solid #E5E7EB",
         background: "#ffffff",
         flexShrink: 0,
@@ -94,7 +75,7 @@ const COLUMNS = [
     { key: "_actions", label: "Actions", type: "actions" },
 ];
 
-const EMPTY_ROWS = 4;
+const MIN_SHEET_ROWS = 15;
 
 export default function InwardItemsModal({
     selectedInward,
@@ -111,7 +92,6 @@ export default function InwardItemsModal({
 
     const [pickerOpen, setPickerOpen] = useState(false);
     const [activeItem, setActiveItem] = useState(null);
-    const [focusedCell, setFocusedCell] = useState(null);
 
     const {
         data: inwardDetail,
@@ -223,10 +203,6 @@ export default function InwardItemsModal({
     const totalCost = items.reduce((s, i) => s + (Number(i.purchase_cost) || 0) * (Number(i.quantity_received) || 0), 0);
     const unmapped = items.filter(i => !i.mapped_product_id).length;
 
-    const formulaVal = focusedCell
-        ? (itemForm[focusedCell] ?? "")
-        : "";
-
     const fieldKeys = ["item_name", "variant_text", "quantity_received", "purchase_cost", "batch_number", "remarks"];
 
     const handleKeyDown = (e, currentKey) => {
@@ -249,17 +225,20 @@ export default function InwardItemsModal({
 
     return (
         <>
-            <div style={S.overlay}>
-                <div style={S.modal}>
+            <div className="fixed inset-0 z-50 overflow-y-auto">
+                <div className="flex items-center justify-center min-h-screen px-4 py-6">
+                    <div className="fixed inset-0 bg-black/40" />
+
+                    <div className="relative bg-white rounded-none shadow-xl border border-gray-200 w-full max-w-[95vw] xl:max-w-[1400px] mx-4 h-[min(92vh,900px)] flex flex-col overflow-hidden p-4">
 
                     <div style={S.head}>
                         <div>
-                            <div style={{ fontSize: "15px", fontWeight: 500, color: "#111827" }}>
+                            <h3 className="text-base font-semibold text-gray-800">
                                 Received Items — {selectedInward?.inward_number}
-                            </div>
-                            <div style={{ fontSize: "11px", color: "#9CA3AF", marginTop: "2px" }}>
+                            </h3>
+                            <p className="text-xs text-gray-400 mt-0.5">
                                 Click any cell to edit inline · Tab across columns · Enter to save row
-                            </div>
+                            </p>
                         </div>
                         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                             {unmapped > 0 && (
@@ -288,43 +267,6 @@ export default function InwardItemsModal({
                                 ✕
                             </button>
                         </div>
-                    </div>
-
-                    <div style={S.formulaBar}>
-                        <div style={{
-                            width: "72px", minWidth: "72px", padding: "0 10px",
-                            height: "30px", display: "flex", alignItems: "center",
-                            fontSize: "11px", fontWeight: 500, color: "#6B7280",
-                            borderRight: "0.5px solid #E5E7EB", fontFamily: "monospace",
-                        }}>
-                            {focusedCell ? focusedCell.toUpperCase().slice(0, 4) : "CELL"}
-                        </div>
-                        <div style={{
-                            padding: "0 10px", display: "flex", alignItems: "center",
-                            height: "30px", borderRight: "0.5px solid #E5E7EB",
-                            color: "#9CA3AF", fontSize: "13px",
-                        }}>
-                            <i className="ti ti-function" />
-                        </div>
-                        <div style={{
-                            flex: 1, padding: "0 12px", fontSize: "12px",
-                            color: "#374151", fontFamily: "monospace",
-                            display: "flex", alignItems: "center", height: "30px",
-                        }}>
-                            {String(formulaVal)}
-                        </div>
-                        {isEditing && (
-                            <div style={{
-                                padding: "0 10px", display: "flex", alignItems: "center",
-                                height: "30px", borderLeft: "0.5px solid #E5E7EB",
-                                fontSize: "11px", color: "#185FA5", fontWeight: 500, gap: "4px",
-                            }}>
-                                <svg style={{ width: "11px", height: "11px" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                </svg>
-                                Editing row
-                            </div>
-                        )}
                     </div>
 
                     <div style={S.toolbar}>
@@ -389,7 +331,7 @@ export default function InwardItemsModal({
                     </div>
 
                     <div style={S.sheetWrap}>
-                        <div className="w-full overflow-x-auto overflow-y-hidden overscroll-x-contain">
+                        <div className="w-full min-h-full overflow-x-auto">
                         <table style={{
                             borderCollapse: "collapse", fontSize: "12px",
                             tableLayout: "fixed", width: "100%", minWidth: "920px",
@@ -444,12 +386,10 @@ export default function InwardItemsModal({
                                                     step={key === "purchase_cost" ? "0.01" : undefined}
                                                     value={itemForm[key] ?? ""}
                                                     placeholder={col?.placeholder || ""}
-                                                    onFocus={() => setFocusedCell(key)}
-                                                    onBlur={() => setFocusedCell(null)}
                                                     onKeyDown={(e) => handleKeyDown(e, key)}
                                                     onChange={(e) => dispatch(updateItemForm({ [key]: e.target.value }))}
                                                     style={{
-                                                        width: "100%", height: "30px",
+                                                        width: "100%", height: "34px",
                                                         border: "none", outline: "none",
                                                         padding: "0 8px", fontSize: "12px",
                                                         color: "#111827", background: "transparent",
@@ -457,23 +397,25 @@ export default function InwardItemsModal({
                                                     }}
                                                     onFocusCapture={(e) => {
                                                         e.target.parentElement.style.boxShadow = "inset 0 0 0 2px #3B82F6";
-                                                        setFocusedCell(key);
                                                     }}
                                                     onBlurCapture={(e) => {
                                                         e.target.parentElement.style.boxShadow = "none";
-                                                        setFocusedCell(null);
                                                     }}
                                                 />
+                                              
                                                 {hasErr && (
                                                     <div style={{
-                                                        position: "absolute", bottom: "-18px", left: "8px",
-                                                        fontSize: "10px", color: "#DC2626", whiteSpace: "nowrap",
-                                                        zIndex: 3,
+                                                        fontSize: "10px", color: "#DC2626",
+                                                        padding: "2px 8px 2px",
+                                                        background: "#FFF5F5",
+                                                        whiteSpace: "nowrap",
+                                                        overflow: "hidden",
+                                                        textOverflow: "ellipsis",
                                                     }}>
                                                         {itemErrors[key]}
                                                     </div>
                                                 )}
-                                            </td>
+                                                                                            </td>
                                         );
                                     })}
                                     <td style={{ borderBottom: "0.5px solid #BFDBFE", background: "#F0F9FF" }} />
@@ -609,7 +551,7 @@ export default function InwardItemsModal({
                                     );
                                 })}
 
-                                {!detailLoading && Array.from({ length: Math.max(0, EMPTY_ROWS - items.length) }).map((_, i) => (
+                                {!detailLoading && Array.from({ length: Math.max(0, MIN_SHEET_ROWS - items.length) }).map((_, i) => (
                                     <tr key={`empty-${i}`} style={{ background: i % 2 === 0 ? "#ffffff" : "#FAFAFA" }}>
                                         <td style={{
                                             textAlign: "center", fontSize: "10px",
@@ -622,7 +564,7 @@ export default function InwardItemsModal({
                                         </td>
                                         {fieldKeys.map((k) => (
                                             <td key={k} style={{
-                                                height: "32px", borderRight: "0.5px solid #F3F4F6",
+                                                height: "36px", borderRight: "0.5px solid #F3F4F6",
                                                 borderBottom: "0.5px solid #F3F4F6",
                                             }} />
                                         ))}
@@ -674,7 +616,7 @@ export default function InwardItemsModal({
                         <button
                             onClick={() => { dispatch(closeItemsModal()); onClose(); }}
                             style={{
-                                height: "32px", padding: "0 16px", borderRadius: "0",
+                                height: "36px", padding: "0 16px", borderRadius: "0",
                                 border: "0.5px solid #D1D5DB", background: "#ffffff",
                                 fontSize: "12px", fontWeight: 500, color: "#374151",
                                 cursor: "pointer",
@@ -682,6 +624,7 @@ export default function InwardItemsModal({
                         >
                             Done
                         </button>
+                    </div>
                     </div>
                 </div>
             </div>
@@ -702,7 +645,7 @@ function DataCell({ children, bold, muted, mono }) {
     return (
         <td style={{
             padding: "0 8px",
-            height: "32px",
+            height: "36px",
             borderRight: "0.5px solid #E5E7EB",
             borderBottom: "0.5px solid #E5E7EB",
             fontSize: "12px",

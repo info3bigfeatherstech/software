@@ -38,6 +38,29 @@ export const formatGstPercentLabel = (gstPercent) => {
 };
 
 /**
+ * Shop stock for billing: prefer API shop stock, then loaded shop-stocks list.
+ * Returns null when unknown — must not be treated as zero (out of stock).
+ */
+export const resolveBillingStockAvailable = (productRow, shopStocks = []) => {
+  if (productRow?.stock_available != null && productRow.stock_available !== "") {
+    return toBillingNumber(productRow.stock_available);
+  }
+  if (productRow?.quantity_available != null && productRow.quantity_available !== "") {
+    return toBillingNumber(productRow.quantity_available);
+  }
+  const variantId = productRow?.variant_id;
+  if (variantId == null) return null;
+  const match = shopStocks.find((row) => row.variant_id === variantId);
+  return match ? toBillingNumber(match.quantity_available) : null;
+};
+
+/** True when another unit can be added; unknown stock does not block. */
+export const canIncreaseCartQuantity = (currentQty, stockAvailable) => {
+  if (stockAvailable == null || !Number.isFinite(stockAvailable)) return true;
+  return currentQty + 1 <= stockAvailable;
+};
+
+/**
  * Build payload for billingSlice addToCart from shop stock / barcode API row.
  */
 export const buildBillingCartItem = ({
@@ -76,7 +99,8 @@ export const buildBillingCartItem = ({
     gst_percent: gst,
     gst_type: normalizedType,
     hsn_code: hsn_code ? String(hsn_code).trim() : null,
-    quantity_available: toBillingNumber(quantity_available, 0),
+    quantity_available:
+      quantity_available != null ? toBillingNumber(quantity_available) : null,
     line_total: unitPrice * quantity,
     gst_amount: 0,
   };

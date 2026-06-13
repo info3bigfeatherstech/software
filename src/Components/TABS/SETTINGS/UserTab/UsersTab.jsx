@@ -53,9 +53,23 @@ const getRoleBreakdownBadgeClass = (value) => {
 
 // ── Assigned-to label ──────────────────────────────────────────────────────
 const getAssignedTo = (user) => {
-    if (user.warehouse_id) return <span className="font-mono text-xs text-gray-400">{user.warehouse_id}</span>;
-    if (user.shop_id) return <span className="font-mono text-xs text-gray-400">{user.shop_id}</span>;
-    return <span className="font-mono text-xs text-gray-400">—</span>;
+    if (user.warehouse?.warehouse_name) {
+        return (
+            <span className="text-xs text-gray-600">
+                {user.warehouse.warehouse_name}
+                <span className="font-mono text-gray-400 ml-1">({user.warehouse.warehouse_code})</span>
+            </span>
+        );
+    }
+    if (user.shop?.shop_name) {
+        return (
+            <span className="text-xs text-gray-600">
+                {user.shop.shop_name}
+                <span className="font-mono text-gray-400 ml-1">({user.shop.shop_code})</span>
+            </span>
+        );
+    }
+    return <span className="text-xs text-gray-400">—</span>;
 };
 
 export default function UsersTab() {

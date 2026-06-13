@@ -17,7 +17,9 @@ import { useLazyGetProductByBarcodeQuery } from "../../../../REDUX_FEATURES/REDU
 import { toast } from "../../../shared/ToastConfig";
 import {
     buildBillingCartItem,
+    canIncreaseCartQuantity,
     formatGstPercentLabel,
+    resolveBillingStockAvailable,
     resolveProductGstPercent,
     resolveProductGstType,
     toBillingNumber,
@@ -67,33 +69,50 @@ export default function ProductPicker({ shop_id, cart = [] }) {
     const { stocks, isLoading, isFetching, usingOfflineCache, refetch } = useShopStocksForBilling(shop_id);
 
     const addProductToCart = (result, barcode) => {
-        const existingItem = cart.find(item => item.variant_id === result.variant_id);
+        const productName = result.name || result.product_name || "Product";
+        const variantId = result.variant_id;
+        const stockAvailable = resolveBillingStockAvailable(result, stocks);
+        const existingItem = cart.find((item) => item.variant_id === variantId);
+
         if (existingItem) {
             const newQuantity = existingItem.quantity + 1;
+            if (!canIncreaseCartQuantity(existingItem.quantity, existingItem.quantity_available)) {
+                toast.error(`Only ${existingItem.quantity_available} available for ${productName}`);
+                return;
+            }
             dispatch(updateCartQty({
-                variant_id: result.variant_id,
+                variant_id: variantId,
                 quantity: newQuantity,
             }));
-            toast.success(`${result.name || result.product_name} quantity increased to ${newQuantity}`);
+            toast.success(`${productName} quantity increased to ${newQuantity}`);
+            return;
+        }
+
+        if (stockAvailable === 0) {
+            toast.error(`${productName} is out of stock`);
+            return;
+        }
+        if (!canIncreaseCartQuantity(0, stockAvailable)) {
+            toast.error(`Cannot add ${productName} — insufficient stock`);
             return;
         }
 
         const cartItem = buildBillingCartItem({
-            variant_id: result.variant_id,
-            product_name: result.name || result.product_name,
+            variant_id: variantId,
+            product_name: productName,
             system_barcode: result.system_barcode || barcode,
             special_price: result.special_price,
             wholesale_price: result.wholesale_price,
             mrp: result.mrp,
             online_price: result.online_price,
             retail_price: result.special_price ?? result.retail_price,
-            gst_percent: result.gst_percent,
-            gst_type: result.gst_type,
+            gst_percent: result.gst_percent ?? resolveProductGstPercent(result.product),
+            gst_type: result.gst_type ?? resolveProductGstType(result.product),
             hsn_code: result.hsn_code ?? result.product?.hsn_code,
-            quantity_available: result.stock_available ?? result.quantity_available ?? 0,
+            quantity_available: stockAvailable,
         });
         dispatch(addToCart(cartItem));
-        toast.success(`${result.name || result.product_name} added to cart`);
+        toast.success(`${productName} added to cart`);
     };
 
     const handleBarcodeScan = async (barcode) => {
@@ -123,7 +142,9 @@ export default function ProductPicker({ shop_id, cart = [] }) {
                 return;
             }
 
-            const result = await triggerBarcodeSearch(barcode).unwrap();
+            const result = await triggerBarcodeSearch(
+                shop_id ? { barcode, shop_id } : barcode
+            ).unwrap();
             if (result) {
                 addProductToCart(result, barcode);
             } else {
@@ -158,14 +179,21 @@ export default function ProductPicker({ shop_id, cart = [] }) {
         const existingItem = cart.find(item => item.variant_id === variant.variant_id);
         
         if (existingItem) {
-            // INCREMENT QUANTITY
             const newQuantity = existingItem.quantity + 1;
+            if (!canIncreaseCartQuantity(existingItem.quantity, existingItem.quantity_available)) {
+                toast.error(`Only ${existingItem.quantity_available} available for ${product?.name}`);
+                return;
+            }
             dispatch(updateCartQty({ 
                 variant_id: variant.variant_id, 
                 quantity: newQuantity 
             }));
             toast.success(`${product?.name} quantity increased to ${newQuantity}`);
         } else {
+            if (stock.quantity_available === 0) {
+                toast.error(`${product?.name} is out of stock`);
+                return;
+            }
             const cartItem = buildBillingCartItem({
                 variant_id: variant.variant_id,
                 product_name: product?.name || "Unknown",

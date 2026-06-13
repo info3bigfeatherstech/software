@@ -48,7 +48,7 @@ export const SUB_TAB_PERMISSIONS = {
     // Settings internal horizontal tabs (from settingsTabRegistry.js)
     "settings.internal.users": ["SUPER_ADMIN"],
     "settings.internal.shops": ["SUPER_ADMIN"],
-    "settings.internal.vendors": ["SUPER_ADMIN", "WH_MANAGER"],
+    "settings.internal.vendors": ["SUPER_ADMIN"],
     "settings.internal.companydetails": ["SUPER_ADMIN"],
     "settings.internal.bankdetails": ["SUPER_ADMIN", "SHOP_OWNER"],
     "settings.internal.staffcodes": ["SUPER_ADMIN", "SHOP_OWNER"],
@@ -86,10 +86,21 @@ export const SUB_TAB_PERMISSIONS = {
     "cashbank.internal.vendor-payments": ["SUPER_ADMIN", "WH_MANAGER"],
     "cashbank.internal.bank-statement-wh": ["SUPER_ADMIN", "WH_MANAGER"],
     "cashbank.internal.cheques-issued": ["SUPER_ADMIN", "WH_MANAGER"],
-    "cashbank.internal.petty-cash": ["SUPER_ADMIN", "WH_MANAGER"],
+    "cashbank.internal.petty-cash": ["SUPER_ADMIN", "WH_MANAGER", "SHOP_OWNER"],
 
     // Cash & Bank — organisation level
     "cashbank.internal.loan-account": ["SUPER_ADMIN"],
+    "cashbank.internal.collections": ["WH_MANAGER", "SHOP_OWNER"],
+    "cashbank.internal.customer-due": ["SHOP_OWNER"],
+    "cashbank.internal.cash-in-hand": ["SHOP_OWNER"],
+    "cashbank.internal.bank-statement-shop": ["SHOP_OWNER"],
+    "cashbank.internal.cheques-received": ["SUPER_ADMIN"],
+    "cashbank.internal.vendor-payables": ["SUPER_ADMIN"],
+    "cashbank.internal.vendor-payments": ["SUPER_ADMIN"],
+    "cashbank.internal.bank-statement-wh": ["SUPER_ADMIN"],
+    "cashbank.internal.cheques-issued": ["SUPER_ADMIN"],
+    "cashbank.internal.petty-cash": ["SUPER_ADMIN", "WH_MANAGER", "SHOP_OWNER"],
+
 
     // Team Members tab — managers only (+ super admin)
     "teammembers.internal.teammembers": ["SUPER_ADMIN", "WH_MANAGER", "SHOP_OWNER"],
@@ -122,14 +133,17 @@ export const SUB_TAB_PERMISSIONS = {
  */
 export const canViewSubTab = (parentTabId, subTabId) => {
     const currentRole = CURRENT_USER.role;
-    if (currentRole === ROLES.SUPER_ADMIN) return true;
+    if (!currentRole) return false;
 
     const key = `${parentTabId}.${subTabId}`;
     const allowedRoles = SUB_TAB_PERMISSIONS[key];
 
-    if (!allowedRoles) return true;
+    if (allowedRoles) {
+        return allowedRoles.includes(currentRole);
+    }
 
-    return allowedRoles.includes(currentRole);
+    // Unlisted sub-tabs: visible to all authenticated roles (legacy default)
+    return true;
 };
 
 /**
@@ -140,7 +154,6 @@ export const canViewSubTab = (parentTabId, subTabId) => {
  */
 export const filterSubItemsByRole = (parentTabId, subItems) => {
     if (!subItems || !Array.isArray(subItems)) return [];
-    if (CURRENT_USER.role === ROLES.SUPER_ADMIN) return subItems;
 
     return subItems.filter(subItem =>
         canViewSubTab(parentTabId, subItem.id)
@@ -156,7 +169,6 @@ export const filterSubItemsByRole = (parentTabId, subItems) => {
  */
 export const filterInternalTabsByRole = (parentTabId, tabRegistry) => {
     if (!tabRegistry || !Array.isArray(tabRegistry)) return [];
-    if (CURRENT_USER.role === ROLES.SUPER_ADMIN) return tabRegistry;
 
     return tabRegistry.filter(tab =>
         canViewSubTab(`${parentTabId}.internal`, tab.id)
@@ -180,7 +192,7 @@ export const ACTION_PERMISSIONS = {
     "productMs.category_add": ["SUPER_ADMIN", "WH_MANAGER"],
 
     // Vendors
-    "vendor.read": ["SUPER_ADMIN", "WH_MANAGER", "WH_STOCK_LISTER", "SHOP_OWNER", "BILLING_STAFF", "SHOP_STOCK_LISTER"],
+    "vendor.read": ["SUPER_ADMIN", "WH_MANAGER", "WH_STOCK_LISTER",],
     "vendor.create": ["SUPER_ADMIN"],
     "vendor.edit": ["SUPER_ADMIN"],
     "vendor.delete": ["SUPER_ADMIN"],
@@ -269,15 +281,15 @@ export const syncCurrentUserFromAuth = (user) => {
 
 // Role permissions for tabs (controls which tabs appear in sidebar)
 export const ROLE_PERMISSIONS = {
-    [ROLES.SUPER_ADMIN]: ["dashboard", "sales", "purchase", "inventory", "archive", "transfers", "warehouses", "parties", "reports", "settings", "vendors", "cashbank", "teammembers", "backup", "utilities"],
+    [ROLES.SUPER_ADMIN]: ["dashboard", "purchase", "inventory", "archive", "transfers", "warehouses", "parties", "reports", "settings", "vendors", "cashbank", "teammembers", "backup", "utilities"],
     [ROLES.ACCOUNTANT]: ["dashboard", "sales", "purchase", "parties", "reports", "cashbank"],
     [ROLES.BILLING_STAFF]: ["dashboard", "sales", "parties", "transfers", "cashbank"],
     [ROLES.STOCK_LISTER]: ["dashboard", "inventory", "transfers", "cashbank"],
     [ROLES.CASHIER]: ["dashboard", "sales", "cashbank"],
-    [ROLES.WH_MANAGER]: ["dashboard", "warehouses", "transfers", "inventory", "archive", "purchase", "parties", "settings", "vendors", "reports", "sales", "cashbank", "teammembers", "backup", "utilities"],
-    [ROLES.WH_STOCK_LISTER]: ["dashboard", "warehouses", "transfers", "inventory", "purchase", "parties", "settings", "vendors", "reports", "sales", "backup", "utilities"],
-    [ROLES.SHOP_OWNER]: ["dashboard", "sales", "purchase", "inventory", "transfers", "parties", "reports", "settings", "cashbank", "teammembers", "backup", "utilities"],
-    [ROLES.SHOP_STOCK_LISTER]: ["dashboard", "sales", "purchase", "inventory", "transfers", "parties", "reports", "backup", "utilities"],
+    [ROLES.WH_MANAGER]: ["dashboard", "warehouses", "transfers", "inventory", "archive", "purchase", "parties", "settings", "vendors", "reports", "cashbank", "teammembers", "backup", "utilities"],
+    [ROLES.WH_STOCK_LISTER]: ["dashboard", "warehouses", "transfers", "inventory", "purchase", "parties", "settings", "vendors", "reports", "backup", "utilities"],
+    [ROLES.SHOP_OWNER]: ["dashboard", "sales", "inventory", "transfers", "parties", "reports", "settings", "cashbank", "teammembers", "backup" ],
+    [ROLES.SHOP_STOCK_LISTER]: ["dashboard", "sales", "purchase", "inventory", "transfers", "parties", "reports", "backup"],
 };
 
 export const ROLE_LABELS = {

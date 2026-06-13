@@ -56,10 +56,10 @@ export default function UserAddForm({
 
         if (!teamMode) {
             if (WH_ROLES.includes(role) && !formData.warehouse_id?.trim()) {
-                // optional for admin flow
+                errors.warehouse_id = "Warehouse is required for this role";
             }
             if (SHOP_ROLES.includes(role) && !formData.shop_id?.trim()) {
-                // optional for admin flow
+                // optional for admin flow on create
             }
         }
 

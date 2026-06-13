@@ -5,6 +5,8 @@
 // teamMode: restricted roles + locked assignment for shop/warehouse managers.
 
 import React from "react";
+import { useGetWarehousesQuery } from "../../../../../REDUX_FEATURES/REDUX_SLICES/Warehouse_api/warehouseApi";
+import { useGetShopsQuery } from "../../../../../REDUX_FEATURES/REDUX_SLICES/Shop_api/shopApi";
 import { USER_ROLES } from "./userRoles";
 
 export { USER_ROLES };
@@ -26,6 +28,17 @@ export default function UserFormBody({
     const role = formData.role || "";
     const needsWH = WH_ROLES.includes(role);
     const needsShop = SHOP_ROLES.includes(role);
+
+    const { data: warehouseData, isLoading: warehousesLoading } = useGetWarehousesQuery(
+        { page: 1, limit: 100, is_active: "true" },
+        { skip: teamMode || !needsWH }
+    );
+    const { data: shopData, isLoading: shopsLoading } = useGetShopsQuery(
+        { page: 1, limit: 100, is_active: "true" },
+        { skip: teamMode || !needsShop }
+    );
+    const warehouses = warehouseData?.warehouses || [];
+    const shops = shopData?.shops || [];
     const roleOptions = allowedRoles?.length
         ? USER_ROLES.filter((r) => allowedRoles.includes(r.value))
         : USER_ROLES;
@@ -151,16 +164,27 @@ export default function UserFormBody({
             {!teamMode && needsWH && (
                 <div className="col-span-2">
                     <label className="block text-xs font-medium text-gray-600 mb-1">
-                        Warehouse ID <span className="text-gray-400">(optional for now)</span>
+                        Warehouse <span className="text-red-500">*</span>
                     </label>
-                    <input
-                        {...field("warehouse_id")}
-                        placeholder="e.g., clxyz123abc — can be updated later"
-                        className={inputCls("warehouse_id")}
-                    />
-                    <p className="text-xs text-gray-400 mt-1">
-                        You can assign warehouse after creation
-                    </p>
+                    {warehousesLoading ? (
+                        <div className={`${inputCls("warehouse_id")} text-gray-400`}>
+                            Loading warehouses…
+                        </div>
+                    ) : (
+                        <select
+                            value={formData.warehouse_id || ""}
+                            onChange={(e) => onChange({ warehouse_id: e.target.value })}
+                            className={inputCls("warehouse_id")}
+                            disabled={readOnly}
+                        >
+                            <option value="">— Select Warehouse —</option>
+                            {warehouses.map((w) => (
+                                <option key={w.warehouse_id} value={w.warehouse_id}>
+                                    {w.warehouse_name}{w.city ? ` — ${w.city}` : ""}
+                                </option>
+                            ))}
+                        </select>
+                    )}
                     {errorMsg("warehouse_id")}
                 </div>
             )}
@@ -168,16 +192,28 @@ export default function UserFormBody({
             {!teamMode && needsShop && (
                 <div className="col-span-2">
                     <label className="block text-xs font-medium text-gray-600 mb-1">
-                        Shop ID <span className="text-gray-400">(optional for now)</span>
+                        Shop {!isEdit && <span className="text-gray-400 font-normal">(optional — assign later if needed)</span>}
+                        {isEdit && <span className="text-red-500">*</span>}
                     </label>
-                    <input
-                        {...field("shop_id")}
-                        placeholder="e.g., clxyz456def — can be updated later"
-                        className={inputCls("shop_id")}
-                    />
-                    <p className="text-xs text-gray-400 mt-1">
-                        You can assign shop after creation
-                    </p>
+                    {shopsLoading ? (
+                        <div className={`${inputCls("shop_id")} text-gray-400`}>
+                            Loading shops…
+                        </div>
+                    ) : (
+                        <select
+                            value={formData.shop_id || ""}
+                            onChange={(e) => onChange({ shop_id: e.target.value })}
+                            className={inputCls("shop_id")}
+                            disabled={readOnly}
+                        >
+                            <option value="">— Select Shop —</option>
+                            {shops.map((s) => (
+                                <option key={s.shop_id} value={s.shop_id}>
+                                    {s.shop_name}{s.city ? ` — ${s.city}` : ""}
+                                </option>
+                            ))}
+                        </select>
+                    )}
                     {errorMsg("shop_id")}
                 </div>
             )}

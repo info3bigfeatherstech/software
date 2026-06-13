@@ -228,15 +228,21 @@ export const productApi = createApi({
 
 
 
-       // GET /products/by-barcode/:barcode — for billing scan
+       // GET /products/by-barcode/:barcode?shop_id= — for billing scan
         getProductByBarcode: builder.query({
-            query: (barcode) => ({
-                url: `/products/by-barcode/${barcode}`,
-                method: "GET",
-            }),
-            providesTags: (result, error, barcode) => [
-                { type: "Product", id: `barcode-${barcode}` }
-            ],
+            query: (arg) => {
+                const barcode = typeof arg === "string" ? arg : arg?.barcode;
+                const shop_id = typeof arg === "object" ? arg?.shop_id : undefined;
+                return {
+                    url: `/products/by-barcode/${encodeURIComponent(barcode)}`,
+                    method: "GET",
+                    ...(shop_id ? { params: { shop_id } } : {}),
+                };
+            },
+            providesTags: (result, error, arg) => {
+                const barcode = typeof arg === "string" ? arg : arg?.barcode;
+                return [{ type: "Product", id: `barcode-${barcode}` }];
+            },
             transformResponse: (response) => response.data,
         }),
 
