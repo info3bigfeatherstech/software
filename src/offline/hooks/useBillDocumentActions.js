@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import { toast } from "../../Components/shared/ToastConfig";
 import {
-  printBillDocument,
+  printBillPdfSmart,
   downloadBillPdfSmart,
 } from "../billing/billDocumentExport.service";
 
@@ -16,7 +16,7 @@ export const useBillDocumentActions = ({ triggerServerPdf, isOnline } = {}) => {
       }
       setBusyAction("print");
       try {
-        await printBillDocument(bill);
+        await printBillPdfSmart(bill, { isOnline, triggerServerPdf });
       } catch (err) {
         console.error("Print bill error:", err);
         toast.error(err?.message || "Failed to print bill");
@@ -24,7 +24,7 @@ export const useBillDocumentActions = ({ triggerServerPdf, isOnline } = {}) => {
         setBusyAction(null);
       }
     },
-    []
+    [isOnline, triggerServerPdf]
   );
 
   const downloadPdf = useCallback(

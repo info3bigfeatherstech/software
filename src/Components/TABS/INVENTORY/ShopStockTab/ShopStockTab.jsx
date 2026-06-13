@@ -26,7 +26,8 @@ import {
     clearSelectedStocks,
     setLoading,
 } from "../../../../REDUX_FEATURES/REDUX_SLICES/ShopStock_api/shopStockSlice";
-import { CURRENT_USER, isAdmin } from "../../../roles";
+import { getUserShopId } from "../../../../offline/constants";
+import { isAdmin } from "../../../roles";
 import StockQuantityModal from "./ShopStockShared/StockQuantityModal";
 import StockBulkModal from "./ShopStockShared/StockBulkModal";
 import StockBulkRestockModal from "./ShopStockShared/StockBulkRestockModal";
@@ -125,7 +126,7 @@ export default function ShopStockTab() {
     const isShopLister = user?.role === "SHOP_STOCK_LISTER";
     const canEdit = isAdmin() || isShopOwner || isShopLister;
 
-    const userShopId = user?.shop_id || "";
+    const userShopId = getUserShopId(user) || "";
 
     const {
         stocks,

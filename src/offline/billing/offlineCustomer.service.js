@@ -1,6 +1,7 @@
 import { customerRepository } from '../db/repositories/dataRepository';
 import { enqueueMutation } from '../sync/pushService';
 import { getUserShopId } from '../constants';
+import { broadcastPendingCounts } from '../sync/offlineSyncState.service';
 
 const nowIso = () => new Date().toISOString();
 
@@ -65,6 +66,8 @@ export const createOfflineCustomer = async ({ user, shopId, data }) => {
     stock_mutated_locally: false,
     offline_created_at: nowIso(),
   });
+
+  await broadcastPendingCounts(resolvedShopId);
 
   return customer;
 };

@@ -4,8 +4,8 @@ import { shopConfigRepository, customerRepository } from '../db/repositories/dat
 import {
   localBillsRepository,
   offlineBillNumberService,
-  shopStockMutationService,
 } from '../db/repositories/localBillsRepository';
+import { applyLocalSaleDeductions } from '../sync/shopStockSync.service';
 import { enqueueMutation } from '../sync/pushService';
 import { getUserShopId } from '../constants';
 
@@ -137,7 +137,7 @@ export const createOfflineBill = async ({
     quantity: item.quantity,
   }));
 
-  await shopStockMutationService.deductForSale(resolvedShopId, lines);
+  await applyLocalSaleDeductions(resolvedShopId, lines);
 
   const clientBillId = crypto.randomUUID();
   const billNumber = await offlineBillNumberService.nextBillNumber(resolvedShopId, shopCode);

@@ -22,6 +22,10 @@ import {
     isBillAwaitingSync,
     OFFLINE_EVENTS,
 } from "../../../../offline";
+import {
+    applyLocalSaleDeductions,
+    saleLinesFromCart,
+} from "../../../../offline/sync/shopStockSync.service";
 import { useOfflineShopConfig } from "../../../../offline/hooks/useOfflineShopConfig";
 import UpiPaymentModal from "./UpiPaymentModal";
 import UpiQrDisplayModal from "../../../Billing/UpiQrDisplayModal";
@@ -460,10 +464,18 @@ export default function CheckoutPanel({ shop_id }) {
                 return;
             }
 
+            const saleLines = saleLinesFromCart(cart);
+
             const result = await createBill({
                 idempotencyKey: `bill_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
                 ...buildBillPayload(extra),
             }).unwrap();
+
+            try {
+                await applyLocalSaleDeductions(shop_id, saleLines);
+            } catch (stockErr) {
+                console.error("Local stock cache update after online bill:", stockErr);
+            }
 
             if (result.credit_applied > 0) {
                 toast.success(

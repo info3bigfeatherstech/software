@@ -208,7 +208,11 @@ export default function ProductPicker({ shop_id, cart = [] }) {
             {usingOfflineCache && (
                 <div className="mb-2 flex items-center gap-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5">
                     <CloudOff size={12} />
-                    <span>Using offline product catalog{isFetching ? " (refreshing…)" : ""}</span>
+                    <span>
+                        {!isOnline
+                            ? `Offline product catalog${isFetching ? " (refreshing when online…)" : ""}`
+                            : "Server stock list unavailable — showing last synced catalog"}
+                    </span>
                 </div>
             )}
             <div className="relative mb-3">

@@ -5,10 +5,10 @@
 // Nothing else needs to change.
 
 import { lazy } from "react";
+import SalesDashboard from "./TABS/SALES/SalesDashboard";
 // import ArchiveTab from "./TABS/INVENTORY/ArchiveTab/ArchiveTab";
 
 const ContentDashboardTab = lazy(() => import("./ContentDashboard/ContentDashboardTab"));
-const SalesDashboard = lazy(() => import("./TABS/SALES/SalesDashboard"));
 const PurchaseTab = lazy(() => import("./TABS/PURCHASE/PurchaseTab"));
 const InventoryDashboard = lazy(() => import("./TABS/INVENTORY/InventoryDashboard"));
 const PartiesTab = lazy(() => import("./TABS/PARTIES/PartiesTab"));

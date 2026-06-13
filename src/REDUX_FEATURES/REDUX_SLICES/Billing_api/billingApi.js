@@ -12,6 +12,7 @@
 // UPDATED: Added credit_note_ids to createBill
 import { createApi } from "@reduxjs/toolkit/query/react";
 import AxiosInstance from "../../../SERVICES/AxiosInstance";
+import { shopStockApi } from "../ShopStock_api/shopStockApi";
 
 // FIX: Accept `responseType` from the query config and pass it to Axios.
 // Without this, Axios always parses the response as JSON/text, so binary PDF
@@ -79,6 +80,20 @@ export const billingApi = createApi({
             }),
             invalidatesTags: ["Bill"],
             transformResponse: (response) => response.data,
+            async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
+                try {
+                    await queryFulfilled;
+                    dispatch(
+                        shopStockApi.util.invalidateTags([
+                            { type: "ShopStock", id: "LIST" },
+                            { type: "ShopStock", id: "CATALOG" },
+                            "LowStockAlerts",
+                        ])
+                    );
+                } catch {
+                    /* bill failed — leave stock cache unchanged */
+                }
+            },
         }),
 
         // GET /bills/:billId — get bill details
@@ -152,6 +167,20 @@ export const billingApi = createApi({
             }),
             invalidatesTags: (result, error, { billId }) => [{ type: "Bill", id: billId }],
             transformResponse: (response) => response.data,
+            async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
+                try {
+                    await queryFulfilled;
+                    dispatch(
+                        shopStockApi.util.invalidateTags([
+                            { type: "ShopStock", id: "LIST" },
+                            { type: "ShopStock", id: "CATALOG" },
+                            "LowStockAlerts",
+                        ])
+                    );
+                } catch {
+                    /* ignore */
+                }
+            },
         }),
 
 

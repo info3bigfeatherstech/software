@@ -6,10 +6,9 @@
 
 import React, { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Plus, RefreshCw, Eye, Edit2, Trash2, X, User, Phone, Mail, MapPin, Building } from "lucide-react";
+import { Plus, RefreshCw, Eye, Edit2, Trash2, X, User, Phone, Mail, MapPin, Building, CloudOff } from "lucide-react";
 import { toast } from "../../shared/ToastConfig";
 import {
-    useGetCustomersQuery,
     useDeleteCustomerMutation,
     useUpdateCustomerMutation,
     useCreateCustomerMutation,
@@ -39,6 +38,9 @@ import {
     buildCustomerSubmitPayload,
     hasCustomerFormErrors,
 } from "../../../utils/customerForm.utils";
+import { useOfflineCustomersPanel } from "../../../offline/hooks/useOfflineCustomersPanel";
+import { createOfflineCustomer } from "../../../offline/billing/offlineCustomer.service";
+import { getUserShopId } from "../../../offline/constants";
 
 const toNumber = (value, defaultValue = 0) => {
     const num = Number(value);
@@ -78,29 +80,48 @@ export default function CustomersTab() {
         editForm,
         formErrors,
     } = useSelector((state) => state.customer);
+    const { user } = useSelector((state) => state.auth);
+    const isOnline = useSelector((state) => state.offline.isOnline);
+    const shopId = getUserShopId(user);
     
     const [deleteCustomer] = useDeleteCustomerMutation();
     const [updateCustomer] = useUpdateCustomerMutation();
-    const [createCustomer] = useCreateCustomerMutation();
+    const [createCustomer, { isLoading: isOnlineCreating }] = useCreateCustomerMutation();
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const { data, isLoading, refetch } = useGetCustomersQuery({
-        page: currentPage,
-        limit: pageSize,
-        loyalty_tier: loyaltyFilter,
+    const {
+        customers,
+        meta,
+        isLoading,
+        isFetching,
+        usingOfflineCache,
+        refetch,
+    } = useOfflineCustomersPanel(shopId, {
+        currentPage,
+        pageSize,
+        search,
+        loyaltyFilter,
     });
 
-    const customers = data?.customers || [];
-    const meta = data?.meta || { total: 0, page: 1, limit: 20, totalPages: 1 };
+    const customersForTable = isOnline
+        ? customers.filter((c) => {
+            if (!search) return true;
+            const term = search.toLowerCase();
+            return c.name?.toLowerCase().includes(term) || c.mobile?.includes(term);
+        })
+        : customers;
 
-    // Filter customers client-side by search
-    const filteredCustomers = customers.filter(c => {
-        if (!search) return true;
-        const term = search.toLowerCase();
-        return c.name?.toLowerCase().includes(term) || c.mobile?.includes(term);
-    });
+    const filteredCustomers = customersForTable;
 
     const handleDelete = async (customer) => {
+        if (customer.is_offline_pending) {
+            toast.error("Cannot delete a customer that is still pending sync");
+            return;
+        }
+        if (!isOnline) {
+            toast.error("Connect to the internet to delete customers");
+            return;
+        }
         if (window.confirm(`Delete customer ${customer.name}? This will also delete all their bills.`)) {
             try {
                 await deleteCustomer(customer.customer_id).unwrap();
@@ -122,12 +143,22 @@ export default function CustomersTab() {
 
         setIsSubmitting(true);
         try {
-            await createCustomer(buildCustomerSubmitPayload(addForm)).unwrap();
-            toast.success("Customer created successfully");
+            const payload = buildCustomerSubmitPayload(addForm);
+            if (!isOnline) {
+                await createOfflineCustomer({
+                    user,
+                    shopId,
+                    data: payload,
+                });
+                toast.success("Customer saved offline — will sync when online");
+            } else {
+                await createCustomer(payload).unwrap();
+                toast.success("Customer created successfully");
+            }
             dispatch(closeAddModal());
-            refetch();
+            await refetch();
         } catch (err) {
-            if (err?.data?.errors?.length) {
+            if (isOnline && err?.data?.errors?.length) {
                 const fieldErrors = {};
                 err.data.errors.forEach(({ field, message }) => {
                     fieldErrors[field] = message;
@@ -135,7 +166,7 @@ export default function CustomersTab() {
                 dispatch(setFormErrors(fieldErrors));
                 toast.error("Please fix the errors");
             } else {
-                toast.error(err?.data?.message || "Failed to create customer");
+                toast.error(err?.data?.message || err?.message || "Failed to create customer");
             }
         } finally {
             setIsSubmitting(false);
@@ -143,6 +174,14 @@ export default function CustomersTab() {
     };
 
     const handleUpdateCustomer = async () => {
+        if (selectedCustomer?.is_offline_pending) {
+            toast.error("Edit is not available until this customer syncs to the server");
+            return;
+        }
+        if (!isOnline) {
+            toast.error("Connect to the internet to update customers");
+            return;
+        }
         const fieldErrors = validateCustomerForm(editForm, { requireMobile: false });
         if (hasCustomerFormErrors(fieldErrors)) {
             dispatch(setFormErrors(fieldErrors));
@@ -181,6 +220,8 @@ export default function CustomersTab() {
         dispatch(resetFilters());
     };
 
+    const isSaving = isSubmitting || (isOnline && isOnlineCreating);
+
     return (
         <div className="space-y-5">
             {/* Header */}
@@ -199,10 +240,28 @@ export default function CustomersTab() {
                         <Plus size={15} /> Add Customer
                     </button>
                     <button onClick={handleRefresh} className="px-3 py-2 text-sm text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50 flex items-center gap-1.5 bg-white">
-                        <RefreshCw size={13} /> Refresh
+                        <RefreshCw size={13} className={isFetching ? "animate-spin" : ""} /> Refresh
                     </button>
                 </div>
             </div>
+
+            {!isOnline && (
+                <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 flex items-center gap-2">
+                    <CloudOff size={18} className="text-slate-500 shrink-0" />
+                    <p className="text-sm text-slate-700">
+                        Offline mode — showing cached customers. New customers save locally and sync when online. Edit and delete require internet.
+                    </p>
+                </div>
+            )}
+
+            {isOnline && usingOfflineCache && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-center gap-2">
+                    <CloudOff size={16} className="text-amber-600 shrink-0" />
+                    <p className="text-sm text-amber-800">
+                        Using offline customer catalog — server list unavailable. Cached customers are shown.
+                    </p>
+                </div>
+            )}
 
             {/* Stats */}
             <div className="grid grid-cols-3 gap-4">
@@ -212,11 +271,11 @@ export default function CustomersTab() {
                 </div>
                 <div className="bg-white border border-gray-200 rounded-xl p-5">
                     <p className="text-xs uppercase tracking-widest text-gray-400 font-medium mb-2">Active</p>
-                    <p className="text-3xl font-bold text-gray-900">{customers.length}</p>
+                    <p className="text-3xl font-bold text-gray-900">{filteredCustomers.length}</p>
                 </div>
                 <div className="bg-white border border-gray-200 rounded-xl p-5">
                     <p className="text-xs uppercase tracking-widest text-gray-400 font-medium mb-2">Loyalty Gold</p>
-                    <p className="text-3xl font-bold text-gray-900">{customers.filter(c => c.loyalty_tier === "GOLD").length}</p>
+                    <p className="text-3xl font-bold text-gray-900">{filteredCustomers.filter(c => c.loyalty_tier === "GOLD").length}</p>
                 </div>
             </div>
 
@@ -288,7 +347,14 @@ export default function CustomersTab() {
                                             {customer.name?.charAt(0) || "U"}
                                         </div>
                                         <div>
-                                            <p className="font-semibold text-gray-800">{customer.name}</p>
+                                            <p className="font-semibold text-gray-800 flex items-center gap-1.5 flex-wrap">
+                                                {customer.name}
+                                                {customer.is_offline_pending && (
+                                                    <span className="text-[10px] uppercase font-medium text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">
+                                                        Pending sync
+                                                    </span>
+                                                )}
+                                            </p>
                                             {customer.email && <p className="text-xs text-gray-400">{customer.email}</p>}
                                         </div>
                                     </div>
@@ -322,15 +388,17 @@ export default function CustomersTab() {
                                         </button>
                                         <button
                                             onClick={() => dispatch(openEditModal(customer))}
-                                            className="p-1.5 text-green-500 hover:bg-green-50 rounded-lg transition-colors"
-                                            title="Edit"
+                                            disabled={customer.is_offline_pending || !isOnline}
+                                            className="p-1.5 text-green-500 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                            title={customer.is_offline_pending ? "Sync pending" : "Edit"}
                                         >
                                             <Edit2 size={14} />
                                         </button>
                                         <button
                                             onClick={() => handleDelete(customer)}
-                                            className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                                            title="Delete"
+                                            disabled={customer.is_offline_pending || !isOnline}
+                                            className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                            title={customer.is_offline_pending ? "Sync pending" : "Delete"}
                                         >
                                             <Trash2 size={14} />
                                         </button>
@@ -488,10 +556,10 @@ export default function CustomersTab() {
                             <button onClick={() => dispatch(closeAddModal())} className="px-4 py-2 border border-gray-200 rounded-lg text-sm hover:bg-gray-50">Cancel</button>
                             <button
                                 onClick={handleCreateCustomer}
-                                disabled={isSubmitting}
+                                disabled={isSaving}
                                 className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-60"
                             >
-                                {isSubmitting ? "Creating..." : "Create Customer"}
+                                {isSaving ? "Saving…" : isOnline ? "Create Customer" : "Save Offline"}
                             </button>
                         </div>
                     </div>

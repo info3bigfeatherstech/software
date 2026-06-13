@@ -1,11 +1,12 @@
 // TABS/SALES/salesTabRegistry.js
-// Add new sales sub-tabs here only — nothing else in the codebase needs to change.
-import { lazy } from "react";
+// Offline-critical sales tabs are eagerly imported so they load without network (light cut).
+// Online-only tabs stay lazy to keep the initial bundle smaller.
 
-const BillingTab    = lazy(() => import("./BillingTab"));
-const OfflineSyncTab = lazy(() => import("./OfflineSyncTab"));
-const InvoicesTab   = lazy(() => import("./InvoicesTab"));
-const CustomersTab  = lazy(() => import("./CustomersTab"));
+import { lazy } from "react";
+import BillingTab from "./BillingTab";
+import OfflineSyncTab from "./OfflineSyncTab";
+import CustomersTab from "./CustomersTab";
+
 const CreditNotesTab = lazy(() => import("./CreditNotesTab"));
 const ShopReportTab = lazy(() => import("./ShopReportTab/ShopReportTab"));
 

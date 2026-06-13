@@ -67,6 +67,12 @@ export const shopStockRepository = {
     return db.getAll(OFFLINE_STORES.SHOP_STOCKS);
   },
 
+  async listByShop(shopId) {
+    if (!shopId) return [];
+    const rows = await this.listAll();
+    return rows.filter((row) => row.shop_id === shopId);
+  },
+
   async count() {
     const db = await getOfflineDb();
     return db.count(OFFLINE_STORES.SHOP_STOCKS);
@@ -141,6 +147,17 @@ export const customerRepository = {
   async count() {
     const db = await getOfflineDb();
     return db.count(OFFLINE_STORES.CUSTOMERS);
+  },
+
+  async listAll() {
+    const db = await getOfflineDb();
+    return db.getAll(OFFLINE_STORES.CUSTOMERS);
+  },
+
+  async listByShop(shopId) {
+    const all = await this.listAll();
+    if (!shopId) return all;
+    return all.filter((c) => !c.shop_id || c.shop_id === shopId);
   },
 
   async clear() {

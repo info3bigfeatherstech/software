@@ -1,5 +1,6 @@
 import React, { Suspense } from "react";
 import AppLoading from "./AppLoading";
+import TabErrorBoundary from "./TabErrorBoundary";
 
 export default function SubTabBar({ tabs, activeTabId, onTabClick, parentTabId, children }) {
   if (!tabs?.length) {
@@ -63,9 +64,11 @@ export default function SubTabBar({ tabs, activeTabId, onTabClick, parentTabId, 
         </div>
       </div>
 
-      <Suspense fallback={<AppLoading />}>
-        {children}
-      </Suspense>
+      <TabErrorBoundary key={activeTabId} title={`Could not load ${tabs.find((t) => t.id === activeTabId)?.label || "section"}`}>
+        <Suspense fallback={<AppLoading />}>
+          {children}
+        </Suspense>
+      </TabErrorBoundary>
     </div>
   );
 }

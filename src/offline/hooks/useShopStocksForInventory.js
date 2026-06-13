@@ -3,6 +3,8 @@ import { useSelector } from 'react-redux';
 import { shopStockRepository } from '../db/repositories/dataRepository';
 import { mapLocalStockToApiRow } from '../utils/offlineStockAdapter';
 import { useGetShopStocksQuery } from '../../REDUX_FEATURES/REDUX_SLICES/ShopStock_api/shopStockApi';
+import { OFFLINE_EVENTS } from '../constants';
+import { useOfflineEvent } from './useOfflineStatus';
 
 const matchesSearch = (stock, query) => {
   if (!query) return true;
@@ -57,16 +59,31 @@ export const useShopStocksForInventory = (
     }
     setLocalLoading(true);
     try {
-      const rows = await shopStockRepository.listAll();
+      const rows = await shopStockRepository.listByShop(shopId);
       setLocalStocks(rows.map(mapLocalStockToApiRow).filter(Boolean));
     } finally {
       setLocalLoading(false);
     }
   }, [shopId]);
 
+  const refreshAll = useCallback(() => {
+    loadLocal();
+    if (isOnline && shopId) {
+      refetch();
+    }
+  }, [loadLocal, isOnline, shopId, refetch]);
+
   useEffect(() => {
     loadLocal();
-  }, [loadLocal, isOnline]);
+  }, [loadLocal]);
+
+  useOfflineEvent(OFFLINE_EVENTS.STOCKS_UPDATED, (event) => {
+    const updatedShopId = event?.detail?.shopId;
+    if (updatedShopId && updatedShopId !== shopId) return;
+    refreshAll();
+  });
+
+  useOfflineEvent(OFFLINE_EVENTS.SYNC_COMPLETED, refreshAll);
 
   const offlineResult = useMemo(() => {
     let filtered = localStocks.filter((s) => matchesSearch(s, search));
@@ -88,9 +105,12 @@ export const useShopStocksForInventory = (
     };
   }, [localStocks, search, lowStockOnly, page, limit]);
 
-  const usingOfflineCache = !isOnline || !(onlineData?.stocks?.length);
   const onlineStocks = onlineData?.stocks || [];
   const onlineMeta = onlineData?.meta || { total: 0, page: 1, limit: 20, totalPages: 1 };
+
+  const usingOfflineCache = !isOnline
+    ? localStocks.length > 0
+    : !(onlineLoading || onlineFetching) && !onlineStocks.length && localStocks.length > 0;
 
   return {
     stocks: isOnline && onlineStocks.length ? onlineStocks : offlineResult.stocks,
@@ -99,6 +119,6 @@ export const useShopStocksForInventory = (
     isFetching: isOnline ? onlineFetching : false,
     isOnline,
     usingOfflineCache,
-    refetch: isOnline ? refetch : loadLocal,
+    refetch: refreshAll,
   };
 };

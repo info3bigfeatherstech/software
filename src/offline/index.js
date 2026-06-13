@@ -20,6 +20,8 @@ export { mapLocalStockToApiRow, mapLocalStockToBarcodeProduct } from './utils/of
 export { createOfflineStockAdjustment } from './inventory/offlineStockAdjustment.service';
 export { createOfflineShopExpense } from './inventory/offlineShopExpense.service';
 export { useShopStocksForInventory } from './hooks/useShopStocksForInventory';
+export { useOfflineCustomersPanel } from './hooks/useOfflineCustomersPanel';
+export { mapLocalCustomerToApiRow } from './utils/offlineCustomerAdapter';
 export { localBillsRepository } from './db/repositories/localBillsRepository';
 export { useOfflineBillsPanel } from './hooks/useOfflineBillsPanel';
 export { syncConflictsRepository, SYNC_CONFLICT_RESOLUTION } from './db/repositories/syncConflictsRepository';
@@ -33,8 +35,14 @@ export {
 } from './sync/syncIssueResolution.service';
 export { adjustOfflineBillQuantities } from './billing/offlineBillAdjust.service';
 export { broadcastPendingCounts } from './sync/offlineSyncState.service';
+export {
+  applyLocalSaleDeductions,
+  applyLocalSaleRestorations,
+  broadcastStocksUpdated,
+  saleLinesFromCart,
+} from './sync/shopStockSync.service';
 export { prepareBillForDocument } from './billing/billDocumentPrepare.service';
-export { printBillDocument, downloadBillPdfDocument, downloadBillPdfSmart } from './billing/billDocumentExport.service';
+export { printBillDocument, printBillPdfSmart, downloadBillPdfDocument, downloadBillPdfSmart } from './billing/billDocumentExport.service';
 export { useBillDocumentActions } from './hooks/useBillDocumentActions';
 export {
   OFFLINE_EVENTS,

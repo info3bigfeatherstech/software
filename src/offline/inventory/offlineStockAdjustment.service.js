@@ -3,6 +3,7 @@ import { metaRepository } from '../db/repositories/metaRepository';
 import { enqueueMutation } from '../sync/pushService';
 import { getUserShopId } from '../constants';
 import { broadcastPendingCounts } from '../sync/offlineSyncState.service';
+import { broadcastStocksUpdated } from '../sync/shopStockSync.service';
 
 const nowIso = () => new Date().toISOString();
 
@@ -82,6 +83,12 @@ export const createOfflineStockAdjustment = async ({
   });
 
   await broadcastPendingCounts(resolvedShopId);
+  broadcastStocksUpdated(resolvedShopId, {
+    reason: 'stock_adjustment',
+    variant_id: variantId,
+    before,
+    after,
+  });
 
   return {
     client_id: clientId,

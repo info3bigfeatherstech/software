@@ -3,14 +3,30 @@ import { createRoot } from "react-dom/client";
 import { flushSync } from "react-dom";
 import html2pdf from "html2pdf.js";
 import BillInvoiceDocument from "../../Components/Billing/BillInvoiceDocument";
+import billInvoiceStyles from "../../Components/Billing/billInvoice.styles.css?raw";
 import { prepareBillForDocument } from "./billDocumentPrepare.service";
 import { isBillAwaitingSync } from "./offlineBilling.service";
+
+const PRINT_BASE_STYLES = `
+html, body {
+  margin: 0;
+  padding: 0;
+  background: #fff;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+`;
 
 const mountBillDocument = (preparedBill) => {
   const host = document.createElement("div");
   host.className = "bill-print-host";
-  host.style.cssText = "position:fixed;left:-10000px;top:0;z-index:-1;background:#fff;";
+  host.style.cssText =
+    "position:fixed;left:0;top:0;width:210mm;opacity:0;pointer-events:none;z-index:-1;background:#fff;";
   document.body.appendChild(host);
+
+  const styleEl = document.createElement("style");
+  styleEl.textContent = getBillInvoiceStyles();
+  host.appendChild(styleEl);
 
   const root = createRoot(host);
   flushSync(() => {
@@ -24,7 +40,7 @@ const mountBillDocument = (preparedBill) => {
     throw new Error("Failed to render bill document");
   }
 
-  return { host, root, content };
+  return { host, root, content, styleEl };
 };
 
 const cleanupMount = ({ host, root }) => {
@@ -41,28 +57,105 @@ const buildFilename = (bill) => {
   return `invoice-${String(num).replace(/[^a-zA-Z0-9-_]/g, "_")}.pdf`;
 };
 
+/** Full invoice CSS embedded for print/PDF — works in PWA standalone windows. */
+const getBillInvoiceStyles = () => `${PRINT_BASE_STYLES}\n${billInvoiceStyles || ""}`;
+
+const buildPrintHtml = (prepared, bodyHtml) => `<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8" />
+<title>Invoice ${prepared.bill_number || ""}</title>
+<style>${getBillInvoiceStyles()}</style>
+</head><body>${bodyHtml}</body></html>`;
+
+const openPrintWindow = (html) =>
+  new Promise((resolve, reject) => {
+    const printWindow = window.open("", "_blank", "noopener,noreferrer");
+    if (!printWindow) {
+      reject(new Error("Pop-up blocked — allow pop-ups to print the bill"));
+      return;
+    }
+
+    printWindow.document.open();
+    printWindow.document.write(html);
+    printWindow.document.close();
+
+    const triggerPrint = () => {
+      printWindow.focus();
+      printWindow.print();
+      resolve(printWindow);
+    };
+
+    if (printWindow.document.readyState === "complete") {
+      requestAnimationFrame(triggerPrint);
+    } else {
+      printWindow.onload = triggerPrint;
+    }
+  });
+
+const resolveServerPdfBlob = (response) => {
+  if (response instanceof Blob) {
+    return response.type.includes("json") ? null : response;
+  }
+  if (response && typeof response === "object" && typeof response.size === "number") {
+    return new Blob([response], { type: "application/pdf" });
+  }
+  return null;
+};
+
+const printPdfBlob = (blob) =>
+  new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(blob);
+    const printWindow = window.open(url, "_blank", "noopener,noreferrer");
+    if (!printWindow) {
+      URL.revokeObjectURL(url);
+      reject(new Error("Pop-up blocked — allow pop-ups to print the bill"));
+      return;
+    }
+
+    const cleanup = () => URL.revokeObjectURL(url);
+
+    const triggerPrint = () => {
+      printWindow.focus();
+      printWindow.print();
+      cleanup();
+      resolve(printWindow);
+    };
+
+    printWindow.onload = triggerPrint;
+    setTimeout(triggerPrint, 600);
+  });
+
 export const printBillDocument = async (bill) => {
   const prepared = await prepareBillForDocument(bill);
   const mount = mountBillDocument(prepared);
 
   try {
-    const printWindow = window.open("", "_blank", "noopener,noreferrer");
-    if (!printWindow) {
-      throw new Error("Pop-up blocked — allow pop-ups to print the bill");
-    }
-
-    printWindow.document.write(`<!DOCTYPE html>
-<html><head>
-<meta charset="utf-8" />
-<title>Invoice ${prepared.bill_number || ""}</title>
-<style>${collectStyles()}</style>
-</head><body>${mount.content.outerHTML}</body></html>`);
-    printWindow.document.close();
-    printWindow.focus();
-    printWindow.print();
+    await openPrintWindow(buildPrintHtml(prepared, mount.content.outerHTML));
   } finally {
     cleanupMount(mount);
   }
+};
+
+export const printBillPdfSmart = async (bill, { isOnline, triggerServerPdf } = {}) => {
+  const awaitingSync = isBillAwaitingSync(bill);
+  const serverBillId =
+    bill.server_bill_id || (!awaitingSync && !bill.is_offline ? bill.bill_id : null);
+
+  if (isOnline && serverBillId && typeof triggerServerPdf === "function") {
+    try {
+      const response = await triggerServerPdf(serverBillId).unwrap();
+      const blob = resolveServerPdfBlob(response);
+      if (blob) {
+        await printPdfBlob(blob);
+        return { source: "server" };
+      }
+    } catch (err) {
+      console.warn("Server PDF print failed, falling back to client template:", err);
+    }
+  }
+
+  await printBillDocument(bill);
+  return { source: "client" };
 };
 
 export const downloadBillPdfDocument = async (bill) => {
@@ -70,44 +163,28 @@ export const downloadBillPdfDocument = async (bill) => {
   const mount = mountBillDocument(prepared);
 
   try {
+    // html2canvas needs the styled host (inline CSS + invoice node), not the inner div alone
     await html2pdf()
       .set({
         margin: [10, 10, 10, 10],
         filename: buildFilename(prepared),
         image: { type: "jpeg", quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, logging: false },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          scrollX: 0,
+          scrollY: 0,
+          windowWidth: 794,
+        },
         jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
         pagebreak: { mode: ["avoid-all", "css", "legacy"] },
       })
-      .from(mount.content)
+      .from(mount.host)
       .save();
   } finally {
     cleanupMount(mount);
   }
-};
-
-/** Inline bill invoice styles for print popup (avoids broken relative URLs). */
-const collectStyles = () => {
-  const sheets = [...document.styleSheets];
-  let css = "";
-  for (const sheet of sheets) {
-    try {
-      for (const rule of sheet.cssRules || []) {
-        if (rule.cssText?.includes("bill-invoice-doc") || rule.cssText?.includes("bi-")) {
-          css += `${rule.cssText}\n`;
-        }
-      }
-    } catch {
-      /* cross-origin stylesheets */
-    }
-  }
-  if (!css.trim()) {
-    return `@page { size: A4; margin: 10mm; }
-.bill-invoice-doc { font-family: Helvetica, Arial, sans-serif; font-size: 8pt; color: #000; width: 190mm; margin: 0 auto; }
-.bill-invoice-doc table { width: 100%; border-collapse: collapse; }
-.bill-invoice-doc th, .bill-invoice-doc td { border: 0.5px solid #333; padding: 3px; text-align: center; font-size: 7.5pt; }`;
-  }
-  return css;
 };
 
 /**
@@ -115,22 +192,20 @@ const collectStyles = () => {
  */
 export const downloadBillPdfSmart = async (bill, { isOnline, triggerServerPdf } = {}) => {
   const awaitingSync = isBillAwaitingSync(bill);
-  const serverBillId = bill.server_bill_id || (!awaitingSync && !bill.is_offline ? bill.bill_id : null);
+  const serverBillId =
+    bill.server_bill_id || (!awaitingSync && !bill.is_offline ? bill.bill_id : null);
 
   if (isOnline && serverBillId && typeof triggerServerPdf === "function") {
     try {
       const response = await triggerServerPdf(serverBillId).unwrap();
-      const blob =
-        response instanceof Blob
-          ? response
-          : response && typeof response === "object" && typeof response.size === "number"
-            ? new Blob([response], { type: "application/pdf" })
-            : null;
-      if (blob && !blob.type.includes("json")) {
+      const blob = resolveServerPdfBlob(response);
+      if (blob) {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = buildFilename(bill.server_bill_number ? bill : { bill_number: bill.bill_number || serverBillId });
+        a.download = buildFilename(
+          bill.server_bill_number ? bill : { bill_number: bill.bill_number || serverBillId }
+        );
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);

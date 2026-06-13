@@ -8,6 +8,9 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import AxiosInstance from "../../../SERVICES/AxiosInstance";
 
+/** Backend validator max for GET /shop-stocks limit query param */
+export const SHOP_STOCK_API_MAX_LIMIT = 100;
+
 const axiosBaseQuery = () => async ({ url, method, data, params }) => {
     try {
         const result = await AxiosInstance({ url, method, data, params });
@@ -44,7 +47,10 @@ export const shopStockApi = createApi({
                 low_stock_only = false,
                 search = "",
             }) => {
-                const params = { page, limit };
+                const params = {
+                    page,
+                    limit: Math.min(Math.max(1, limit), SHOP_STOCK_API_MAX_LIMIT),
+                };
                 if (shop_id) params.shop_id = shop_id;
                 if (variant_id) params.variant_id = variant_id;
                 if (min_quantity) params.min_quantity = min_quantity;
@@ -65,6 +71,69 @@ export const shopStockApi = createApi({
                 stocks: response.data || [],
                 meta: response.meta || { total: 0, page: 1, limit: 20, totalPages: 1 },
             }),
+        }),
+
+        // Full shop catalog for billing — paginates at SHOP_STOCK_API_MAX_LIMIT per request
+        getShopStocksCatalog: builder.query({
+            async queryFn({ shop_id }, _api, _extra, baseQuery) {
+                if (!shop_id) {
+                    return {
+                        error: { status: 400, data: { message: "shop_id is required" } },
+                    };
+                }
+
+                const limit = SHOP_STOCK_API_MAX_LIMIT;
+                let page = 1;
+                let totalPages = 1;
+                const allStocks = [];
+
+                while (page <= totalPages) {
+                    const res = await baseQuery({
+                        url: "/shop-stocks",
+                        method: "GET",
+                        params: { shop_id, page, limit },
+                    });
+
+                    if (res.error) {
+                        return { error: res.error };
+                    }
+
+                    const body = res.data;
+                    const pageStocks = body?.data ?? [];
+                    const meta = body?.meta ?? {};
+                    allStocks.push(...pageStocks);
+                    totalPages = meta.totalPages ?? 1;
+                    page += 1;
+                }
+
+                return {
+                    data: {
+                        stocks: allStocks,
+                        meta: {
+                            total: allStocks.length,
+                            page: 1,
+                            limit: allStocks.length,
+                            totalPages: 1,
+                        },
+                    },
+                };
+            },
+            providesTags: (result) => {
+                if (result?.stocks?.length) {
+                    return [
+                        ...result.stocks.map(({ shop_stock_id }) => ({
+                            type: "ShopStock",
+                            id: shop_stock_id,
+                        })),
+                        { type: "ShopStock", id: "LIST" },
+                        { type: "ShopStock", id: "CATALOG" },
+                    ];
+                }
+                return [
+                    { type: "ShopStock", id: "LIST" },
+                    { type: "ShopStock", id: "CATALOG" },
+                ];
+            },
         }),
 
         // GET /shop-stocks/low-stock — get low stock alerts
@@ -157,6 +226,7 @@ export const shopStockApi = createApi({
 export const {
     // Queries
     useGetShopStocksQuery,
+    useGetShopStocksCatalogQuery,
     useGetLowStockAlertsQuery,
     useGetShopStockByVariantQuery,
     useGetReorderSuggestionsQuery,

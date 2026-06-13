@@ -49,6 +49,7 @@ export const OFFLINE_EVENTS = Object.freeze({
   SYNC_STARTED: 'offline:sync-started',
   SYNC_COMPLETED: 'offline:sync-completed',
   SYNC_FAILED: 'offline:sync-failed',
+  STOCKS_UPDATED: 'offline:stocks-updated',
   PULL_PROGRESS: 'offline:pull-progress',
   PENDING_COUNTS_UPDATED: 'offline:pending-counts-updated',
   BILL_DISCARDED: 'offline:bill-discarded',
